@@ -54,8 +54,10 @@ function walk(dir, out) {
  * Windows checkout (CRLF) and a Linux checkout (LF) produce the same hash.
  */
 export function wasmSourceHash() {
+  // Only crates compiled into the WASM; solver-cli changes don't affect it.
+  const crateDirs = ['solver-core', 'solver-wasm'].map((c) => join(ROOT, 'crates', c));
   const files = [
-    ...walk(join(ROOT, 'crates'), []).filter((f) => f.endsWith('.rs') || f.endsWith('Cargo.toml')),
+    ...crateDirs.flatMap((d) => walk(d, [])).filter((f) => f.endsWith('.rs') || f.endsWith('Cargo.toml')),
     join(ROOT, 'Cargo.toml'),
     join(ROOT, 'Cargo.lock'),
     join(ROOT, 'rust-toolchain.toml'),
