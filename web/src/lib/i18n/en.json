@@ -1,0 +1,13 @@
+{
+  "app.title": "OpenRange",
+  "app.tagline": "Offline No-Limit Hold'em study suite",
+  "status.heading": "Solver engine",
+  "status.loading": "Loading the solver in a background worker…",
+  "status.ready": "Solver core v{version} is running in a background worker.",
+  "status.combos": "Two-card starting hands, counted by the Rust solver: {count}",
+  "status.error": "The solver could not start: {message}",
+  "about.heading": "About",
+  "about.studyOnly": "OpenRange is a study tool. It does not read your screen, show overlays or HUDs, or connect to any poker site. Hand-history import is for reviewing sessions after you play.",
+  "about.offline": "Everything runs on this device. There are no accounts, no telemetry, and no network requests after the app has loaded.",
+  "about.milestone": "This is milestone M0: the app shell. Drills, charts and lessons arrive in later milestones."
+}

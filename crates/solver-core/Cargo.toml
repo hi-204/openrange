@@ -1,0 +1,10 @@
+[package]
+name = "solver-core"
+description = "OpenRange solver core: cards, evaluator, ranges, equity, CFR."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]

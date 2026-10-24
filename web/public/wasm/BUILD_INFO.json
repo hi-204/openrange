@@ -1,0 +1,7 @@
+{
+  "sourceHash": "0b1781bf366529034a8831b94c82212e9e2f84379407c2095c3a8f740c795645",
+  "wasmSha256": "605a53a07d8ce47f058ace8baf67d597345b0533bc876ef3ccb2adc3fba1d09b",
+  "wasmBytes": 19444,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "wasmBindgen": "0.2.129"
+}

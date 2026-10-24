@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # rust-toolchain.toml pins the version; rustup installs it on first use.
+      - name: Rust toolchain
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: npm install
+        run: npm ci
+
+      - name: Checks (fmt, clippy, cargo test, wasm freshness, typecheck, vitest, licenses)
+        run: npm run check
+
+      - name: Heavy Rust tests (release, includes ignored)
+        run: cargo test --workspace --release --locked -- --include-ignored
+
+      - name: Playwright smoke test
+        env:
+          PW_BROWSER: chromium
+        run: |
+          npx --workspace web playwright install --with-deps chromium
+          npm run test:e2e
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install && rustup component add llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # The gate is raised as solver-core grows (see docs/PLAN.md); it never goes down
+      # without a DECISIONS.md entry.
+      - name: solver-core coverage gate
+        run: cargo llvm-cov -p solver-core --locked --fail-under-lines 80

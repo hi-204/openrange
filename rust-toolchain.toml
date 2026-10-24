@@ -1,0 +1,6 @@
+# Pinned so solver builds (and therefore generated data) are reproducible. See D-005.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

@@ -1,0 +1,15 @@
+[package]
+name = "solver-cli"
+description = "OpenRange command-line tool: batch solving, chart generation, validation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "solver-cli"
+path = "src/main.rs"
+
+[dependencies]
+solver-core.workspace = true

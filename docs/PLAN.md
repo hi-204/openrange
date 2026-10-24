@@ -109,7 +109,7 @@ what's next).
 | Project folder | `C:\Users\aless\openrange` (outside OneDrive and outside VS Code's config folder) | D-002 |
 | Solver | Own Rust solver core; no third-party solver code | D-003 |
 | License | MIT for all OpenRange code and content | D-004 |
-| Rust toolchain (dev only) | stable, `x86_64-pc-windows-gnu` host (no Visual Studio needed) | D-005 |
+| Rust toolchain (dev only) | 1.99.1, MSVC host + VS 2022 Build Tools (GNU host was tried first and dropped) | D-025 |
 | Node | current LTS (24.x) | D-006 |
 | WASM threading | single-threaded WASM inside a Web Worker (no SharedArrayBuffer) | D-010 |
 | Default WASM memory budget | 1.0 GB, adjustable up to 3 GB in settings | D-011 |

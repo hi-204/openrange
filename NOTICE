@@ -1,0 +1,15 @@
+OpenRange
+Copyright (c) 2026 Alessandro and OpenRange contributors
+Licensed under the MIT License (see LICENSE).
+
+OpenRange contains no third-party solver code. Its solver is an original
+implementation of published algorithms (CFR, CFR+, Discounted CFR).
+
+OpenRange depends on third-party open-source packages (Rust crates and npm
+packages). Each is used under its own license. The full, generated list with
+license identifiers is in docs/THIRD_PARTY_LICENSES.md
+(regenerate with: npm run licenses).
+
+The prebuilt WebAssembly file in web/public/wasm/ is compiled from this
+repository's crates/ directory together with the Rust crates listed in that
+report.

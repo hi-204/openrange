@@ -1,0 +1,15 @@
+[package]
+name = "solver-wasm"
+description = "wasm-bindgen wrapper around solver-core for the OpenRange web app."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+solver-core.workspace = true
+wasm-bindgen.workspace = true

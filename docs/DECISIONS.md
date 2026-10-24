@@ -38,6 +38,7 @@ dependencies; `scripts/license-report.mjs` generates `docs/THIRD_PARTY_LICENSES.
 **Alternatives:** AGPL-3.0 (only needed if we used postflop-solver; rejected with D-003).
 
 ### D-005 · Rust toolchain on Windows: GNU host, pinned stable
+**Status:** superseded by D-025.
 **Decision:** Development uses rustup with the `stable-x86_64-pc-windows-gnu` host
 toolchain plus the `wasm32-unknown-unknown` target, pinned in `rust-toolchain.toml`.
 **Why:** The MSVC host needs Visual Studio Build Tools (several GB, admin install). The GNU
@@ -148,3 +149,19 @@ to i18next later.
 **Decision:** Use vite-plugin-pwa (MIT, Workbox) with a precache-everything strategy and no
 runtime caching of external origins (there are none). Added in M10; nothing before M10
 depends on it.
+
+### D-025 · Rust toolchain on Windows: MSVC host (supersedes D-005)
+**Context:** With the GNU host, crates that use `raw-dylib` (current `windows-sys`,
+`getrandom` 0.3 — pulled in by `wasm-bindgen-cli` and `proptest`) need GNU `dlltool`, which
+in turn needs an assembler (`as.exe`) that rustup's self-contained MinGW does not ship. The
+claim in D-005 that "our dependencies are pure Rust" was wrong for dev tooling.
+**Decision:** Use the standard `x86_64-pc-windows-msvc` host with Visual Studio 2022 Build
+Tools (C++ workload). Version still pinned by `rust-toolchain.toml` (1.99.1).
+**Why:** It is the officially recommended Windows setup and every crate builds with it.
+Users who only run the app still need neither (prebuilt WASM, D-009).
+
+### D-026 · Playwright uses the system Microsoft Edge on Windows
+**Decision:** Locally on Windows, Playwright drives the preinstalled Edge (`channel: msedge`),
+so no browser binary is downloaded. CI (and `PW_BROWSER=chromium`) uses Playwright's
+Chromium, installed explicitly in the workflow. **Why:** D-020 (no downloaded binaries in
+the user's build).
