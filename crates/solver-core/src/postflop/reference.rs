@@ -1,14 +1,15 @@
 //! Independent checks for the vectorized solver.
 //!
-//! [`ReferenceRiver`] restates a (small, rake-free) river spot as an ordinary extensive-form
-//! game for the tabular engine in [`crate::cfr::tabular`]: one chance outcome per pair of
-//! hands, one information set per (player, hand, history), and showdown payoffs from the slow
-//! reference evaluator. It shares none of the vectorized code paths (no sweeps, no card-removal
-//! accumulators), so agreement between the two is meaningful.
+//! [`ReferenceSpot`] restates a (small, rake-free) river or turn spot as an ordinary
+//! extensive-form game for the tabular engine in [`crate::cfr::tabular`]: one chance outcome
+//! per pair of hands, one chance outcome per river card (turn spots), one information set per
+//! (player, hand, dealt card, history), and showdown payoffs from the slow reference evaluator.
+//! It shares none of the vectorized code paths (no sweeps, no card-removal accumulators, no
+//! suit isomorphism), so agreement between the two is meaningful.
 //!
 //! [`toy_polarized`] builds the textbook polarized-bettor vs bluff-catcher river game.
 
-use super::game::{PostflopGame, SpotConfig};
+use super::game::{Options, PostflopGame, SpotConfig};
 use super::tree::{Action, BetSizes, NodeKind, Size, Street, StreetSizes, Tree, TreeConfig};
 use crate::cards::{Card, CardSet, Combo, parse_cards};
 use crate::cfr::Algorithm;
@@ -18,7 +19,7 @@ use crate::range::Range;
 use crate::rng::Rng;
 use std::collections::HashMap;
 
-pub struct ReferenceRiver {
+pub struct ReferenceSpot {
     tree: Tree,
     board: Vec<Card>,
     pot: f64,
@@ -26,10 +27,10 @@ pub struct ReferenceRiver {
     deals: Vec<(Combo, Combo, f64)>,
 }
 
-impl ReferenceRiver {
-    pub fn new(cfg: &SpotConfig) -> Result<ReferenceRiver, String> {
-        if cfg.tree.street != Street::River || cfg.board.len() != 5 {
-            return Err("the reference solver handles river spots only".into());
+impl ReferenceSpot {
+    pub fn new(cfg: &SpotConfig) -> Result<ReferenceSpot, String> {
+        if cfg.tree.street == Street::Flop {
+            return Err("the reference solver handles river and turn spots only".into());
         }
         if cfg.tree.rake.fraction != 0.0 {
             return Err("the reference solver handles rake-free spots only".into());
@@ -49,7 +50,7 @@ impl ReferenceRiver {
         for d in &mut deals {
             d.2 /= total;
         }
-        Ok(ReferenceRiver {
+        Ok(ReferenceSpot {
             tree: Tree::build(&cfg.tree)?,
             board: cfg.board.clone(),
             pot: cfg.tree.pot as f64,
@@ -59,7 +60,7 @@ impl ReferenceRiver {
 
     /// Payoff to OOP minus half the starting pot, which makes the game zero-sum (the tabular
     /// engine's convention) without changing any strategic incentive.
-    fn payoff0(&self, deal: usize, node: usize) -> f64 {
+    fn payoff0(&self, deal: usize, node: usize, river: Option<Card>) -> f64 {
         let n = &self.tree.nodes[node];
         let (inv0, inv1) = (n.invested[0] as f64, n.invested[1] as f64);
         let u0 = match n.kind {
@@ -67,8 +68,10 @@ impl ReferenceRiver {
             NodeKind::Fold { .. } => self.pot + inv1,
             NodeKind::Showdown => {
                 let (a, b, _) = self.deals[deal];
-                let sa = reference::eval(&[&self.board[..], &[a.hi, a.lo]].concat());
-                let sb = reference::eval(&[&self.board[..], &[b.hi, b.lo]].concat());
+                let mut board = self.board.clone();
+                board.extend(river);
+                let sa = reference::eval(&[&board[..], &[a.hi, a.lo]].concat());
+                let sb = reference::eval(&[&board[..], &[b.hi, b.lo]].concat());
                 match sa.cmp(&sb) {
                     std::cmp::Ordering::Greater => self.pot + inv1,
                     std::cmp::Ordering::Less => -inv0,
@@ -79,26 +82,23 @@ impl ReferenceRiver {
         };
         u0 - self.pot / 2.0
     }
-
-    /// Information-set key used for (player, combo, tree node); lets callers map strategies.
-    pub fn infoset_key(player: usize, combo: Combo, node: usize) -> String {
-        format!("{player}:{combo}:{node}")
-    }
 }
 
 #[derive(Clone)]
 pub struct RefState {
     deal: Option<usize>,
     node: usize,
+    river: Option<Card>,
 }
 
-impl Game for ReferenceRiver {
+impl Game for ReferenceSpot {
     type State = RefState;
 
     fn root(&self) -> RefState {
         RefState {
             deal: None,
             node: 0,
+            river: None,
         }
     }
 
@@ -111,6 +111,7 @@ impl Game for ReferenceRiver {
                             RefState {
                                 deal: Some(i),
                                 node: 0,
+                                river: None,
                             },
                             self.deals[i].2,
                         )
@@ -129,9 +130,10 @@ impl Game for ReferenceRiver {
                 } else {
                     self.deals[d].1
                 };
+                let river = s.river.map(|c| c.to_string()).unwrap_or_else(|| "-".into());
                 Step::Decision {
                     player: *player,
-                    infoset: format!("{combo}:{}", s.node),
+                    infoset: format!("{combo}:{}:{river}", s.node),
                     actions: actions
                         .iter()
                         .zip(children)
@@ -141,16 +143,39 @@ impl Game for ReferenceRiver {
                                 RefState {
                                     deal: Some(d),
                                     node: c,
+                                    river: s.river,
                                 },
                             )
                         })
                         .collect(),
                 }
             }
+            NodeKind::Chance { child, .. } => {
+                let (a, b, _) = self.deals[d];
+                let used = CardSet(CardSet::from_cards(&self.board).0 | a.cards().0 | b.cards().0);
+                let live: Vec<Card> = (0..52)
+                    .map(Card::from_index)
+                    .filter(|c| !used.contains(*c))
+                    .collect();
+                let p = 1.0 / live.len() as f64;
+                Step::Chance(
+                    live.into_iter()
+                        .map(|c| {
+                            (
+                                RefState {
+                                    deal: Some(d),
+                                    node: *child,
+                                    river: Some(c),
+                                },
+                                p,
+                            )
+                        })
+                        .collect(),
+                )
+            }
             NodeKind::Fold { .. } | NodeKind::Showdown => Step::Terminal {
-                payoff: self.payoff0(d, s.node),
+                payoff: self.payoff0(d, s.node, s.river),
             },
-            NodeKind::Chance { .. } => unreachable!("river spots have no chance nodes"),
         }
     }
 }
@@ -167,7 +192,7 @@ pub fn toy_polarized(bet_fraction: f64) -> SpotConfig {
         pot: 1000,
         stack: 100_000,
         sizes: [bet.clone(), bet.clone(), bet],
-        max_raises: 0,
+        max_raises: [0; 3],
         allin_threshold: 2.0,
         rake: Default::default(),
     };
@@ -294,7 +319,7 @@ pub fn random_river_spot(rng: &mut Rng) -> SpotConfig {
         pot: 1000,
         stack: 3000 + 1000 * rng.below(5) as i64,
         sizes: [sizes.clone(), sizes.clone(), sizes],
-        max_raises: 1 + rng.below(2) as u8,
+        max_raises: [1 + rng.below(2) as u8; 3],
         allin_threshold: 2.0,
         rake: Default::default(),
     };
@@ -319,22 +344,39 @@ pub struct ReferenceComparison {
 }
 
 pub fn reference_check(cfg: &SpotConfig, iters: u32) -> Result<ReferenceComparison, String> {
-    let mut g = solve(cfg, iters)?;
-    let reference = ReferenceRiver::new(cfg)?;
+    // Every dealt card needs its own node to compare against, so no isomorphism here.
+    let options = Options {
+        algorithm: Algorithm::DCFR_DEFAULT,
+        isomorphism: false,
+    };
+    let mut g = PostflopGame::with_options(cfg.clone(), options)?;
+    for _ in 0..iters {
+        g.iterate();
+    }
+    let reference = ReferenceSpot::new(cfg)?;
     let tab_tree = tabular::Tree::build(&reference);
+    let start = CardSet::from_cards(&cfg.board);
     let mut sigma: tabular::Strategy = tab_tree
         .infosets
         .iter()
         .map(|i| vec![0.0; i.actions.len()])
         .collect();
-    let mut views: HashMap<usize, Vec<f32>> = HashMap::new();
+    let mut views: HashMap<(usize, u64), Vec<f32>> = HashMap::new();
     for (k, info) in tab_tree.infosets.iter().enumerate() {
-        let (combo_s, node_s) = info.key.split_once(':').ok_or("bad infoset key")?;
+        let mut parts = info.key.split(':');
+        let (combo_s, node_s, river_s) = (parts.next(), parts.next(), parts.next());
+        let (Some(combo_s), Some(node_s), Some(river_s)) = (combo_s, node_s, river_s) else {
+            return Err("bad infoset key".into());
+        };
         let node: usize = node_s.parse().map_err(|_| "bad infoset key")?;
-        let view = match views.entry(node) {
+        let mut board = start;
+        if river_s != "-" {
+            board.insert(Card::parse(river_s).ok_or("bad card")?);
+        }
+        let view = match views.entry((node, board.0)) {
             std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
             std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(g.river_average(node).ok_or("missing node")?)
+                e.insert(g.average_at(node, board).ok_or("missing node")?)
             }
         };
         let combo = Combo::parse(combo_s).ok_or("bad combo")?;
@@ -362,6 +404,43 @@ pub fn reference_check(cfg: &SpotConfig, iters: u32) -> Result<ReferenceComparis
         vectorized_value,
         tabular_value,
     })
+}
+
+/// A small random turn spot (few combos per side, one bet size and one raise per street).
+pub fn random_turn_spot(rng: &mut Rng) -> SpotConfig {
+    let board = rng.sample_cards(4, 0);
+    let bset = CardSet::from_cards(&board);
+    let mut ranges = [Range::empty(), Range::empty()];
+    for r in ranges.iter_mut() {
+        let n = 3 + rng.below(3) as usize;
+        for c in rng.sample_cards(2 * n, bset.0).chunks(2) {
+            r.set(Combo::new(c[0], c[1]), 0.25 + 0.75 * rng.f64() as f32);
+        }
+    }
+    let sizes = StreetSizes {
+        oop: BetSizes {
+            bet: vec![Size::Pot(0.66)],
+            raise: vec![Size::Pot(1.0)],
+        },
+        ip: BetSizes {
+            bet: vec![Size::Pot(0.75)],
+            raise: vec![Size::Pot(1.0)],
+        },
+    };
+    let tree = TreeConfig {
+        street: Street::Turn,
+        pot: 1000,
+        stack: 4000 + 1000 * rng.below(4) as i64,
+        sizes: [sizes.clone(), sizes.clone(), sizes],
+        max_raises: [1; 3],
+        allin_threshold: 2.0,
+        rake: Default::default(),
+    };
+    SpotConfig {
+        tree,
+        board,
+        ranges,
+    }
 }
 
 #[cfg(test)]
@@ -394,6 +473,23 @@ mod tests {
                 "case {case}: {r:?}"
             );
             // Two independent solvers: same game value within 0.2% of the pot.
+            assert!(
+                (r.tabular_value - r.vectorized_value).abs() < 2.0,
+                "case {case}: {r:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn vectorized_solver_agrees_with_tabular_reference_on_random_turns() {
+        let mut rng = Rng::seed(0x7AB1E);
+        for case in 0..3 {
+            let cfg = random_turn_spot(&mut rng);
+            let r = reference_check(&cfg, 800).unwrap();
+            assert!(
+                (r.tabular_exploitability - r.vectorized_exploitability).abs() < 0.01,
+                "case {case}: {r:?}"
+            );
             assert!(
                 (r.tabular_value - r.vectorized_value).abs() < 2.0,
                 "case {case}: {r:?}"

@@ -47,9 +47,15 @@ pub struct Solver(solver::Session);
 
 #[wasm_bindgen]
 impl Solver {
+    /// `allowAbstraction`: if the spot doesn't fit the budget, simplify the tree (and report
+    /// how in `info().abstraction`) instead of refusing.
     #[wasm_bindgen(constructor)]
-    pub fn new(spot_json: &str, budget_bytes: f64) -> Result<Solver, JsError> {
-        solver::Session::new(spot_json, budget_bytes)
+    pub fn new(
+        spot_json: &str,
+        budget_bytes: f64,
+        allow_abstraction: bool,
+    ) -> Result<Solver, JsError> {
+        solver::Session::new(spot_json, budget_bytes, allow_abstraction)
             .map(Solver)
             .map_err(|e| JsError::new(&e))
     }

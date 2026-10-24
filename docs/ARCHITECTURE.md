@@ -158,9 +158,22 @@ k iterations (it costs about one iteration).
 sorted strength tables per runout + fixed overhead. Shown before solving; refuses above the
 budget with concrete suggestions (fewer sizes, lower raise cap, compressed storage, native CLI).
 
-**Abstraction ladder** (flop, when over budget) *(planned, M4)*: (1) compressed storage,
-(2) cap raises per street at 1 on turn/river, (3) one bet size per street on turn/river,
-(4) one bet size on flop. The chosen step is stored in the result and shown as a warning.
+**Suit isomorphism** (`postflop/game.rs`): the solver keeps the suit relabellings that fix the
+starting board and leave both ranges unchanged (checked combo by combo). At each chance node,
+cards that such a relabelling (also fixing the cards dealt so far) maps onto each other form
+a group; only one representative subtree is stored and solved, and the others add its values
+through a hand-index permutation. This is exact when the reaches arriving at the chance node
+are symmetric, which CFR preserves when the ranges are symmetric; validated against solving
+without isomorphism.
+
+**Abstraction ladder** (`postflop/abstraction.rs`, when over budget): (1) no river raises,
+(2) no turn raises, (3) one river bet size per player, (4) one turn bet size per player,
+(5) at most one flop raise, (6) one flop bet size and no flop raises. The steps taken are
+returned and shown as a warning; if the spot still doesn't fit it is refused. (Compressed
+16-bit storage is not implemented yet, see KNOWN_LIMITS.)
+
+**Memory estimate**: a count-only walk of the expanded game (no node list is allocated), so
+estimating a large flop is cheap.
 
 **Determinism**: no RNG in full-traversal CFR; fixed summation order; no `f32::mul_add`;
 the default DCFR discounts use only sqrt/×/÷ (no platform `powf`), so results are

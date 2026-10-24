@@ -217,3 +217,29 @@ for the CLI, the browser and the golden files; the default core build stays depe
 solved average strategies below the node. **Why:** it makes actions at one node directly
 comparable (the difference is the EV loss used for grading in M6). The UI says so next to
 every EV table.
+
+### D-035 · Suit isomorphism only for range-symmetric relabellings
+**Decision:** A suit permutation is used to merge chance outcomes only if it fixes the
+starting board, the cards dealt so far, and both players' range weights combo by combo.
+**Why:** merging is only exact when the two subgames really are the same game relabelled;
+user ranges with specific suited combos (e.g. only AhQh) break the symmetry, and the solver
+then quietly keeps the affected cards separate.
+
+### D-036 · Per-street raise caps
+**Decision:** `max_raises` is per street (`maxRaises` accepts one number or
+`{flop, turn, river}`). **Why:** typical study trees allow raises on the flop but not on later
+streets, and the abstraction ladder needs to remove raises street by street.
+
+### D-037 · Exploitability checks take at most ~10% of solve time
+**Decision:** The browser worker measures exploitability at most every max(0.4 s, 10× the
+last measurement's duration) and reports iteration progress in between; the UI labels the
+shown exploitability "at the last check". **Why:** a full best-response pass costs about two
+iterations; measuring after every iteration made flop solves ~2.5× slower.
+
+### D-038 · Performance work deferred to M10
+**Decision:** No multithreading, SIMD or compressed storage yet. Measured on this machine:
+a 58×91-hand flop with one size per street takes ~0.19 s per iteration natively and ~0.5 s in
+the browser; a 229×324-hand flop with two flop sizes and raises on every street needs ~1.75 GB
+and ~3.5 s per iteration natively. **Why:** correctness and validation first; the M10 pass
+will add rayon parallelism over chance children for the CLI (deterministic summation order),
+16-bit regret/strategy storage, and revisit WASM threads (D-010).

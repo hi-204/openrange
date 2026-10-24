@@ -20,7 +20,11 @@ export class Solver {
      * `{estimateBytes, hands: [[combo]...], actionNodes, storageEntries, algorithm}`
      */
     info(): string;
-    constructor(spot_json: string, budget_bytes: number);
+    /**
+     * `allowAbstraction`: if the spot doesn't fit the budget, simplify the tree (and report
+     * how in `info().abstraction`) instead of refusing.
+     */
+    constructor(spot_json: string, budget_bytes: number, allow_abstraction: boolean);
     /**
      * Node reached by `pathJson` (array of action/card indices).
      */
@@ -70,7 +74,7 @@ export interface InitOutput {
     readonly solver_exploitability: (a: number) => [number, number];
     readonly solver_fingerprint: (a: number) => [number, number];
     readonly solver_info: (a: number) => [number, number];
-    readonly solver_new: (a: number, b: number, c: number) => [number, number, number];
+    readonly solver_new: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly solver_node: (a: number, b: number, c: number) => [number, number, number, number];
     readonly solver_step: (a: number, b: number) => number;
     readonly version: () => [number, number];

@@ -14,7 +14,7 @@ const goldens = JSON.parse(readFileSync(root('data/goldens/river.json'), 'utf8')
 describe('WASM reproduces the native regression goldens', () => {
   for (const g of goldens) {
     it(g.name, () => {
-      const s = new Solver(JSON.stringify(g.spot), 1e9);
+      const s = new Solver(JSON.stringify(g.spot), 1e9, false);
       s.step(g.iterations);
       expect(s.fingerprint()).toBe(g.fingerprint);
       const ex = JSON.parse(s.exploitability());

@@ -46,6 +46,27 @@ fn street_sizes(v: &Value, name: &str) -> Result<StreetSizes, String> {
     })
 }
 
+/// `maxRaises` is either one number for every street or `{ "flop": 1, "turn": 1, "river": 2 }`.
+fn max_raises(v: Option<&Value>) -> Result<[u8; 3], String> {
+    let clamp = |x: u64| x.min(10) as u8;
+    match v {
+        None | Some(Value::Null) => Ok([3; 3]),
+        Some(Value::Number(n)) => {
+            Ok([clamp(n.as_u64().ok_or("maxRaises must be a whole number")?); 3])
+        }
+        Some(Value::Object(o)) => {
+            let mut out = [3u8; 3];
+            for (i, k) in ["flop", "turn", "river"].iter().enumerate() {
+                if let Some(x) = o.get(*k) {
+                    out[i] = clamp(x.as_u64().ok_or("maxRaises values must be whole numbers")?);
+                }
+            }
+            Ok(out)
+        }
+        Some(_) => Err("maxRaises must be a number or an object with flop/turn/river".into()),
+    }
+}
+
 pub fn spot_from_json(v: &Value) -> Result<SpotConfig, String> {
     let board_text = v
         .get("board")
@@ -91,11 +112,7 @@ pub fn spot_from_json(v: &Value) -> Result<SpotConfig, String> {
             pot: bb_to_chips(pot),
             stack: bb_to_chips(stack),
             sizes,
-            max_raises: v
-                .get("maxRaises")
-                .and_then(Value::as_u64)
-                .unwrap_or(3)
-                .min(10) as u8,
+            max_raises: max_raises(v.get("maxRaises"))?,
             allin_threshold: num("allInThreshold").unwrap_or(0.67),
             rake,
         },
@@ -129,7 +146,7 @@ pub fn spot_to_json(cfg: &SpotConfig) -> Value {
         "stack": t.stack as f64 / BB as f64,
         "ranges": { "oop": cfg.ranges[0].to_string(), "ip": cfg.ranges[1].to_string() },
         "sizes": { "flop": street(&t.sizes[0]), "turn": street(&t.sizes[1]), "river": street(&t.sizes[2]) },
-        "maxRaises": t.max_raises,
+        "maxRaises": { "flop": t.max_raises[0], "turn": t.max_raises[1], "river": t.max_raises[2] },
         "allInThreshold": t.allin_threshold,
         "rake": { "percent": t.rake.fraction * 100.0, "capBb": t.rake.cap as f64 / BB as f64 },
     })

@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24 (M3): river solving works and is validated; turn and flop arrive in M4._
+_Status 2026-10-24 (M4): river, turn and flop solving work and are validated; flop solving is slow._
 
 ## By design
 
@@ -37,7 +37,17 @@ _Status 2026-10-24 (M3): river solving works and is validated; turn and flop arr
 - **River solver:** heads-up only; one bet-size list per player per street (no separate
   donk or probe sizes yet); strategies are stored as 32-bit floats. A solve stops at the
   exploitability target (default 0.3% of the pot in the app) or the iteration limit, and the
-  result badge always shows which. Turn and flop solving are not available yet (M4).
+  result badge always shows which.
+- **Turn and flop solving are slow** (single-threaded, 32-bit storage; D-038). In the browser a
+  small flop tree (one bet size per street, no raises, narrow ranges) takes about a minute;
+  bigger flop trees can take far longer or need more memory than a browser allows. Use the
+  "simplify automatically" option (it lists every simplification) or the command-line solver.
+- **Simplified trees:** when the abstraction ladder runs, the solution is for the simpler tree
+  (fewer sizes or raises), not the one entered. The UI says so in a warning and on the badge.
+- **Suit isomorphism at chance nodes** shows only one representative card per group of
+  equivalent cards (marked +N); browsing a specific suit of a merged card isn't possible yet.
+- **No separate donk/probe sizes**, and the same bet-size list applies on every node of a
+  street for a player.
 - **Node browser:** strategies are shown for the acting player only; there is no "opponent
   range at this node" view yet (M9 workbench).
 - Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).

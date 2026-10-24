@@ -4,6 +4,11 @@
 //! are vectors indexed by each player's hand list. Terminal nodes are evaluated in O(n) per
 //! node with the sorted-strength sweep and per-card accumulators (docs/ARCHITECTURE.md §1.8).
 //!
+//! Turn and river cards are chance nodes. When a suit relabelling maps the board and both
+//! ranges onto themselves, cards it maps onto each other lead to identical subgames with the
+//! hands relabelled, so only one representative per group is stored and solved; the others
+//! reuse its values through a hand permutation (suit isomorphism).
+//!
 //! Units: chips are centi-bb. Payoffs are measured from the start of the spot: a player's
 //! payoff is what they win from the pot minus what they put in after the spot started, so the
 //! starting pot is "dead money" both players are fighting over.
@@ -12,12 +17,13 @@ use super::tree::{Action, NodeKind, Street, Tree, TreeConfig};
 use crate::cards::{Card, CardSet, Combo, NUM_COMBOS};
 use crate::cfr::Algorithm;
 use crate::eval::{Evaluator, HandKey};
+use crate::iso::{SUIT_PERMS, SuitPerm, permute_combo, permute_set};
 use crate::range::Range;
 use std::collections::HashMap;
 
 const NONE: u32 = u32::MAX;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpotConfig {
     pub tree: TreeConfig,
     pub board: Vec<Card>,
@@ -25,16 +31,47 @@ pub struct SpotConfig {
     pub ranges: [Range; 2],
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Options {
+    pub algorithm: Algorithm,
+    /// Share work between suit-isomorphic turn/river cards (exact when the ranges are
+    /// symmetric under the relabelling, which is checked).
+    pub isomorphism: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            algorithm: Algorithm::DCFR_DEFAULT,
+            isomorphism: true,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum EKind {
+    Action { player: u8, n_actions: u8 },
+    Chance,
+    Fold { folder: u8 },
+    Showdown,
+}
+
 /// A node of the card-expanded game: one action-tree node under one specific board.
 #[derive(Clone, Debug)]
 struct ENode {
-    tree_node: usize,
+    kind: EKind,
+    tree_node: u32,
     board: CardSet,
-    /// River strength table index (river nodes only).
+    /// River strength table index (river showdowns only).
     river: u32,
-    children: Vec<usize>,
-    /// Chance nodes: the card dealt to reach each child.
+    /// Chips each player has put in since the spot started (terminal payoffs).
+    invested: [i64; 2],
+    children: Vec<u32>,
+    /// Chance nodes: the representative card dealt to reach each child…
     cards: Vec<Card>,
+    /// …and, per child, the other cards it stands for, with the suit permutation
+    /// (index into the game's permutation list) mapping the representative onto each.
+    mirrors: Vec<Vec<(Card, u8)>>,
     /// Action nodes: offset into the regret / strategy-sum storage.
     offset: usize,
 }
@@ -65,28 +102,53 @@ enum Mode {
     Average,
 }
 
+/// Reusable f32 buffers so traversals don't allocate per node.
+#[derive(Default)]
+struct Pool(Vec<Vec<f32>>);
+
+impl Pool {
+    fn get(&mut self, len: usize) -> Vec<f32> {
+        let mut v = self.0.pop().unwrap_or_default();
+        v.clear();
+        v.resize(len, 0.0);
+        v
+    }
+    fn put(&mut self, v: Vec<f32>) {
+        self.0.push(v);
+    }
+}
+
 pub struct PostflopGame {
     pub config: SpotConfig,
     pub tree: Tree,
-    pub algorithm: Algorithm,
+    pub options: Options,
     hands: [Vec<Combo>; 2],
     init: [Vec<f32>; 2],
     /// Index of the identical combo in the other player's list, or NONE.
     same: [Vec<u32>; 2],
+    /// Suit permutations that preserve the starting board and both ranges.
+    perms: Vec<SuitPerm>,
+    /// `hand_perm[p][k][i]`: index of permutation k applied to player p's hand i.
+    hand_perm: [Vec<Vec<u32>>; 2],
     nodes: Vec<ENode>,
+    index: HashMap<(u32, u64), u32>,
     rivers: Vec<RiverTable>,
     regrets: Vec<f32>,
     strategy_sum: Vec<f32>,
     iteration: u32,
     /// Σ_h w₀(h)·(compatible opponent weight): normalizes values into per-hand-pair EVs.
     pair_weight: f64,
+    pool: Pool,
 }
 
-/// Estimated memory for a spot, in bytes (storage + strength tables + overhead), computed
-/// without allocating the solver.
+/// Estimated memory for a spot in bytes (storage + strength tables + nodes + overhead),
+/// computed without allocating the solver.
 pub fn estimate_memory(cfg: &SpotConfig) -> Result<usize, String> {
-    let g = Skeleton::new(cfg)?;
-    Ok(g.bytes)
+    estimate_memory_with(cfg, Options::default())
+}
+
+pub fn estimate_memory_with(cfg: &SpotConfig, options: Options) -> Result<usize, String> {
+    Ok(Skeleton::new(cfg, options, false)?.bytes)
 }
 
 /// Builds hand lists and the expanded node list; shared by the estimator and the solver.
@@ -94,14 +156,19 @@ struct Skeleton {
     tree: Tree,
     hands: [Vec<Combo>; 2],
     init: [Vec<f32>; 2],
+    perms: Vec<SuitPerm>,
+    hand_perm: [Vec<Vec<u32>>; 2],
     nodes: Vec<ENode>,
     river_boards: Vec<CardSet>,
     storage: usize,
     bytes: usize,
+    /// Count nodes only (memory estimate): skip per-node vectors where possible.
+    count_only: bool,
+    node_bytes: usize,
 }
 
 impl Skeleton {
-    fn new(cfg: &SpotConfig) -> Result<Skeleton, String> {
+    fn new(cfg: &SpotConfig, options: Options, build: bool) -> Result<Skeleton, String> {
         let street =
             Street::from_board_len(cfg.board.len()).ok_or("the board must have 3, 4 or 5 cards")?;
         if street != cfg.tree.street {
@@ -128,24 +195,119 @@ impl Skeleton {
                 return Err(format!("the {who} range has no hands left on this board"));
             }
         }
+
+        // Suit permutations that fix the board and leave both ranges unchanged.
+        let dense: [Range; 2] = [cfg.ranges[0].without(board), cfg.ranges[1].without(board)];
+        let mut perms: Vec<SuitPerm> = vec![SUIT_PERMS[0]];
+        if options.isomorphism {
+            for p in SUIT_PERMS.iter().skip(1) {
+                let fixes_board = permute_set(board, p) == board;
+                let fixes_ranges = (0..2).all(|q| {
+                    dense[q]
+                        .iter()
+                        .all(|(c, w)| dense[q].weight(permute_combo(c, p)) == w)
+                });
+                if fixes_board && fixes_ranges {
+                    perms.push(*p);
+                }
+            }
+        }
+        let mut pos = [[NONE; NUM_COMBOS], [NONE; NUM_COMBOS]];
+        for p in 0..2 {
+            for (i, c) in hands[p].iter().enumerate() {
+                pos[p][c.index()] = i as u32;
+            }
+        }
+        let hand_perm: [Vec<Vec<u32>>; 2] = [0, 1].map(|p| {
+            perms
+                .iter()
+                .map(|perm| {
+                    hands[p]
+                        .iter()
+                        .map(|&c| pos[p][permute_combo(c, perm).index()])
+                        .collect()
+                })
+                .collect()
+        });
+
         let mut sk = Skeleton {
             tree,
             hands,
             init,
+            perms,
+            hand_perm,
             nodes: Vec::new(),
             river_boards: Vec::new(),
             storage: 0,
             bytes: 0,
+            count_only: !build,
+            node_bytes: 0,
         };
-        let mut river_index: HashMap<u64, u32> = HashMap::new();
-        sk.expand(0, board, &mut river_index);
+        let mut rivers: HashMap<u64, u32> = HashMap::new();
+        if sk.count_only {
+            sk.count(0, board, &mut rivers);
+        } else {
+            sk.expand(0, board, &mut rivers);
+        }
         let n = sk.hands[0].len() + sk.hands[1].len();
         sk.bytes = sk.storage * 8 // regrets + strategy sums, f32 each
             + sk.river_boards.len() * n * (2 + 4) // strengths (u16) + order (u32)
-            + sk.nodes.len() * std::mem::size_of::<ENode>()
-            + 64 * n * 4 * 8 // traversal scratch (depth × vectors), generous
+            + sk.node_bytes
+            + 64 * n * 4 * 8 // traversal scratch buffers, generous
             + (1 << 20); // evaluator tables and fixed overhead
         Ok(sk)
+    }
+
+    /// Same walk as [`Self::expand`] but only counts (memory estimate without allocating
+    /// the node list).
+    fn count(&mut self, tree_node: usize, board: CardSet, rivers: &mut HashMap<u64, u32>) {
+        self.node_bytes += std::mem::size_of::<ENode>() + 48;
+        match self.tree.nodes[tree_node].kind.clone() {
+            NodeKind::Action {
+                player,
+                actions,
+                children,
+            } => {
+                self.storage += actions.len() * self.hands[player].len();
+                self.node_bytes += children.len() * 4;
+                for c in children {
+                    self.count(c, board, rivers);
+                }
+            }
+            NodeKind::Chance { child, .. } => {
+                let usable: Vec<usize> = (1..self.perms.len())
+                    .filter(|&k| permute_set(board, &self.perms[k]) == board)
+                    .collect();
+                let mut assigned = CardSet::EMPTY;
+                for i in 0..52u8 {
+                    let c = Card::from_index(i);
+                    if board.contains(c) || assigned.contains(c) {
+                        continue;
+                    }
+                    assigned.insert(c);
+                    let mut group = 0;
+                    for &k in &usable {
+                        let m = crate::iso::permute_card(c, &self.perms[k]);
+                        if !assigned.contains(m) {
+                            assigned.insert(m);
+                            group += 1;
+                        }
+                    }
+                    self.node_bytes += 4 + 4 + 24 + group * 2;
+                    let mut b = board;
+                    b.insert(c);
+                    self.count(child, b, rivers);
+                }
+            }
+            NodeKind::Showdown if self.tree.nodes[tree_node].street == Street::River => {
+                let next = rivers.len() as u32;
+                if let std::collections::hash_map::Entry::Vacant(e) = rivers.entry(board.0) {
+                    e.insert(next);
+                    self.river_boards.push(board);
+                }
+            }
+            NodeKind::Fold { .. } | NodeKind::Showdown => {}
+        }
     }
 
     fn expand(
@@ -155,8 +317,21 @@ impl Skeleton {
         rivers: &mut HashMap<u64, u32>,
     ) -> usize {
         let id = self.nodes.len();
-        let street = self.tree.nodes[tree_node].street;
-        let river = if street == Street::River {
+        let tnode = &self.tree.nodes[tree_node];
+        let kind = match &tnode.kind {
+            NodeKind::Action {
+                player, actions, ..
+            } => EKind::Action {
+                player: *player as u8,
+                n_actions: actions.len() as u8,
+            },
+            NodeKind::Chance { .. } => EKind::Chance,
+            NodeKind::Fold { folder } => EKind::Fold {
+                folder: *folder as u8,
+            },
+            NodeKind::Showdown => EKind::Showdown,
+        };
+        let river = if kind == EKind::Showdown && tnode.street == Street::River {
             let next = rivers.len() as u32;
             *rivers.entry(board.0).or_insert_with(|| {
                 self.river_boards.push(board);
@@ -165,12 +340,16 @@ impl Skeleton {
         } else {
             NONE
         };
+        self.node_bytes += std::mem::size_of::<ENode>() + 48;
         self.nodes.push(ENode {
-            tree_node,
+            kind,
+            tree_node: tree_node as u32,
             board,
             river,
+            invested: tnode.invested,
             children: Vec::new(),
             cards: Vec::new(),
+            mirrors: Vec::new(),
             offset: 0,
         });
         match self.tree.nodes[tree_node].kind.clone() {
@@ -181,27 +360,45 @@ impl Skeleton {
             } => {
                 self.nodes[id].offset = self.storage;
                 self.storage += actions.len() * self.hands[player].len();
-                let kids: Vec<usize> = children
+                let kids: Vec<u32> = children
                     .iter()
-                    .map(|&c| self.expand(c, board, rivers))
+                    .map(|&c| self.expand(c, board, rivers) as u32)
                     .collect();
+                self.node_bytes += kids.len() * 4;
                 self.nodes[id].children = kids;
             }
             NodeKind::Chance { child, .. } => {
-                let mut kids = Vec::new();
-                let mut cards = Vec::new();
+                // Permutations that also fix the cards dealt so far.
+                let usable: Vec<u8> = (1..self.perms.len())
+                    .filter(|&k| permute_set(board, &self.perms[k]) == board)
+                    .map(|k| k as u8)
+                    .collect();
+                let mut assigned = CardSet::EMPTY;
+                let (mut kids, mut cards, mut mirrors) = (Vec::new(), Vec::new(), Vec::new());
                 for i in 0..52u8 {
                     let c = Card::from_index(i);
-                    if board.contains(c) {
+                    if board.contains(c) || assigned.contains(c) {
                         continue;
+                    }
+                    assigned.insert(c);
+                    let mut group = Vec::new();
+                    for &k in &usable {
+                        let m = crate::iso::permute_card(c, &self.perms[k as usize]);
+                        if !assigned.contains(m) {
+                            assigned.insert(m);
+                            group.push((m, k));
+                        }
                     }
                     let mut b = board;
                     b.insert(c);
-                    kids.push(self.expand(child, b, rivers));
+                    kids.push(self.expand(child, b, rivers) as u32);
                     cards.push(c);
+                    self.node_bytes += 4 + 4 + 24 + group.len() * 2;
+                    mirrors.push(group);
                 }
                 self.nodes[id].children = kids;
                 self.nodes[id].cards = cards;
+                self.nodes[id].mirrors = mirrors;
             }
             NodeKind::Fold { .. } | NodeKind::Showdown => {}
         }
@@ -227,18 +424,29 @@ fn regret_match(regrets: &[f32], n_actions: usize, n: usize, out: &mut [f32]) {
 
 impl PostflopGame {
     pub fn new(config: SpotConfig, algorithm: Algorithm) -> Result<PostflopGame, String> {
-        let sk = Skeleton::new(&config)?;
+        PostflopGame::with_options(
+            config,
+            Options {
+                algorithm,
+                ..Options::default()
+            },
+        )
+    }
+
+    pub fn with_options(config: SpotConfig, options: Options) -> Result<PostflopGame, String> {
+        let sk = Skeleton::new(&config, options, true)?;
         let Skeleton {
             tree,
             hands,
             init,
+            perms,
+            hand_perm,
             nodes,
             river_boards,
             storage,
             ..
         } = sk;
 
-        // Identical-combo lookup between the two lists.
         let mut pos = [[NONE; NUM_COMBOS], [NONE; NUM_COMBOS]];
         for p in 0..2 {
             for (i, c) in hands[p].iter().enumerate() {
@@ -278,22 +486,31 @@ impl PostflopGame {
                 }
             })
             .collect();
+        let index = nodes
+            .iter()
+            .enumerate()
+            .map(|(i, n)| ((n.tree_node, n.board.0), i as u32))
+            .collect();
 
         let mut game = PostflopGame {
             config,
             tree,
-            algorithm,
+            options,
             hands,
             init,
             same,
+            perms,
+            hand_perm,
             nodes,
+            index,
             rivers,
             regrets: vec![0.0; storage],
             strategy_sum: vec![0.0; storage],
             iteration: 0,
             pair_weight: 0.0,
+            pool: Pool::default(),
         };
-        let compat = game.compatible(0, &game.init[1].clone());
+        let compat = game.compatible(0, &game.init[1], CardSet::EMPTY);
         game.pair_weight = game.init[0]
             .iter()
             .zip(&compat)
@@ -321,8 +538,18 @@ impl PostflopGame {
         self.regrets.len()
     }
 
-    /// For each hand of `player`: total opponent reach over hands that share no card with it.
-    fn compatible(&self, player: usize, opp_reach: &[f32]) -> Vec<f64> {
+    /// Number of suit relabellings (including the identity) used for isomorphism.
+    pub fn symmetries(&self) -> usize {
+        self.perms.len()
+    }
+
+    pub fn expanded_nodes(&self) -> usize {
+        self.nodes.len()
+    }
+
+    /// For each hand of `player`: total opponent reach over hands sharing no card with it,
+    /// in f64. Hands blocked by `board` get 0.
+    fn compatible(&self, player: usize, opp_reach: &[f32], board: CardSet) -> Vec<f64> {
         let opp = 1 - player;
         let mut card = [0f64; 52];
         let mut total = 0f64;
@@ -336,6 +563,9 @@ impl PostflopGame {
             .iter()
             .enumerate()
             .map(|(i, c)| {
+                if c.cards().intersects(board) {
+                    return 0.0;
+                }
                 let same = self.same[player][i];
                 let back = if same == NONE {
                     0.0
@@ -351,14 +581,18 @@ impl PostflopGame {
     pub fn iterate(&mut self) {
         self.iteration += 1;
         let t = self.iteration;
+        let mut pool = std::mem::take(&mut self.pool);
         for trav in 0..2 {
             let (own, opp) = (self.init[trav].clone(), self.init[1 - trav].clone());
-            let mut out = vec![0f32; self.hands[trav].len()];
-            self.walk(0, trav, &own, &opp, Mode::Train(t), &mut out);
+            let mut out = pool.get(self.hands[trav].len());
+            self.walk(0, trav, &own, &opp, Mode::Train(t), &mut out, &mut pool);
+            pool.put(out);
         }
+        self.pool = pool;
     }
 
     /// Counterfactual values for `trav`'s hands at expanded node `e`.
+    #[allow(clippy::too_many_arguments)]
     fn walk(
         &mut self,
         e: usize,
@@ -367,70 +601,77 @@ impl PostflopGame {
         opp: &[f32],
         mode: Mode,
         out: &mut [f32],
+        pool: &mut Pool,
     ) {
-        let tn = self.nodes[e].tree_node;
         let n_t = self.hands[trav].len();
-        match self.tree.nodes[tn].kind.clone() {
-            NodeKind::Fold { folder } => self.fold_value(e, trav, folder, opp, out),
-            NodeKind::Showdown => self.showdown_value(e, trav, opp, out),
-            NodeKind::Chance { .. } => {
+        let n_o = self.hands[1 - trav].len();
+        match self.nodes[e].kind {
+            EKind::Fold { folder } => self.fold_value(e, trav, folder as usize, opp, out),
+            EKind::Showdown => self.showdown_value(e, trav, opp, out),
+            EKind::Chance => {
                 out.fill(0.0);
-                let children = self.nodes[e].children.clone();
-                let cards = self.nodes[e].cards.clone();
                 // Each card is equally likely given both hands: 1 / (cards left − 4 hole cards).
                 let weight = 1.0 / (52 - self.nodes[e].board.len() as usize - 4) as f32;
-                let mut own_c = own.to_vec();
-                let mut opp_c = opp.to_vec();
-                let mut tmp = vec![0f32; n_t];
-                for (k, &child) in children.iter().enumerate() {
-                    let bit = cards[k].bit();
+                let mut own_c = pool.get(n_t);
+                let mut opp_c = pool.get(n_o);
+                let mut tmp = pool.get(n_t);
+                for k in 0..self.nodes[e].children.len() {
+                    let child = self.nodes[e].children[k] as usize;
+                    let bit = self.nodes[e].cards[k].bit();
                     for (i, c) in self.hands[trav].iter().enumerate() {
                         own_c[i] = if c.cards().0 & bit != 0 { 0.0 } else { own[i] };
                     }
                     for (j, c) in self.hands[1 - trav].iter().enumerate() {
                         opp_c[j] = if c.cards().0 & bit != 0 { 0.0 } else { opp[j] };
                     }
-                    self.walk(child, trav, &own_c, &opp_c, mode, &mut tmp);
-                    for (i, c) in self.hands[trav].iter().enumerate() {
-                        if c.cards().0 & bit == 0 {
-                            out[i] += weight * tmp[i];
+                    self.walk(child, trav, &own_c, &opp_c, mode, &mut tmp, pool);
+                    for i in 0..n_t {
+                        out[i] += weight * tmp[i];
+                    }
+                    // Isomorphic cards: same values with the hands relabelled.
+                    for &(_, k_perm) in &self.nodes[e].mirrors[k] {
+                        let map = &self.hand_perm[trav][k_perm as usize];
+                        for i in 0..n_t {
+                            out[map[i] as usize] += weight * tmp[i];
                         }
                     }
                 }
+                pool.put(own_c);
+                pool.put(opp_c);
+                pool.put(tmp);
             }
-            NodeKind::Action {
-                player, actions, ..
-            } => {
-                let n_a = actions.len();
+            EKind::Action { player, n_actions } => {
+                let (player, n_a) = (player as usize, n_actions as usize);
                 let n_p = self.hands[player].len();
                 let offset = self.nodes[e].offset;
-                let children = self.nodes[e].children.clone();
-                let mut sigma = vec![0f32; n_a * n_p];
+                let mut sigma = pool.get(n_a * n_p);
                 // Training uses the current (regret-matched) strategies; evaluation uses averages.
-                if !matches!(mode, Mode::Train(_)) {
-                    self.average_into(offset, n_a, n_p, &mut sigma);
-                } else {
+                if matches!(mode, Mode::Train(_)) {
                     regret_match(
                         &self.regrets[offset..offset + n_a * n_p],
                         n_a,
                         n_p,
                         &mut sigma,
                     );
+                } else {
+                    self.average_into(offset, n_a, n_p, &mut sigma);
                 }
                 if player == trav {
-                    let mut child_vals = vec![0f32; n_a * n_t];
-                    let mut own_a = vec![0f32; n_t];
+                    let mut child_vals = pool.get(n_a * n_t);
+                    let mut own_a = pool.get(n_t);
                     for a in 0..n_a {
                         for h in 0..n_t {
                             own_a[h] = own[h] * sigma[a * n_t + h];
                         }
+                        let child = self.nodes[e].children[a] as usize;
                         self.walk(
-                            children[a],
+                            child,
                             trav,
                             &own_a,
                             opp,
                             mode,
                             &mut child_vals[a * n_t..(a + 1) * n_t],
+                            pool,
                         );
                     }
                     match mode {
@@ -454,10 +695,10 @@ impl PostflopGame {
                                     .map(|a| sigma[a * n_t + h] * child_vals[a * n_t + h])
                                     .sum();
                             }
-                            let (dp, dn, ds) = self.algorithm.discounts(t);
+                            let (dp, dn, ds) = self.options.algorithm.discounts(t);
                             let (dp, dn, ds) = (dp as f32, dn as f32, ds as f32);
-                            let w = self.algorithm.strategy_weight(t) as f32;
-                            let floor = self.algorithm.floors_regrets();
+                            let w = self.options.algorithm.strategy_weight(t) as f32;
+                            let floor = self.options.algorithm.floors_regrets();
                             for a in 0..n_a {
                                 for h in 0..n_t {
                                     let i = offset + a * n_t + h;
@@ -473,20 +714,26 @@ impl PostflopGame {
                             }
                         }
                     }
+                    pool.put(child_vals);
+                    pool.put(own_a);
                 } else {
                     out.fill(0.0);
-                    let mut tmp = vec![0f32; n_t];
-                    let mut opp_a = vec![0f32; n_p];
+                    let mut tmp = pool.get(n_t);
+                    let mut opp_a = pool.get(n_p);
                     for a in 0..n_a {
                         for j in 0..n_p {
                             opp_a[j] = opp[j] * sigma[a * n_p + j];
                         }
-                        self.walk(children[a], trav, own, &opp_a, mode, &mut tmp);
+                        let child = self.nodes[e].children[a] as usize;
+                        self.walk(child, trav, own, &opp_a, mode, &mut tmp, pool);
                         for h in 0..n_t {
                             out[h] += tmp[h];
                         }
                     }
+                    pool.put(tmp);
+                    pool.put(opp_a);
                 }
+                pool.put(sigma);
             }
         }
     }
@@ -505,40 +752,53 @@ impl PostflopGame {
         }
     }
 
-    /// Final pot (excluding any uncalled bet) and the winner's/loser's payoffs, from the
-    /// traverser's point of view.
-    fn payoffs(&self, tn: usize) -> (f64, [i64; 2]) {
-        let node = &self.tree.nodes[tn];
-        let matched = node.invested[0].min(node.invested[1]);
+    /// The contested pot after rake (starting pot + matched bets; an uncalled bet just
+    /// returns to its owner) and each player's investment.
+    fn payoffs(&self, e: usize) -> (f64, [i64; 2]) {
+        let invested = self.nodes[e].invested;
+        let matched = invested[0].min(invested[1]);
         let pot = self.config.tree.pot + 2 * matched;
-        let rake = self.config.tree.rake.of(pot);
-        (pot as f64 - rake, node.invested)
+        (pot as f64 - self.config.tree.rake.of(pot), invested)
     }
 
     fn fold_value(&self, e: usize, trav: usize, folder: usize, opp: &[f32], out: &mut [f32]) {
-        let tn = self.nodes[e].tree_node;
-        let (net_pot, invested) = self.payoffs(tn);
+        let (net_pot, invested) = self.payoffs(e);
         let matched = invested[0].min(invested[1]) as f64;
-        // Winner takes the contested pot; the uncalled part of a bet simply returns.
         let payoff = if folder == trav {
             -(invested[trav] as f64)
         } else {
             net_pot - matched
         };
+        // Same per-card inclusion–exclusion as `compatible`, kept in f64 until the end.
+        let o = 1 - trav;
+        let mut card = [0f64; 52];
+        let mut total = 0f64;
+        for (j, c) in self.hands[o].iter().enumerate() {
+            let w = opp[j] as f64;
+            total += w;
+            card[c.hi.index() as usize] += w;
+            card[c.lo.index() as usize] += w;
+        }
         let board = self.nodes[e].board;
-        let compat = self.compatible(trav, opp);
         for (i, c) in self.hands[trav].iter().enumerate() {
             out[i] = if c.cards().intersects(board) {
                 0.0
             } else {
-                (payoff * compat[i]) as f32
+                let same = self.same[trav][i];
+                let back = if same == NONE {
+                    0.0
+                } else {
+                    opp[same as usize] as f64
+                };
+                (payoff
+                    * (total - card[c.hi.index() as usize] - card[c.lo.index() as usize] + back))
+                    as f32
             };
         }
     }
 
     fn showdown_value(&self, e: usize, trav: usize, opp: &[f32], out: &mut [f32]) {
-        let tn = self.nodes[e].tree_node;
-        let (net_pot, invested) = self.payoffs(tn);
+        let (net_pot, invested) = self.payoffs(e);
         let mine = invested[trav] as f64;
         let (win, tie, lose) = (net_pot - mine, net_pot / 2.0 - mine, -mine);
         let table = &self.rivers[self.nodes[e].river as usize];
@@ -580,6 +840,8 @@ impl PostflopGame {
             }
             let c = self.hands[trav][i];
             let (a, b) = (c.hi.index() as usize, c.lo.index() as usize);
+            // The identical opponent combo is subtracted twice by the per-card terms (it holds
+            // both of our cards); add it back once. It can't be strictly weaker.
             let same = self.same[trav][i];
             let back = if same == NONE {
                 0.0
@@ -600,13 +862,18 @@ impl PostflopGame {
 
     fn root_value(&mut self, p: usize, mode: Mode) -> f64 {
         let (own, opp) = (self.init[p].clone(), self.init[1 - p].clone());
-        let mut out = vec![0f32; self.hands[p].len()];
-        self.walk(0, p, &own, &opp, mode, &mut out);
-        own.iter()
+        let mut pool = std::mem::take(&mut self.pool);
+        let mut out = pool.get(self.hands[p].len());
+        self.walk(0, p, &own, &opp, mode, &mut out, &mut pool);
+        let v = own
+            .iter()
             .zip(&out)
             .map(|(&w, &v)| w as f64 * v as f64)
             .sum::<f64>()
-            / self.pair_weight
+            / self.pair_weight;
+        pool.put(out);
+        self.pool = pool;
+        v
     }
 
     /// Best-response value (chips) for `player` against the other's average strategy.
@@ -625,24 +892,21 @@ impl PostflopGame {
         }
     }
 
-    /// Average strategy at an action node reached by following `path` (action indices; at
-    /// chance nodes the index is into the dealt-card list). Returns per-hand probabilities
-    /// laid out `[action][hand]` for the acting player.
+    /// The node reached by following `path` (action indices; at chance nodes the index into
+    /// the representative-card list), with the acting player's average strategy and per-action
+    /// EVs.
     pub fn node(&mut self, path: &[usize]) -> Result<NodeView, String> {
         let mut e = 0usize;
         let mut reach = [self.init[0].clone(), self.init[1].clone()];
         // The board in the order the user gave it, then cards dealt along the path.
         let mut board = self.config.board.clone();
         for (depth, &step) in path.iter().enumerate() {
-            let tn = self.nodes[e].tree_node;
-            match self.tree.nodes[tn].kind.clone() {
-                NodeKind::Action {
-                    player, actions, ..
-                } => {
-                    if step >= actions.len() {
+            match self.nodes[e].kind {
+                EKind::Action { player, n_actions } => {
+                    let (player, n_a) = (player as usize, n_actions as usize);
+                    if step >= n_a {
                         return Err(format!("step {depth}: no action {step}"));
                     }
-                    let n_a = actions.len();
                     let n = self.hands[player].len();
                     let mut sigma = vec![0f32; n_a * n];
                     self.average_into(self.nodes[e].offset, n_a, n, &mut sigma);
@@ -650,7 +914,7 @@ impl PostflopGame {
                         reach[player][h] *= sigma[step * n + h];
                     }
                 }
-                NodeKind::Chance { .. } => {
+                EKind::Chance => {
                     let card = *self.nodes[e]
                         .cards
                         .get(step)
@@ -666,29 +930,40 @@ impl PostflopGame {
                 }
                 _ => return Err(format!("step {depth}: the hand is already over")),
             }
-            e = self.nodes[e].children[step];
+            e = self.nodes[e].children[step] as usize;
         }
-        let tn = self.nodes[e].tree_node;
-        let node = self.tree.nodes[tn].clone();
-        let (street, pot, committed) = (node.street, node.pot(), node.committed);
-        match node.kind {
-            NodeKind::Action {
-                player, actions, ..
-            } => {
-                let n_a = actions.len();
+        let tnode = self.tree.nodes[self.nodes[e].tree_node as usize].clone();
+        let (pot, committed) = (tnode.pot(), tnode.committed);
+        // A chance node reports the street whose card it deals.
+        let street = match tnode.kind {
+            NodeKind::Chance { street, .. } => street,
+            _ => tnode.street,
+        };
+        let kind = match (self.nodes[e].kind, tnode.kind) {
+            (EKind::Action { player, n_actions }, NodeKind::Action { actions, .. }) => {
+                let (player, n_a) = (player as usize, n_actions as usize);
                 let n = self.hands[player].len();
                 let mut strategy = vec![0f32; n_a * n];
                 self.average_into(self.nodes[e].offset, n_a, n, &mut strategy);
                 // Per-action EV for each hand: child value with both on average strategies,
                 // divided by the compatible opponent weight that reaches this node.
                 let opp = reach[1 - player].clone();
-                let compat = self.compatible(player, &opp);
-                let children = self.nodes[e].children.clone();
+                let compat = self.compatible(player, &opp, self.nodes[e].board);
+                let own = reach[player].clone();
                 let mut ev = vec![0f32; n_a * n];
                 let mut tmp = vec![0f32; n];
-                let own = reach[player].clone();
+                let mut pool = std::mem::take(&mut self.pool);
                 for a in 0..n_a {
-                    self.walk(children[a], player, &own, &opp, Mode::Average, &mut tmp);
+                    let child = self.nodes[e].children[a] as usize;
+                    self.walk(
+                        child,
+                        player,
+                        &own,
+                        &opp,
+                        Mode::Average,
+                        &mut tmp,
+                        &mut pool,
+                    );
                     for h in 0..n {
                         ev[a * n + h] = if compat[h] > 0.0 {
                             (tmp[h] as f64 / compat[h]) as f32
@@ -697,67 +972,53 @@ impl PostflopGame {
                         };
                     }
                 }
-                Ok(NodeView {
-                    kind: ViewKind::Action {
-                        player,
-                        actions,
-                        strategy,
-                        ev,
-                    },
-                    street,
-                    board,
-                    pot,
-                    committed,
-                    reach,
-                })
+                self.pool = pool;
+                ViewKind::Action {
+                    player,
+                    actions,
+                    strategy,
+                    ev,
+                }
             }
-            NodeKind::Chance { .. } => {
-                let cards = self.nodes[e].cards.clone();
-                Ok(NodeView {
-                    kind: ViewKind::Chance { cards },
-                    street,
-                    board,
-                    pot,
-                    committed,
-                    reach,
-                })
-            }
-            NodeKind::Fold { folder } => Ok(NodeView {
-                kind: ViewKind::Fold { folder },
-                street,
-                board,
-                pot,
-                committed,
-                reach,
-            }),
-            NodeKind::Showdown => Ok(NodeView {
-                kind: ViewKind::Showdown,
-                street,
-                board,
-                pot,
-                committed,
-                reach,
-            }),
-        }
+            (EKind::Chance, _) => ViewKind::Chance {
+                cards: self.nodes[e].cards.clone(),
+                mirrors: self.nodes[e]
+                    .mirrors
+                    .iter()
+                    .map(|g| g.iter().map(|&(c, _)| c).collect())
+                    .collect(),
+            },
+            (EKind::Fold { folder }, _) => ViewKind::Fold {
+                folder: folder as usize,
+            },
+            _ => ViewKind::Showdown,
+        };
+        Ok(NodeView {
+            kind,
+            street,
+            board,
+            pot,
+            committed,
+            reach,
+        })
     }
 
-    /// Average strategy `[action][hand]` at an action node of a river-only game, addressed by
-    /// action-tree node id (for river spots expanded and tree node ids coincide).
-    pub fn river_average(&self, tree_node: usize) -> Option<Vec<f32>> {
-        let e = self
-            .nodes
-            .get(tree_node)
-            .filter(|e| e.tree_node == tree_node)?;
-        let NodeKind::Action {
-            player, actions, ..
-        } = &self.tree.nodes[tree_node].kind
-        else {
+    /// Average strategy `[action][hand]` at the expanded node for (action-tree node, board).
+    /// Only representative boards exist when isomorphism merged cards.
+    pub fn average_at(&self, tree_node: usize, board: CardSet) -> Option<Vec<f32>> {
+        let e = *self.index.get(&(tree_node as u32, board.0))? as usize;
+        let EKind::Action { player, n_actions } = self.nodes[e].kind else {
             return None;
         };
-        let n = self.hands[*player].len();
-        let mut out = vec![0f32; actions.len() * n];
-        self.average_into(e.offset, actions.len(), n, &mut out);
+        let n = self.hands[player as usize].len();
+        let mut out = vec![0f32; n_actions as usize * n];
+        self.average_into(self.nodes[e].offset, n_actions as usize, n, &mut out);
         Some(out)
+    }
+
+    /// [`Self::average_at`] on the starting board (all nodes of a river spot).
+    pub fn river_average(&self, tree_node: usize) -> Option<Vec<f32>> {
+        self.average_at(tree_node, CardSet::from_cards(&self.config.board))
     }
 
     /// Bitwise fingerprint of the solver state (for determinism tests and goldens).
@@ -782,8 +1043,10 @@ pub enum ViewKind {
         strategy: Vec<f32>,
         ev: Vec<f32>,
     },
+    /// Representative cards, and for each the other cards it stands for (suit isomorphism).
     Chance {
         cards: Vec<Card>,
+        mirrors: Vec<Vec<Card>>,
     },
     Fold {
         folder: usize,
@@ -824,7 +1087,7 @@ mod tests {
                 pot: 1000,
                 stack: 5000,
                 sizes: [ss.clone(), ss.clone(), ss],
-                max_raises: 2,
+                max_raises: [2; 3],
                 allin_threshold: 0.67,
                 rake: Default::default(),
             },
@@ -932,5 +1195,112 @@ mod tests {
         let cfg = spot("Ks Th 7d 4c 2s", OOP, IP, "50, 100", "100");
         let g = PostflopGame::new(cfg.clone(), Algorithm::DCFR_DEFAULT).unwrap();
         assert!(estimate_memory(&cfg).unwrap() >= g.storage_entries() * 8);
+    }
+
+    fn turn_spot(board: &str, oop: &str, ip: &str) -> SpotConfig {
+        let mut cfg = spot("Ks Th 7d 4c 2s", oop, ip, "66", "100");
+        cfg.tree.street = Street::Turn;
+        cfg.tree.max_raises = [1; 3];
+        cfg.board = parse_cards(board).unwrap();
+        cfg
+    }
+
+    fn solve_with(cfg: &SpotConfig, iso: bool, iters: u32) -> PostflopGame {
+        let options = Options {
+            algorithm: Algorithm::DCFR_DEFAULT,
+            isomorphism: iso,
+        };
+        let mut g = PostflopGame::with_options(cfg.clone(), options).unwrap();
+        for _ in 0..iters {
+            g.iterate();
+        }
+        g
+    }
+
+    #[test]
+    fn isomorphism_shares_work_without_changing_results() {
+        // Monotone turn board: the three other suits are interchangeable, so most river cards
+        // come in groups of three.
+        let cfg = turn_spot(
+            "Ks Ts 7s 2s",
+            "QQ+, AJs+, KQs, T9s, 87s, AQo+",
+            "TT+, ATs+, KJs+, QJs, 98s, AJo+",
+        );
+        let (mut with, mut without) = (solve_with(&cfg, true, 300), solve_with(&cfg, false, 300));
+        assert_eq!(with.symmetries(), 6);
+        assert!(
+            with.storage_entries() * 2 < without.storage_entries(),
+            "{} vs {}",
+            with.storage_entries(),
+            without.storage_entries()
+        );
+        let (a, b) = (with.expected_values(), without.expected_values());
+        assert!(
+            (a[0] - b[0]).abs() < 0.05 && (a[1] - b[1]).abs() < 0.05,
+            "{a:?} vs {b:?}"
+        );
+        let (ea, eb) = (with.exploitability(), without.exploitability());
+        assert!((ea.chips - eb.chips).abs() < 0.05, "{ea:?} vs {eb:?}");
+        // Same root strategy.
+        let (sa, sb) = (
+            with.river_average(0).unwrap(),
+            without.river_average(0).unwrap(),
+        );
+        let worst = sa
+            .iter()
+            .zip(&sb)
+            .map(|(x, y)| (x - y).abs())
+            .fold(0.0f32, f32::max);
+        assert!(worst < 1e-3, "{worst}");
+    }
+
+    #[test]
+    fn isomorphism_is_off_when_ranges_are_not_symmetric() {
+        // Only the heart flush draw is in range, so hearts are not interchangeable with clubs
+        // or diamonds.
+        let cfg = turn_spot("Ks Ts 7s 2s", "QQ+, AhQh", "TT+");
+        let g = PostflopGame::with_options(cfg, Options::default()).unwrap();
+        // Remaining symmetry: clubs ↔ diamonds only.
+        assert_eq!(g.symmetries(), 2);
+    }
+
+    #[test]
+    fn turn_exploitability_falls() {
+        let cfg = turn_spot(
+            "Kd Th 7c 2s",
+            "QQ+, AJs+, KQs, T9s, AQo+",
+            "TT+, ATs+, KJs+, QJs, AJo+",
+        );
+        let mut g = PostflopGame::new(cfg, Algorithm::DCFR_DEFAULT).unwrap();
+        let mut last = f64::INFINITY;
+        for checkpoint in [10, 50, 200] {
+            while g.iterations() < checkpoint {
+                g.iterate();
+            }
+            let ex = g.exploitability().pct_pot;
+            assert!(ex < last, "{checkpoint}: {ex} >= {last}");
+            last = ex;
+        }
+        assert!(last < 1.0, "{last}% of pot after 200 iterations");
+    }
+
+    #[test]
+    fn count_only_estimate_matches_the_built_game() {
+        let cfg = turn_spot(
+            "Ks Ts 7s 2s",
+            "QQ+, AJs+, KQs, T9s, AQo+",
+            "TT+, ATs+, KJs+, QJs, AJo+",
+        );
+        for iso in [true, false] {
+            let options = Options {
+                algorithm: Algorithm::DCFR_DEFAULT,
+                isomorphism: iso,
+            };
+            let counted = Skeleton::new(&cfg, options, false).unwrap();
+            let built = Skeleton::new(&cfg, options, true).unwrap();
+            assert_eq!(counted.storage, built.storage);
+            assert_eq!(counted.river_boards.len(), built.river_boards.len());
+            assert_eq!(counted.bytes, built.bytes);
+        }
     }
 }

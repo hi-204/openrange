@@ -64,13 +64,16 @@ export class Solver {
         }
     }
     /**
+     * `allowAbstraction`: if the spot doesn't fit the budget, simplify the tree (and report
+     * how in `info().abstraction`) instead of refusing.
      * @param {string} spot_json
      * @param {number} budget_bytes
+     * @param {boolean} allow_abstraction
      */
-    constructor(spot_json, budget_bytes) {
+    constructor(spot_json, budget_bytes, allow_abstraction) {
         const ptr0 = passStringToWasm0(spot_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.solver_new(ptr0, len0, budget_bytes);
+        const ret = wasm.solver_new(ptr0, len0, budget_bytes, allow_abstraction);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }

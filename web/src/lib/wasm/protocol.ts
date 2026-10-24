@@ -44,7 +44,7 @@ export type SpotJson = {
   stack: number;
   ranges: { oop: string; ip: string };
   sizes: Record<string, { oop: { bet: string; raise: string }; ip: { bet: string; raise: string } }>;
-  maxRaises: number;
+  maxRaises: number | Record<string, number>;
   allInThreshold: number;
   rake?: { percent: number; capBb: number };
 };
@@ -53,8 +53,15 @@ export type SolverInfo = {
   estimateBytes: number;
   hands: [string[], string[]];
   actionNodes: number;
+  expandedNodes: number;
   storageEntries: number;
+  /** Suit relabellings used to share work (1 = none). */
+  symmetries: number;
   algorithm: string;
+  /** Simplifications applied to fit the memory budget, in plain words. */
+  abstraction: string[];
+  /** The spot actually solved (after any simplification). */
+  spot: SpotJson;
 };
 
 export type ExploitabilityReport = {
@@ -87,7 +94,7 @@ export type SolverNode = NodeBase &
         /** [action][hand] EV in bb; null where the hand can't be here. */
         evBb: (number | null)[];
       }
-    | { kind: 'chance'; cards: string[] }
+    | { kind: 'chance'; cards: string[]; mirrors: string[][] }
     | { kind: 'fold'; folder: 0 | 1 }
     | { kind: 'showdown' }
   );
@@ -98,7 +105,7 @@ export type Calls = {
   parseRange: { args: { text: string }; result: ParsedRange };
   equity: { args: { request: EquityRequest }; result: EquityResult };
   estimateMemory: { args: { spot: SpotJson }; result: { bytes: number } };
-  solverStart: { args: { spot: SpotJson; budgetBytes: number }; result: SolverInfo };
+  solverStart: { args: { spot: SpotJson; budgetBytes: number; allowAbstraction: boolean }; result: SolverInfo };
   solverRun: { args: { maxIterations: number; targetPct: number }; result: RunResult };
   solverPause: { args: Record<string, never>; result: Record<string, never> };
   solverNode: { args: { path: number[] }; result: SolverNode };

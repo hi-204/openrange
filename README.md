@@ -7,7 +7,7 @@ by expected value, and a course from the rules to solver study.
 > to any poker site. Hand-history import is for reviewing sessions *after* you play. Using
 > real-time assistance during play is against the rules of virtually every poker site.
 
-**Status:** milestone M3 — equity calculator and a validated river solver work. See
+**Status:** milestone M4 — equity calculator and a validated flop/turn/river solver work. See
 [docs/STATE.md](docs/STATE.md) for what works today and
 [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) for what doesn't.
 

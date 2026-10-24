@@ -2,6 +2,33 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-24 — M4 complete: turn and flop solving
+
+**Works (verified):**
+- Chance nodes for turn and river cards; suit isomorphism (only for relabellings that keep
+  both ranges unchanged); per-street raise caps; automatic abstraction ladder; count-only
+  memory estimate.
+- Validation (`docs/VALIDATION.md`, 69/69): on 5 random turn spots the vectorized solver
+  matches an independent tabular restatement with explicit river-card chance nodes
+  (best-response difference ~3e-5 chips, same game value); isomorphism on vs off agrees
+  (EV difference 2e-4 chips, root strategy within 2e-4) at less than half the storage;
+  turn and small-flop solves converge; the abstraction ladder fits a 3.4 GB flop tree into
+  10% of that, reporting each step; river goldens are unchanged bit for bit.
+- Web: one Solver page for flop, turn and river spots: example presets, per-street sizes and
+  raise caps, "simplify automatically" option with a warning listing what changed, card
+  picker at chance nodes (merged suits shown as +N), progress with "at the last check".
+  Playwright tests cover river, turn (dealing a river card), memory refusal and
+  simplification.
+
+**Measured (this machine, once):** small flop preset 58×91 hands, 191,844 game nodes, 130 MB,
+~0.5 s per iteration in the browser, reached 0.63% of pot in ~38 s.
+
+**Not done / not verified:** speed work (threads, SIMD, 16-bit storage) is deferred to M10
+(D-038); GitHub Actions still hasn't run.
+
+**Next:** M5 — preflop library: push/fold Nash (+ICM), the 100 bb EQR pipeline, provenance
+badges and the chart explorer.
+
 ## 2026-10-24 — M3 complete: river solver
 
 **Works (verified):**

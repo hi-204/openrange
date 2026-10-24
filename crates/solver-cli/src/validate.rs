@@ -14,8 +14,9 @@ use solver_core::equity::{exact_range_vs_range, hand_vs_hand, monte_carlo};
 use solver_core::eval::{Evaluator, count_seven_card_categories};
 use solver_core::games::{kuhn::Kuhn, leduc::Leduc};
 use solver_core::iso::{permute_card, permute_combo};
+use solver_core::postflop::abstraction::fit_to_budget;
 use solver_core::postflop::json::spot_from_json;
-use solver_core::postflop::{PostflopGame, SpotConfig, reference};
+use solver_core::postflop::{Options, PostflopGame, SpotConfig, estimate_memory_with, reference};
 use solver_core::range::Range;
 use solver_core::rng::Rng;
 use std::fmt::Write as _;
@@ -593,6 +594,231 @@ fn river_invariance_section() -> Result<Section, String> {
     Ok(s)
 }
 
+fn turn_reference_section(quick: bool) -> Result<Section, String> {
+    let mut s = Section::new(
+        "Turn solver vs independent reference",
+        "Random small turn spots (3-5 weighted combos per side, one bet size and one raise per \
+         street) restated as extensive-form games with an explicit chance node for every river \
+         card and solved by the tabular engine; same two checks as for the river. 800 DCFR \
+         iterations each, no suit isomorphism.",
+    );
+    let mut rng = Rng::seed(0x7AB1E);
+    let n = if quick { 2 } else { 5 };
+    let (mut worst_br, mut worst_value) = (0f64, 0f64);
+    for _ in 0..n {
+        let cfg = reference::random_turn_spot(&mut rng);
+        let r = reference::reference_check(&cfg, 800)?;
+        worst_br = worst_br.max((r.tabular_exploitability - r.vectorized_exploitability).abs());
+        worst_value = worst_value.max((r.tabular_value - r.vectorized_value).abs());
+    }
+    s.check(
+        &format!("best response: vectorized vs tabular ({n} turn spots)"),
+        "max difference < 0.01 chips",
+        format!("{worst_br:.2e} chips"),
+        worst_br < 0.01,
+    );
+    s.check(
+        &format!("game value: vectorized vs tabular solve ({n} turn spots)"),
+        "max difference < 0.2% of pot",
+        format!("{:.4}% of pot", worst_value / 10.0),
+        worst_value < 2.0,
+    );
+    Ok(s)
+}
+
+fn solve_with(cfg: &SpotConfig, iso: bool, iterations: u32) -> Result<PostflopGame, String> {
+    let options = Options {
+        algorithm: Algorithm::DCFR_DEFAULT,
+        isomorphism: iso,
+    };
+    let mut g = PostflopGame::with_options(cfg.clone(), options)?;
+    for _ in 0..iterations {
+        g.iterate();
+    }
+    Ok(g)
+}
+
+fn multi_street_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "Turn and flop: suit isomorphism, convergence, abstraction, memory",
+        "Suit isomorphism (sharing work between river or turn cards that are the same situation \
+         with suits relabelled) must not change results; turn and flop solves must converge; \
+         the automatic abstraction ladder must bring a spot under budget without touching ranges \
+         or board; the memory estimate must cover what is allocated.",
+    );
+    let spot =
+        |board: &str, oop: &str, ip: &str, sizes: serde_json::Value, raises: serde_json::Value| {
+            spot_from_json(&serde_json::json!({
+                "board": board, "pot": 10, "stack": 50,
+                "ranges": { "oop": oop, "ip": ip },
+                "sizes": sizes, "maxRaises": raises
+            }))
+        };
+    let one = serde_json::json!({ "default": { "oop": { "bet": "66", "raise": "100" }, "ip": { "bet": "66", "raise": "100" } } });
+    let turn = spot(
+        "Ks Ts 7s 2s",
+        "QQ+, AJs+, KQs, T9s, 87s, AQo+",
+        "TT+, ATs+, KJs+, QJs, 98s, AJo+",
+        one.clone(),
+        serde_json::json!(1),
+    )?;
+    let (mut with, mut without) = (
+        solve_with(&turn, true, 300)?,
+        solve_with(&turn, false, 300)?,
+    );
+    let (a, b) = (with.expected_values(), without.expected_values());
+    let ev_diff = (a[0] - b[0]).abs().max((a[1] - b[1]).abs());
+    let (ea, eb) = (with.exploitability(), without.exploitability());
+    let (ra, rb) = (
+        with.river_average(0).ok_or("root")?,
+        without.river_average(0).ok_or("root")?,
+    );
+    let strat = ra
+        .iter()
+        .zip(&rb)
+        .map(|(x, y)| (x - y).abs())
+        .fold(0.0f32, f32::max);
+    s.check(
+        "monotone turn (Ks Ts 7s 2s): relabellings found",
+        "6 (the three other suits permute freely)",
+        with.symmetries().to_string(),
+        with.symmetries() == 6,
+    );
+    s.check(
+        "isomorphism on vs off: storage",
+        "less than half",
+        format!(
+            "{} vs {} entries",
+            with.storage_entries(),
+            without.storage_entries()
+        ),
+        with.storage_entries() * 2 < without.storage_entries(),
+    );
+    s.check(
+        "isomorphism on vs off: EV difference",
+        "< 0.05 chips",
+        format!("{ev_diff:.1e} chips"),
+        ev_diff < 0.05,
+    );
+    s.check(
+        "isomorphism on vs off: exploitability difference",
+        "< 0.05 chips",
+        format!("{:.1e} chips", (ea.chips - eb.chips).abs()),
+        (ea.chips - eb.chips).abs() < 0.05,
+    );
+    s.check(
+        "isomorphism on vs off: max root strategy difference",
+        "< 0.001",
+        format!("{strat:.1e}"),
+        strat < 1e-3,
+    );
+    let asym = spot(
+        "Ks Ts 7s 2s",
+        "QQ+, AhQh",
+        "TT+",
+        one.clone(),
+        serde_json::json!(1),
+    )?;
+    let g = PostflopGame::with_options(asym, Options::default())?;
+    s.check(
+        "asymmetric range (only the heart flush draw): relabellings kept",
+        "2 (clubs and diamonds only)",
+        g.symmetries().to_string(),
+        g.symmetries() == 2,
+    );
+
+    let rainbow_turn = spot(
+        "Kd Th 7c 2s",
+        "QQ+, AJs+, KQs, T9s, AQo+",
+        "TT+, ATs+, KJs+, QJs, AJo+",
+        one.clone(),
+        serde_json::json!(1),
+    )?;
+    let trail = convergence(&rainbow_turn, &[10, 50, 200])?;
+    s.check(
+        "turn (Kd Th 7c 2s): exploitability falls",
+        "strictly decreasing, < 1% of pot at 200",
+        trail
+            .iter()
+            .map(|x| format!("{x:.3}%"))
+            .collect::<Vec<_>>()
+            .join(" → "),
+        trail.windows(2).all(|w| w[1] < w[0]) && *trail.last().ok_or("empty")? < 1.0,
+    );
+    let small = serde_json::json!({
+        "flop": { "oop": { "bet": "33" }, "ip": { "bet": "33" } },
+        "turn": { "oop": { "bet": "66" }, "ip": { "bet": "66" } },
+        "river": { "oop": { "bet": "75" }, "ip": { "bet": "75" } }
+    });
+    let flop = spot(
+        "Qs Jh 4d",
+        "TT+, AJs+, KQs, AQo+",
+        "88+, ATs+, KJs+, QJs, JTs, AJo+",
+        small,
+        serde_json::json!(0),
+    )?;
+    let trail = convergence(&flop, &[10, 30, 60])?;
+    s.check(
+        "flop (Qs Jh 4d, one size per street): exploitability falls",
+        "strictly decreasing, < 2% of pot at 60",
+        trail
+            .iter()
+            .map(|x| format!("{x:.3}%"))
+            .collect::<Vec<_>>()
+            .join(" → "),
+        trail.windows(2).all(|w| w[1] < w[0]) && *trail.last().ok_or("empty")? < 2.0,
+    );
+
+    let big = spot(
+        "Qs Jh 4d",
+        "22+, A2s+, KTs+, QTs+, JTs, ATo+",
+        "22+, A2s+, K9s+, Q9s+, J9s+, T9s, A9o+, KJo+",
+        serde_json::json!({ "default": { "oop": { "bet": "33, 75", "raise": "100" }, "ip": { "bet": "33, 75, 150", "raise": "100" } } }),
+        serde_json::json!(2),
+    )?;
+    let full = estimate_memory_with(&big, Options::default())?;
+    let fitted = fit_to_budget(&big, full / 10, Options::default())?;
+    s.check(
+        "abstraction ladder: flop tree squeezed to 10% of its memory",
+        "fits, steps reported, ranges and board unchanged",
+        format!(
+            "{:.0} MB → {:.0} MB via: {}",
+            full as f64 / 1e6,
+            fitted.bytes as f64 / 1e6,
+            fitted.steps.join("; ")
+        ),
+        fitted.bytes <= full / 10
+            && !fitted.steps.is_empty()
+            && fitted.config.ranges == big.ranges
+            && fitted.config.board == big.board,
+    );
+    let g = PostflopGame::with_options(turn.clone(), Options::default())?;
+    let est = estimate_memory_with(&turn, Options::default())?;
+    s.check(
+        "memory estimate covers the solver storage",
+        "estimate ≥ regrets + strategy sums",
+        format!(
+            "{:.1} MB estimated, {:.1} MB storage",
+            est as f64 / 1e6,
+            g.storage_entries() as f64 * 8.0 / 1e6
+        ),
+        est >= g.storage_entries() * 8,
+    );
+    Ok(s)
+}
+
+fn convergence(cfg: &SpotConfig, checkpoints: &[u32]) -> Result<Vec<f64>, String> {
+    let mut g = PostflopGame::new(cfg.clone(), Algorithm::DCFR_DEFAULT)?;
+    let mut out = Vec::new();
+    for &cp in checkpoints {
+        while g.iterations() < cp {
+            g.iterate();
+        }
+        out.push(g.exploitability().pct_pot);
+    }
+    Ok(out)
+}
+
 /// Table cells may contain `|` (e.g. "|z| < 4"), which Markdown would read as a column break.
 fn cell(x: &str) -> String {
     x.replace('|', r"\|")
@@ -616,6 +842,10 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(river_reference_section(quick)?);
     eprintln!("validate: river invariance");
     sections.push(river_invariance_section()?);
+    eprintln!("validate: turn reference");
+    sections.push(turn_reference_section(quick)?);
+    eprintln!("validate: turn and flop");
+    sections.push(multi_street_section()?);
 
     let failed: usize = sections
         .iter()
@@ -650,8 +880,8 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     );
     let _ = writeln!(
         md,
-        "Not yet covered (arrives with turn and flop solving, M4): chance-node and \
-         suit-isomorphism checks on turn/flop trees.\n"
+        "Not covered here: speed (see docs/KNOWN_LIMITS.md) and the preflop and trainer \
+         layers, which arrive in later milestones.\n"
     );
     for s in &sections {
         let _ = writeln!(

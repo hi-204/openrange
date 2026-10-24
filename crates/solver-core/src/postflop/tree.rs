@@ -128,8 +128,8 @@ pub struct TreeConfig {
     pub stack: i64,
     /// Sizes per street, indexed by `Street as usize`.
     pub sizes: [StreetSizes; 3],
-    /// Maximum number of raises per street (a bet is not a raise).
-    pub max_raises: u8,
+    /// Maximum number of raises per street (a bet is not a raise), indexed by street.
+    pub max_raises: [u8; 3],
     /// If a bet or raise would put at least this fraction of the remaining stack in, it
     /// becomes an all-in instead (e.g. 0.67). Use a value > 1 to disable.
     pub allin_threshold: f64,
@@ -158,7 +158,7 @@ impl TreeConfig {
             pot,
             stack,
             sizes: [ss.clone(), ss.clone(), ss],
-            max_raises: 3,
+            max_raises: [3; 3],
             allin_threshold: 2.0,
             rake: Rake::default(),
         }
@@ -367,7 +367,8 @@ impl Tree {
             actions.push(Action::Fold);
             actions.push(Action::Call);
             let opp_all_in = s.behind[opp] == 0;
-            if s.raises < cfg.max_raises && !opp_all_in && s.behind[me] > facing {
+            if s.raises < cfg.max_raises[s.street as usize] && !opp_all_in && s.behind[me] > facing
+            {
                 for size in &mine.raise {
                     let to = match *size {
                         Size::Pot(f) => {
@@ -576,7 +577,7 @@ mod tests {
             &[Size::Pot(0.5)],
             &[Size::Pot(1.0)],
         );
-        cfg.max_raises = 1;
+        cfg.max_raises = [1; 3];
         let t = Tree::build(&cfg).unwrap();
         for n in &t.nodes {
             if let NodeKind::Action { actions, .. } = &n.kind {
