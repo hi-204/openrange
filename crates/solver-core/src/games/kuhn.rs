@@ -109,26 +109,27 @@ mod tests {
             Algorithm::CFR_PLUS,
             Algorithm::Vanilla,
         ] {
-            let (tree, sigma) = solve(algo, 20_000);
+            let (tree, sigma) = solve(algo, 10_000);
             let ex = exploitability(&tree, &sigma);
-            assert!(ex < 2e-3, "{}: exploitability {ex}", algo.name());
+            // Tolerances are ~5-10x the worst value measured (vanilla CFR), see D-040.
+            assert!(ex < 1e-3, "{}: exploitability {ex}", algo.name());
             // Game value for player 0 is −1/18.
             assert!(
-                (expected_value(&tree, &sigma) + 1.0 / 18.0).abs() < 3e-3,
+                (expected_value(&tree, &sigma) + 1.0 / 18.0).abs() < 5e-5,
                 "{}",
                 algo.name()
             );
             // Equilibrium family (Kuhn 1950): player 0 bets J with some α ∈ [0, 1/3],
             // bets K with 3α, never opens Q; player 1 calls a bet with Q 1/3 of the time.
             let alpha = prob(&tree, &sigma, "J", "b");
-            assert!(alpha <= 1.0 / 3.0 + 0.01);
+            assert!(alpha <= 1.0 / 3.0 + 1e-3);
             assert!(
-                (prob(&tree, &sigma, "K", "b") - 3.0 * alpha).abs() < 0.03,
+                (prob(&tree, &sigma, "K", "b") - 3.0 * alpha).abs() < 3e-3,
                 "{}",
                 algo.name()
             );
-            assert!(prob(&tree, &sigma, "Q", "b") < 0.02);
-            assert!((prob(&tree, &sigma, "Qb", "b") - 1.0 / 3.0).abs() < 0.03);
+            assert!(prob(&tree, &sigma, "Q", "b") < 5e-3);
+            assert!((prob(&tree, &sigma, "Qb", "b") - 1.0 / 3.0).abs() < 3e-3);
         }
     }
 

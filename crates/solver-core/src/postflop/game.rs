@@ -1127,7 +1127,8 @@ mod tests {
             assert!(ex < last, "{checkpoint}: {ex} ≥ {last}");
             last = ex;
         }
-        assert!(last < 0.1, "{last}% of pot after 1000 iterations");
+        // Measured 0.0047% of pot (D-040).
+        assert!(last < 0.03, "{last}% of pot after 1000 iterations");
     }
 
     #[test]
@@ -1148,7 +1149,8 @@ mod tests {
         let (mut a, mut b) = (solved(&cfg, 500), solved(&permuted, 500));
         let (ea, eb) = (a.expected_values(), b.expected_values());
         assert!(
-            (ea[0] - eb[0]).abs() < 1e-3 && (ea[1] - eb[1]).abs() < 1e-3,
+            // Measured exactly 0; 1e-6 is a floor (D-040).
+            (ea[0] - eb[0]).abs() < 1e-6 && (ea[1] - eb[1]).abs() < 1e-6,
             "{ea:?} vs {eb:?}"
         );
         let (sa, sb) = (a.river_average(0).unwrap(), b.river_average(0).unwrap());
@@ -1160,7 +1162,7 @@ mod tests {
                 .position(|&x| x == permute_combo(c, &perm))
                 .unwrap();
             for act in 0..sa.len() / n {
-                assert!((sa[act * n + h] - sb[act * n + hb]).abs() < 1e-3, "{c}");
+                assert!((sa[act * n + h] - sb[act * n + hb]).abs() < 1e-6, "{c}");
             }
         }
     }
@@ -1172,7 +1174,7 @@ mod tests {
         let mut g = solved(&cfg, 1);
         let ev = g.expected_values();
         assert!(
-            (ev[0] - 500.0).abs() < 1e-3 && (ev[1] - 500.0).abs() < 1e-3,
+            (ev[0] - 500.0).abs() < 1e-6 && (ev[1] - 500.0).abs() < 1e-6,
             "{ev:?}"
         );
     }
@@ -1187,7 +1189,7 @@ mod tests {
         };
         let mut g = solved(&cfg, 1);
         let ev = g.expected_values();
-        assert!((ev[0] + ev[1] - 950.0).abs() < 1e-2, "{ev:?}");
+        assert!((ev[0] + ev[1] - 950.0).abs() < 1e-6, "{ev:?}");
     }
 
     #[test]
@@ -1236,11 +1238,12 @@ mod tests {
         );
         let (a, b) = (with.expected_values(), without.expected_values());
         assert!(
-            (a[0] - b[0]).abs() < 0.05 && (a[1] - b[1]).abs() < 0.05,
+            // Measured 2.3e-4 chips (EV) and 2.6e-3 chips (exploitability), D-040.
+            (a[0] - b[0]).abs() < 2e-3 && (a[1] - b[1]).abs() < 2e-3,
             "{a:?} vs {b:?}"
         );
         let (ea, eb) = (with.exploitability(), without.exploitability());
-        assert!((ea.chips - eb.chips).abs() < 0.05, "{ea:?} vs {eb:?}");
+        assert!((ea.chips - eb.chips).abs() < 0.02, "{ea:?} vs {eb:?}");
         // Same root strategy.
         let (sa, sb) = (
             with.river_average(0).unwrap(),
@@ -1281,7 +1284,8 @@ mod tests {
             assert!(ex < last, "{checkpoint}: {ex} >= {last}");
             last = ex;
         }
-        assert!(last < 1.0, "{last}% of pot after 200 iterations");
+        // Measured 0.049% of pot (D-040).
+        assert!(last < 0.25, "{last}% of pot after 200 iterations");
     }
 
     #[test]

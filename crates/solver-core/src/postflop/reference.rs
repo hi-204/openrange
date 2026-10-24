@@ -29,9 +29,6 @@ pub struct ReferenceSpot {
 
 impl ReferenceSpot {
     pub fn new(cfg: &SpotConfig) -> Result<ReferenceSpot, String> {
-        if cfg.tree.street == Street::Flop {
-            return Err("the reference solver handles river and turn spots only".into());
-        }
         if cfg.tree.rake.fraction != 0.0 {
             return Err("the reference solver handles rake-free spots only".into());
         }
@@ -60,7 +57,7 @@ impl ReferenceSpot {
 
     /// Payoff to OOP minus half the starting pot, which makes the game zero-sum (the tabular
     /// engine's convention) without changing any strategic incentive.
-    fn payoff0(&self, deal: usize, node: usize, river: Option<Card>) -> f64 {
+    fn payoff0(&self, deal: usize, node: usize, dealt: &[Card]) -> f64 {
         let n = &self.tree.nodes[node];
         let (inv0, inv1) = (n.invested[0] as f64, n.invested[1] as f64);
         let u0 = match n.kind {
@@ -68,8 +65,7 @@ impl ReferenceSpot {
             NodeKind::Fold { .. } => self.pot + inv1,
             NodeKind::Showdown => {
                 let (a, b, _) = self.deals[deal];
-                let mut board = self.board.clone();
-                board.extend(river);
+                let board = [&self.board[..], dealt].concat();
                 let sa = reference::eval(&[&board[..], &[a.hi, a.lo]].concat());
                 let sb = reference::eval(&[&board[..], &[b.hi, b.lo]].concat());
                 match sa.cmp(&sb) {
@@ -88,7 +84,8 @@ impl ReferenceSpot {
 pub struct RefState {
     deal: Option<usize>,
     node: usize,
-    river: Option<Card>,
+    /// Turn and/or river cards dealt so far, in order.
+    dealt: Vec<Card>,
 }
 
 impl Game for ReferenceSpot {
@@ -98,7 +95,7 @@ impl Game for ReferenceSpot {
         RefState {
             deal: None,
             node: 0,
-            river: None,
+            dealt: Vec::new(),
         }
     }
 
@@ -111,7 +108,7 @@ impl Game for ReferenceSpot {
                             RefState {
                                 deal: Some(i),
                                 node: 0,
-                                river: None,
+                                dealt: Vec::new(),
                             },
                             self.deals[i].2,
                         )
@@ -130,10 +127,14 @@ impl Game for ReferenceSpot {
                 } else {
                     self.deals[d].1
                 };
-                let river = s.river.map(|c| c.to_string()).unwrap_or_else(|| "-".into());
+                let dealt: String = if s.dealt.is_empty() {
+                    "-".into()
+                } else {
+                    s.dealt.iter().map(|c| c.to_string()).collect()
+                };
                 Step::Decision {
                     player: *player,
-                    infoset: format!("{combo}:{}:{river}", s.node),
+                    infoset: format!("{combo}:{}:{dealt}", s.node),
                     actions: actions
                         .iter()
                         .zip(children)
@@ -143,7 +144,7 @@ impl Game for ReferenceSpot {
                                 RefState {
                                     deal: Some(d),
                                     node: c,
-                                    river: s.river,
+                                    dealt: s.dealt.clone(),
                                 },
                             )
                         })
@@ -152,7 +153,12 @@ impl Game for ReferenceSpot {
             }
             NodeKind::Chance { child, .. } => {
                 let (a, b, _) = self.deals[d];
-                let used = CardSet(CardSet::from_cards(&self.board).0 | a.cards().0 | b.cards().0);
+                let used = CardSet(
+                    CardSet::from_cards(&self.board).0
+                        | CardSet::from_cards(&s.dealt).0
+                        | a.cards().0
+                        | b.cards().0,
+                );
                 let live: Vec<Card> = (0..52)
                     .map(Card::from_index)
                     .filter(|c| !used.contains(*c))
@@ -161,11 +167,13 @@ impl Game for ReferenceSpot {
                 Step::Chance(
                     live.into_iter()
                         .map(|c| {
+                            let mut dealt = s.dealt.clone();
+                            dealt.push(c);
                             (
                                 RefState {
                                     deal: Some(d),
                                     node: *child,
-                                    river: Some(c),
+                                    dealt,
                                 },
                                 p,
                             )
@@ -174,7 +182,7 @@ impl Game for ReferenceSpot {
                 )
             }
             NodeKind::Fold { .. } | NodeKind::Showdown => Step::Terminal {
-                payoff: self.payoff0(d, s.node, s.river),
+                payoff: self.payoff0(d, s.node, &s.dealt),
             },
         }
     }
@@ -364,14 +372,16 @@ pub fn reference_check(cfg: &SpotConfig, iters: u32) -> Result<ReferenceComparis
     let mut views: HashMap<(usize, u64), Vec<f32>> = HashMap::new();
     for (k, info) in tab_tree.infosets.iter().enumerate() {
         let mut parts = info.key.split(':');
-        let (combo_s, node_s, river_s) = (parts.next(), parts.next(), parts.next());
-        let (Some(combo_s), Some(node_s), Some(river_s)) = (combo_s, node_s, river_s) else {
+        let (combo_s, node_s, dealt_s) = (parts.next(), parts.next(), parts.next());
+        let (Some(combo_s), Some(node_s), Some(dealt_s)) = (combo_s, node_s, dealt_s) else {
             return Err("bad infoset key".into());
         };
         let node: usize = node_s.parse().map_err(|_| "bad infoset key")?;
         let mut board = start;
-        if river_s != "-" {
-            board.insert(Card::parse(river_s).ok_or("bad card")?);
+        if dealt_s != "-" {
+            for c in crate::cards::parse_cards(dealt_s).ok_or("bad card")? {
+                board.insert(c);
+            }
         }
         let view = match views.entry((node, board.0)) {
             std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
@@ -404,6 +414,45 @@ pub fn reference_check(cfg: &SpotConfig, iters: u32) -> Result<ReferenceComparis
         vectorized_value,
         tabular_value,
     })
+}
+
+/// A tiny random flop spot: 2–3 combos per side, one bet size on the flop and turn, no raises,
+/// no river betting. Small enough for the tabular reference (every turn and river card is an
+/// explicit chance outcome).
+pub fn random_flop_spot(rng: &mut Rng) -> SpotConfig {
+    let board = rng.sample_cards(3, 0);
+    let bset = CardSet::from_cards(&board);
+    let mut ranges = [Range::empty(), Range::empty()];
+    for r in ranges.iter_mut() {
+        let n = 2 + rng.below(2) as usize;
+        for c in rng.sample_cards(2 * n, bset.0).chunks(2) {
+            r.set(Combo::new(c[0], c[1]), 0.25 + 0.75 * rng.f64() as f32);
+        }
+    }
+    let bet = |f: f64| StreetSizes {
+        oop: BetSizes {
+            bet: vec![Size::Pot(f)],
+            raise: vec![],
+        },
+        ip: BetSizes {
+            bet: vec![Size::Pot(f)],
+            raise: vec![],
+        },
+    };
+    let tree = TreeConfig {
+        street: Street::Flop,
+        pot: 1000,
+        stack: 3000 + 1000 * rng.below(3) as i64,
+        sizes: [bet(0.66), bet(0.75), StreetSizes::default()],
+        max_raises: [0; 3],
+        allin_threshold: 2.0,
+        rake: Default::default(),
+    };
+    SpotConfig {
+        tree,
+        board,
+        ranges,
+    }
 }
 
 /// A small random turn spot (few combos per side, one bet size and one raise per street).
@@ -451,13 +500,15 @@ mod tests {
     fn polarized_toy_game_matches_mdf_and_bluff_share_theory() {
         for f in [0.33, 0.75, 1.5] {
             let r = toy_check(f, 3000).unwrap();
-            assert!(r.exploitability_pct < 0.05, "{f}: {r:?}");
-            assert!(r.value_bet > 0.99, "{f}: {r:?}");
+            // Tolerances ~5-10x measured (D-040): worst |call - MDF| 6.0e-5, worst
+            // |bluff share - theory| 1.2e-4, exploitability 0.0019% of pot, value bets 100%.
+            assert!(r.exploitability_pct < 0.01, "{f}: {r:?}");
+            assert!(r.value_bet > 0.9999, "{f}: {r:?}");
             assert!(
-                (r.bluff_share - r.theory_bluff_share).abs() < 0.01,
+                (r.bluff_share - r.theory_bluff_share).abs() < 1e-3,
                 "{f}: {r:?}"
             );
-            assert!((r.call - r.mdf).abs() < 0.01, "{f}: {r:?}");
+            assert!((r.call - r.mdf).abs() < 5e-4, "{f}: {r:?}");
         }
     }
 
@@ -467,14 +518,16 @@ mod tests {
         for case in 0..8 {
             let cfg = random_river_spot(&mut rng);
             let r = reference_check(&cfg, 1500).unwrap();
-            // Same strategy, two independent best-response implementations: agree to 0.01 chip.
+            // Same strategy, two independent best-response implementations (measured worst
+            // difference 1.9e-5 chips over 12 spots).
             assert!(
-                (r.tabular_exploitability - r.vectorized_exploitability).abs() < 0.01,
+                (r.tabular_exploitability - r.vectorized_exploitability).abs() < 1e-4,
                 "case {case}: {r:?}"
             );
-            // Two independent solvers: same game value within 0.2% of the pot.
+            // Two independent solvers reach the same value (measured worst 1.9e-3 chips;
+            // tolerance 10x that, above the 0.01-chip floor).
             assert!(
-                (r.tabular_value - r.vectorized_value).abs() < 2.0,
+                (r.tabular_value - r.vectorized_value).abs() < 0.02,
                 "case {case}: {r:?}"
             );
         }
@@ -486,15 +539,33 @@ mod tests {
         for case in 0..3 {
             let cfg = random_turn_spot(&mut rng);
             let r = reference_check(&cfg, 800).unwrap();
+            // Measured worst: 2.6e-5 chips (best response), 1.9e-4 chips (value; floor 0.01).
             assert!(
-                (r.tabular_exploitability - r.vectorized_exploitability).abs() < 0.01,
+                (r.tabular_exploitability - r.vectorized_exploitability).abs() < 2e-4,
                 "case {case}: {r:?}"
             );
             assert!(
-                (r.tabular_value - r.vectorized_value).abs() < 2.0,
+                (r.tabular_value - r.vectorized_value).abs() < 0.01,
                 "case {case}: {r:?}"
             );
         }
+    }
+
+    /// The tabular side of a flop spot is large (every turn and river card is an explicit
+    /// chance outcome): ~40 s in release, far longer in debug builds. Runs in CI's release
+    /// step and in `solver-cli validate`.
+    #[test]
+    #[ignore = "heavy: run in release with --include-ignored"]
+    fn vectorized_solver_agrees_with_tabular_reference_on_a_random_flop() {
+        let mut rng = Rng::seed(0xF10F);
+        let cfg = random_flop_spot(&mut rng);
+        let r = reference_check(&cfg, 600).unwrap();
+        // Measured worst over 3 spots: 6.5e-5 chips (best response), 1.9e-4 chips (value).
+        assert!(
+            (r.tabular_exploitability - r.vectorized_exploitability).abs() < 5e-4,
+            "{r:?}"
+        );
+        assert!((r.tabular_value - r.vectorized_value).abs() < 0.01, "{r:?}");
     }
 
     #[test]

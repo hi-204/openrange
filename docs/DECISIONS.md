@@ -243,3 +243,91 @@ the browser; a 229×324-hand flop with two flop sizes and raises on every street
 and ~3.5 s per iteration natively. **Why:** correctness and validation first; the M10 pass
 will add rayon parallelism over chance children for the CLI (deterministic summation order),
 16-bit regret/strategy storage, and revisit WASM threads (D-010).
+
+### D-039 · Test changes since M3 (recorded 2026-10-24, some after the fact)
+CLAUDE.md rule 4 requires that changes to failing tests be recorded. These were not recorded
+when made; this entry fixes that.
+1. **`postflop/tree.rs` turn-tree test, expected chance-node count 2 → 3** (changed after a
+   failure). The expectation was wrong: besides check-check and "OOP shoves, IP calls", a
+   third line ("OOP checks, IP shoves, OOP calls") also reaches the river. Verified by
+   printing the tree. The count is still checked exactly.
+2. **Same test, an assertion replaced after a failure.** The original line forbade any river
+   decision where OOP had put in the whole stack; it failed on a legitimate river shove after
+   a turn check-check. It was first replaced by a narrower check (after a called turn all-in
+   the river card leads straight to showdown), which lost coverage. Restored on 2026-10-24
+   with a general property checked on flop, turn and river trees: an all-in player never
+   acts; facing an all-in only fold/call is offered; below any node where both players are
+   all-in there are only chance cards and the showdown; only the player with less in can
+   fold. A positive control requires the legitimate river shove to exist.
+3. **Browser test "simplifies a spot that does not fit": budget 2.2 MB → 2.68 MB** (changed
+   after a failure). 2.2 MB was below the estimator's fixed overhead (~2.5 MB), so no
+   simplified tree could fit and the test exercised the refusal path instead. The hand-picked
+   2.68 MB depended on estimator constants; on 2026-10-24 it was replaced by a budget derived
+   from the solver's own estimate shown in the UI (estimate − 1 kB).
+4. **Adapted to app changes, not loosened:** the memory-refusal browser test unticks
+   "simplify automatically" (the new default would otherwise simplify); the WASM goldens test
+   passes the constructor's new `allowAbstraction` argument.
+5. **Not regenerated when they could have been:** the M4 rewrite changed the river golden
+   fingerprints (an extra f32 rounding in fold terminals); the code was fixed instead, and the
+   goldens match bit for bit.
+6. **New ignored test:** the flop reference check (`postflop/reference.rs`) is `#[ignore]` in
+   debug builds because its tabular side takes ~40-80 s in release and far longer in debug.
+   It runs in CI's release step (`--include-ignored`) and in `solver-cli validate`.
+7. **Kuhn unit test 20,000 → 10,000 iterations,** so it runs exactly the configuration whose
+   values were measured for D-040 (its tolerances were tightened at the same time).
+
+### D-040 · Tolerances at about 5–10× the measured value
+**Decision (2026-10-24):** every tolerance on a deterministic check is about 5–10× the value
+measured when it was set, and the measured value is printed next to it in VALIDATION.md.
+Where the measured value is exactly 0 a fixed floor of 1e-6 is used; for agreement between
+the vectorized solver and the tabular reference on game value, the tolerance is
+max(10 × measured, 0.01 chips), because that difference reflects convergence of two solvers
+rather than arithmetic noise. (Pot in these spots is 1000 chips = 10 bb.)
+
+| Check | Before | Measured | Now |
+|---|---|---|---|
+| Kuhn exploitability, 10k iterations (worst: CFR) | 2e-3 | 1.1e-4 | 1e-3 |
+| Kuhn value vs −1/18 | 3e-3 | 8.0e-6 | 5e-5 |
+| Kuhn \|P(bet K) − 3α\| | 0.03 | 4.2e-4 | 3e-3 |
+| Kuhn \|P(call with Q) − 1/3\| | 0.03 | 3.7e-4 | 3e-3 |
+| Kuhn P(open Q) (now also in the report) | 0.02 | 7.5e-4 | 5e-3 |
+| Toy game \|call − MDF\| | 0.01 | 6.0e-5 | 5e-4 |
+| Toy game \|bluff share − B/(P+2B)\| | 0.01 | 1.2e-4 | 1e-3 |
+| Toy game value hands bet | > 99% | 100% | > 99.99% |
+| Toy game exploitability | 0.05% pot | 0.0019% | 0.01% |
+| River unit test exploitability after 1000 | 0.1% pot | 0.0047% | 0.03% |
+| River reference: best-response difference | 0.01 chips | 1.9e-5 | 1e-4 |
+| River reference: value difference | 2 chips | 1.9e-3 | 0.02 (10×) |
+| Turn reference: best-response difference | 0.01 chips | 2.6e-5 | 2e-4 |
+| Turn reference: value difference | 2 chips | 1.9e-4 | 0.01 (floor) |
+| Flop reference (new): best-response difference | — | 6.5e-5 | 5e-4 |
+| Flop reference (new): value difference | — | 1.9e-4 | 0.01 (floor) |
+| Suit relabelling: EV and strategy | 1e-3 | 0 | 1e-6 |
+| Identical ranges split the pot | 1e-3 | 0 | 1e-6 |
+| Rake taken from the pot | 1e-2 | 0 | 1e-6 |
+| Isomorphism on/off: EV | 0.05 chips | 2.3e-4 | 2e-3 |
+| Isomorphism on/off: exploitability | 0.05 chips | 2.6e-3 | 0.02 |
+| Turn convergence after 200 | 1% pot | 0.049% | 0.25% |
+| Preflop table: mirrored sums (unrounded) | 1e-9 | 2.2e-15 | 1e-12 |
+
+**Kept as they were, and why:**
+- *Flop convergence < 2% of pot after 60 iterations* (measured 0.57%, i.e. 3.5×): kept at the
+  owner's request. Note that this threshold was chosen **after** seeing a browser run of the
+  same spot (0.63% after 64 iterations), so it is informed by data rather than set blind.
+  A separate check now requires exploitability to fall at each of 6 checkpoints
+  (5, 10, 20, 30, 45, 60).
+- *Isomorphism on/off root strategy < 1e-3* (measured 2.4e-4, 4.2×): slightly under 5×; kept
+  rather than loosened.
+- *Leduc 1e-3 at 1,000 and 5e-5 at 10,000 iterations*: already 7× and 8× the current
+  measurements (1.4e-4 and 6.2e-6).
+- *AA vs a random hand 85.2% ± 0.05 points*: the reference is an external figure quoted to
+  one decimal; the tolerance is its rounding interval, not our noise (measured 85.2037%).
+- *Statistical checks* (Monte Carlo vs exact |z| < 4, RNG uniformity 5σ): tolerances are in
+  standard errors and must not shrink with the measured value.
+- *Committed equity table mirrored sums ≤ 1e-6*: the stored values are rounded to 6 decimals.
+- *Golden fingerprints and determinism*: exact equality.
+- *Browser equity test (two displayed percentages sum to 100 ± 0.05)*: display rounding.
+- *Isomorphism storage < half* (measured 0.46): a structural property, not a tolerance.
+
+**Report-only rows** (values with no pass/fail criterion, e.g. the Leduc game value) are now
+counted separately from checks in VALIDATION.md.

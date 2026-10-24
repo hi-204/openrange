@@ -27,6 +27,9 @@ struct Check {
     expected: String,
     measured: String,
     pass: bool,
+    /// Report-only rows show a measured value with nothing to pass or fail; they are counted
+    /// separately from real checks.
+    report: bool,
 }
 
 struct Section {
@@ -63,6 +66,20 @@ impl Section {
             expected,
             measured,
             pass,
+            report: false,
+        });
+    }
+
+    /// A value worth showing that has no pass/fail criterion.
+    fn report(&mut self, name: &str, measured: impl Into<String>) {
+        let measured = measured.into();
+        eprintln!("  [info] {name}: {measured}");
+        self.checks.push(Check {
+            name: name.into(),
+            expected: "(reported, not checked)".into(),
+            measured,
+            pass: true,
+            report: true,
         });
     }
 }
@@ -82,12 +99,7 @@ fn evaluator_section(quick: bool) -> Section {
         distinct == 7462,
     );
     if quick {
-        s.check(
-            "7-card enumeration",
-            "(skipped in --quick)",
-            "skipped",
-            true,
-        );
+        s.report("7-card enumeration", "skipped in --quick");
         return s;
     }
     let expected: [(&str, u64); 9] = [
@@ -144,9 +156,9 @@ fn equity_section() -> Result<Section, String> {
         .unwrap_or(f64::NAN);
     s.check(
         "table: equity(A,B) + equity(B,A) = 1",
-        "max error < 1e-9",
+        "max error < 1e-12 (f64 rounding; measured 2.2e-15)",
         format!("{mirror:.1e}"),
-        mirror < 1e-9,
+        mirror < 1e-12,
     );
 
     let combo = |x: &str| Combo::parse(x).expect("combo");
@@ -266,30 +278,40 @@ fn kuhn_section() -> Section {
         let n = algo.name();
         s.check(
             &format!("{n}: exploitability after 10,000 iterations"),
-            "< 2e-3",
+            "< 1e-3 (worst measured 1.1e-4, CFR)",
             format!("{ex:.2e}"),
-            ex < 2e-3,
+            ex < 1e-3,
         );
         s.check(
             &format!("{n}: value for player 0"),
-            "−1/18 = −0.055556 (±0.003)",
-            format!("{value:.6}"),
-            (value + 1.0 / 18.0).abs() < 3e-3,
+            "−1/18 = −0.0555556 (±5e-5; worst measured 8.0e-6)",
+            format!("{value:.7}"),
+            (value + 1.0 / 18.0).abs() < 5e-5,
         );
         let alpha = prob(&sigma, "J", "b");
         let king = prob(&sigma, "K", "b");
         s.check(
             &format!("{n}: P(bet K) = 3·P(bet J), α ≤ 1/3"),
-            "|P(K) − 3α| < 0.03",
-            format!("α = {alpha:.4}, P(K) = {king:.4}"),
-            (king - 3.0 * alpha).abs() < 0.03 && alpha <= 1.0 / 3.0 + 0.01,
+            "|P(K) − 3α| < 3e-3 (worst measured 4.2e-4), α ≤ 1/3",
+            format!(
+                "α = {alpha:.5}, P(K) = {king:.5}, |P(K) − 3α| = {:.1e}",
+                (king - 3.0 * alpha).abs()
+            ),
+            (king - 3.0 * alpha).abs() < 3e-3 && alpha <= 1.0 / 3.0 + 1e-3,
         );
         let call_q = prob(&sigma, "Qb", "b");
         s.check(
             &format!("{n}: player 1 calls a bet with Q"),
-            "1/3 (±0.03)",
-            format!("{call_q:.4}"),
-            (call_q - 1.0 / 3.0).abs() < 0.03,
+            "1/3 (±3e-3; worst measured 3.7e-4)",
+            format!("{call_q:.5}"),
+            (call_q - 1.0 / 3.0).abs() < 3e-3,
+        );
+        let open_q = prob(&sigma, "Q", "b");
+        s.check(
+            &format!("{n}: player 0 never opens a queen"),
+            "P(bet Q) < 5e-3 (worst measured 7.5e-4)",
+            format!("{open_q:.1e}"),
+            open_q < 5e-3,
         );
         results.push((algo, rows));
     }
@@ -337,15 +359,11 @@ fn leduc_section(quick: bool) -> Section {
         "Leduc hold'em (Southey et al. 2005) has no simple closed form, so we check that \
          exploitability keeps falling and drops below a stated threshold. Thresholds were set \
          from measured convergence with margin (DCFR measured 1.7e-4 at 1,000 iterations and \
-         7.9e-6 at 10,000 when the thresholds were chosen).",
+         7.9e-6 at 10,000 when the thresholds were chosen in M2, before D-031 made the discount \
+         math bit-reproducible; the current values are in the table).",
     );
     let tree = Tree::build(&Leduc);
-    s.check(
-        "information sets",
-        "(reported)",
-        tree.infosets.len().to_string(),
-        true,
-    );
+    s.report("information sets", tree.infosets.len().to_string());
     let checkpoints: &[u32] = if quick {
         &[10, 100, 1000]
     } else {
@@ -383,11 +401,9 @@ fn leduc_section(quick: bool) -> Section {
         );
     }
     let value = dcfr.last().expect("rows").2;
-    s.check(
-        "game value for player 0",
-        "(reported; no closed form)",
+    s.report(
+        "game value for player 0 (no closed form)",
         format!("{value:.6}"),
-        true,
     );
     s.tables = convergence_table("Leduc convergence", &results);
     s
@@ -406,27 +422,30 @@ fn river_theory_section() -> Result<Section, String> {
         let label = format!("{:.0}% pot", f * 100.0);
         s.check(
             &format!("{label}: IP call frequency"),
-            format!("P/(P+B) = {:.4} (±0.01)", r.mdf),
-            format!("{:.4}", r.call),
-            (r.call - r.mdf).abs() < 0.01,
+            format!("P/(P+B) = {:.5} (±5e-4; worst measured 6.0e-5)", r.mdf),
+            format!("{:.5}", r.call),
+            (r.call - r.mdf).abs() < 5e-4,
         );
         s.check(
             &format!("{label}: bluff share of the betting range"),
-            format!("B/(P+2B) = {:.4} (±0.01)", r.theory_bluff_share),
-            format!("{:.4}", r.bluff_share),
-            (r.bluff_share - r.theory_bluff_share).abs() < 0.01,
+            format!(
+                "B/(P+2B) = {:.5} (±1e-3; worst measured 1.2e-4)",
+                r.theory_bluff_share
+            ),
+            format!("{:.5}", r.bluff_share),
+            (r.bluff_share - r.theory_bluff_share).abs() < 1e-3,
         );
         s.check(
             &format!("{label}: value hands bet"),
-            "100% (> 99%)",
-            format!("{:.2}%", r.value_bet * 100.0),
-            r.value_bet > 0.99,
+            "100% (> 99.99%; measured exactly 100%)",
+            format!("{:.4}%", r.value_bet * 100.0),
+            r.value_bet > 0.9999,
         );
         s.check(
             &format!("{label}: exploitability"),
-            "< 0.05% of pot",
+            "< 0.01% of pot (worst measured 0.0019%)",
             format!("{:.4}% of pot", r.exploitability_pct),
-            r.exploitability_pct < 0.05,
+            r.exploitability_pct < 0.01,
         );
     }
     Ok(s)
@@ -455,21 +474,22 @@ fn river_reference_section(quick: bool) -> Result<Section, String> {
     }
     s.check(
         &format!("best response: vectorized vs tabular ({n} spots)"),
-        "max difference < 0.01 chips (0.001% of pot)",
+        "max difference < 1e-4 chips (measured 1.9e-5)",
         format!("{worst_br:.2e} chips"),
-        worst_br < 0.01,
+        worst_br < 1e-4,
     );
     s.check(
         &format!("game value: vectorized vs tabular solve ({n} spots)"),
-        "max difference < 0.2% of pot",
-        format!("{:.4}% of pot", worst_value / 10.0),
-        worst_value < 2.0,
+        "max difference < 0.02 chips (10× measured 1.9e-3; floor 0.01)",
+        format!(
+            "{worst_value:.2e} chips ({:.5}% of pot)",
+            worst_value / 10.0
+        ),
+        worst_value < 0.02,
     );
-    s.check(
+    s.report(
         "largest vectorized exploitability among these spots",
-        "(reported)",
         format!("{:.4}% of pot", worst_ex / 10.0),
-        true,
     );
     Ok(s)
 }
@@ -536,15 +556,15 @@ fn river_invariance_section() -> Result<Section, String> {
     }
     s.check(
         "suit relabelling: EV difference",
-        "< 0.001 chips",
+        "< 1e-6 chips (measured exactly 0)",
         format!("{ev_diff:.1e} chips"),
-        ev_diff < 1e-3,
+        ev_diff < 1e-6,
     );
     s.check(
         "suit relabelling: max strategy difference (any combo, any action)",
-        "< 0.001",
+        "< 1e-6 (measured exactly 0)",
         format!("{strat_diff:.1e}"),
-        strat_diff < 1e-3,
+        strat_diff < 1e-6,
     );
 
     let mut sym = solve_spot(&spot("Ks Th 7d 4c 2s", oop, oop, "")?, 1)?;
@@ -552,9 +572,9 @@ fn river_invariance_section() -> Result<Section, String> {
     let half = 500.0;
     s.check(
         "identical ranges, no betting: each player expects half the pot",
-        "500 chips each (±0.001)",
-        format!("{:.4} / {:.4}", ev[0], ev[1]),
-        (ev[0] - half).abs() < 1e-3 && (ev[1] - half).abs() < 1e-3,
+        "500 chips each (±1e-6; measured exactly 500)",
+        format!("{:.6} / {:.6}", ev[0], ev[1]),
+        (ev[0] - half).abs() < 1e-6 && (ev[1] - half).abs() < 1e-6,
     );
 
     let (x, y) = (solve_spot(&base, 300)?, solve_spot(&base, 300)?);
@@ -613,15 +633,54 @@ fn turn_reference_section(quick: bool) -> Result<Section, String> {
     }
     s.check(
         &format!("best response: vectorized vs tabular ({n} turn spots)"),
-        "max difference < 0.01 chips",
+        "max difference < 2e-4 chips (measured 2.6e-5)",
         format!("{worst_br:.2e} chips"),
-        worst_br < 0.01,
+        worst_br < 2e-4,
     );
     s.check(
         &format!("game value: vectorized vs tabular solve ({n} turn spots)"),
-        "max difference < 0.2% of pot",
-        format!("{:.4}% of pot", worst_value / 10.0),
-        worst_value < 2.0,
+        "max difference < 0.01 chips (floor; measured 1.9e-4)",
+        format!(
+            "{worst_value:.2e} chips ({:.5}% of pot)",
+            worst_value / 10.0
+        ),
+        worst_value < 0.01,
+    );
+    Ok(s)
+}
+
+fn flop_reference_section(quick: bool) -> Result<Section, String> {
+    let mut s = Section::new(
+        "Flop solver vs independent reference",
+        "Tiny random flop spots (2-3 weighted combos per side, one bet size on flop and turn, \
+         no raises, no river betting) restated as extensive-form games with explicit chance \
+         nodes for every turn and every river card, and solved by the tabular engine; same two \
+         checks as for the river and turn. 600 DCFR iterations each, no suit isomorphism. \
+         These are slow for the tabular side (30-60 s per spot).",
+    );
+    let mut rng = Rng::seed(0xF10F);
+    let n = if quick { 1 } else { 2 };
+    let (mut worst_br, mut worst_value) = (0f64, 0f64);
+    for _ in 0..n {
+        let cfg = reference::random_flop_spot(&mut rng);
+        let r = reference::reference_check(&cfg, 600)?;
+        worst_br = worst_br.max((r.tabular_exploitability - r.vectorized_exploitability).abs());
+        worst_value = worst_value.max((r.tabular_value - r.vectorized_value).abs());
+    }
+    s.check(
+        &format!("best response: vectorized vs tabular ({n} flop spots)"),
+        "max difference < 5e-4 chips (measured 6.5e-5 over 3 spots)",
+        format!("{worst_br:.2e} chips"),
+        worst_br < 5e-4,
+    );
+    s.check(
+        &format!("game value: vectorized vs tabular solve ({n} flop spots)"),
+        "max difference < 0.01 chips (floor; measured 1.9e-4)",
+        format!(
+            "{worst_value:.2e} chips ({:.5}% of pot)",
+            worst_value / 10.0
+        ),
+        worst_value < 0.01,
     );
     Ok(s)
 }
@@ -696,19 +755,19 @@ fn multi_street_section() -> Result<Section, String> {
     );
     s.check(
         "isomorphism on vs off: EV difference",
-        "< 0.05 chips",
+        "< 2e-3 chips (measured 2.3e-4)",
         format!("{ev_diff:.1e} chips"),
-        ev_diff < 0.05,
+        ev_diff < 2e-3,
     );
     s.check(
         "isomorphism on vs off: exploitability difference",
-        "< 0.05 chips",
+        "< 0.02 chips (measured 2.6e-3)",
         format!("{:.1e} chips", (ea.chips - eb.chips).abs()),
-        (ea.chips - eb.chips).abs() < 0.05,
+        (ea.chips - eb.chips).abs() < 0.02,
     );
     s.check(
         "isomorphism on vs off: max root strategy difference",
-        "< 0.001",
+        "< 1e-3 (measured 2.4e-4)",
         format!("{strat:.1e}"),
         strat < 1e-3,
     );
@@ -735,15 +794,23 @@ fn multi_street_section() -> Result<Section, String> {
         serde_json::json!(1),
     )?;
     let trail = convergence(&rainbow_turn, &[10, 50, 200])?;
+    let shown = trail
+        .iter()
+        .map(|x| format!("{x:.3}%"))
+        .collect::<Vec<_>>()
+        .join(" → ");
     s.check(
-        "turn (Kd Th 7c 2s): exploitability falls",
-        "strictly decreasing, < 1% of pot at 200",
-        trail
-            .iter()
-            .map(|x| format!("{x:.3}%"))
-            .collect::<Vec<_>>()
-            .join(" → "),
-        trail.windows(2).all(|w| w[1] < w[0]) && *trail.last().ok_or("empty")? < 1.0,
+        "turn (Kd Th 7c 2s): exploitability falls at every checkpoint (10, 50, 200)",
+        "strictly decreasing",
+        shown.clone(),
+        trail.windows(2).all(|w| w[1] < w[0]),
+    );
+    let last = *trail.last().ok_or("empty")?;
+    s.check(
+        "turn (Kd Th 7c 2s): exploitability after 200 iterations",
+        "< 0.25% of pot (measured 0.049%)",
+        format!("{last:.3}%"),
+        last < 0.25,
     );
     let small = serde_json::json!({
         "flop": { "oop": { "bet": "33" }, "ip": { "bet": "33" } },
@@ -757,16 +824,24 @@ fn multi_street_section() -> Result<Section, String> {
         small,
         serde_json::json!(0),
     )?;
-    let trail = convergence(&flop, &[10, 30, 60])?;
+    let trail = convergence(&flop, &[5, 10, 20, 30, 45, 60])?;
+    let shown = trail
+        .iter()
+        .map(|x| format!("{x:.3}%"))
+        .collect::<Vec<_>>()
+        .join(" → ");
     s.check(
-        "flop (Qs Jh 4d, one size per street): exploitability falls",
-        "strictly decreasing, < 2% of pot at 60",
-        trail
-            .iter()
-            .map(|x| format!("{x:.3}%"))
-            .collect::<Vec<_>>()
-            .join(" → "),
-        trail.windows(2).all(|w| w[1] < w[0]) && *trail.last().ok_or("empty")? < 2.0,
+        "flop (Qs Jh 4d, one size per street): exploitability falls at every checkpoint (5, 10, 20, 30, 45, 60)",
+        "strictly decreasing",
+        shown,
+        trail.windows(2).all(|w| w[1] < w[0]),
+    );
+    let last = *trail.last().ok_or("empty")?;
+    s.check(
+        "flop (Qs Jh 4d, one size per street): exploitability after 60 iterations",
+        "< 2% of pot (kept at the original threshold, which was chosen after seeing a run; measured 0.57%)",
+        format!("{last:.3}%"),
+        last < 2.0,
     );
 
     let big = spot(
@@ -844,14 +919,23 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(river_invariance_section()?);
     eprintln!("validate: turn reference");
     sections.push(turn_reference_section(quick)?);
+    eprintln!("validate: flop reference");
+    sections.push(flop_reference_section(quick)?);
     eprintln!("validate: turn and flop");
     sections.push(multi_street_section()?);
 
     let failed: usize = sections
         .iter()
-        .map(|s| s.checks.iter().filter(|c| !c.pass).count())
+        .map(|s| s.checks.iter().filter(|c| !c.pass && !c.report).count())
         .sum();
-    let total: usize = sections.iter().map(|s| s.checks.len()).sum();
+    let total: usize = sections
+        .iter()
+        .map(|s| s.checks.iter().filter(|c| !c.report).count())
+        .sum();
+    let reported: usize = sections
+        .iter()
+        .map(|s| s.checks.iter().filter(|c| c.report).count())
+        .sum();
 
     let mut md = String::new();
     let _ = writeln!(md, "# OpenRange — Validation report\n");
@@ -870,13 +954,19 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     );
     let _ = writeln!(
         md,
-        "**Result: {}** ({} of {total} checks passed).\n",
+        "**Result: {}** ({} of {total} checks passed). Another {reported} rows only report a \
+         value and are not counted as checks.\n",
         if failed == 0 {
             "all checks passed"
         } else {
             "FAILURES"
         },
         total - failed
+    );
+    let _ = writeln!(
+        md,
+        "Tolerances were set at about 5–10× the value measured when they were chosen (shown in \
+         the Expected column); see D-040 in docs/DECISIONS.md.\n"
     );
     let _ = writeln!(
         md,
@@ -890,7 +980,13 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
             s.title, s.intro
         );
         for c in &s.checks {
-            let result = if c.pass { "pass" } else { "**FAIL**" };
+            let result = if c.report {
+                "reported"
+            } else if c.pass {
+                "pass"
+            } else {
+                "**FAIL**"
+            };
             let _ = writeln!(
                 md,
                 "| {} | {} | {} | {result} |",
@@ -904,7 +1000,7 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     }
     std::fs::write(out, md).map_err(|e| format!("writing {out}: {e}"))?;
     eprintln!(
-        "validate: wrote {out}: {}/{total} checks passed in {:.0}s",
+        "validate: wrote {out}: {}/{total} checks passed ({reported} report-only rows) in {:.0}s",
         total - failed,
         start.elapsed().as_secs_f64()
     );

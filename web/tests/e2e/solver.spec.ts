@@ -48,8 +48,13 @@ test('solver: refuses a spot over the memory budget with a clear message', async
 
 test('solver: simplifies a spot that does not fit and says so', async ({ page }) => {
   await page.goto('/#/solver');
-  // The river example needs about 2.71 MB; dropping river raises brings it under 2.68 MB.
-  await page.getByLabel('Memory budget (MB)').fill('2.68');
+  // Budget = the solver's own estimate for the spot as entered, minus 1 kB: the full tree no
+  // longer fits, while the first simplification (dropping river raises) saves far more than that.
+  const estimate = page.getByTestId('memory-estimate');
+  await expect(estimate).toBeVisible();
+  const bytes = Number(await estimate.getAttribute('data-bytes'));
+  expect(bytes).toBeGreaterThan(1e6);
+  await page.getByLabel('Memory budget (MB)').fill(((bytes - 1000) / 1e6).toFixed(6));
   await page.getByLabel('Max iterations').fill('20');
   await page.getByRole('button', { name: 'Solve' }).click();
   await expect(page.getByTestId('abstraction-warning')).toContainText('river', { timeout: 30_000 });

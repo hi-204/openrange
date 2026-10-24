@@ -2,6 +2,22 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-24 — Test-honesty pass (between M4 and M5)
+
+- Every test change since M3 is recorded in D-039; every tolerance was re-measured and set
+  to about 5–10× the measured value (D-040, with a before/measured/after table). The flop
+  convergence threshold stays at 2% of pot, with a new check that it falls at 6 checkpoints.
+- The narrowed turn-tree assertion's coverage is restored as a general "no betting after an
+  all-in" property on flop, turn and river trees.
+- New: an independent tabular reference check for flop spots (turn and river cards as
+  explicit chance nodes): best-response difference ≤ 6.5e-5 chips, value within 1.9e-4 chips
+  on 3 random spots. Slow (~40-80 s per spot), so ignored in debug builds; runs in release.
+- The browser simplification test takes its budget from the solver's own memory estimate,
+  which the Solver page now shows live under the budget field.
+- VALIDATION.md counts real checks separately from report-only rows.
+- 133M-hand enumeration (release, this machine): exact counts in 1.77 s.
+- Not done: CI on GitHub (waiting for a repository URL).
+
 ## 2026-10-24 — M4 complete: turn and flop solving
 
 **Works (verified):**

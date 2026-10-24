@@ -102,5 +102,6 @@
   "solver.chanceHeader": "Deal the {street} card · board so far {board}",
   "solver.cards": "Cards",
   "solver.alsoStandsFor": "Also stands for {cards} (same situation with suits relabelled)",
-  "solver.isoNote": "Cards marked +N stand for N more cards that are the same situation with the suits relabelled; the solver computes them once."
+  "solver.isoNote": "Cards marked +N stand for N more cards that are the same situation with the suits relabelled; the solver computes them once.",
+  "solver.estimate": "This spot needs about {mb} MB as entered."
 }

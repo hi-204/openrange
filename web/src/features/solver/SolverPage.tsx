@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { t, type MessageKey } from '../../lib/i18n';
-import { CancelledError, SolverClient, type Progress } from '../../lib/wasm/client';
+import { CancelledError, SolverClient, solverClient, type Progress } from '../../lib/wasm/client';
 import type { RunResult, SolverInfo, SolverNode } from '../../lib/wasm/protocol';
 import { NodeBrowser, type Step } from './NodeBrowser';
 import { activeStreets, PRESETS, STREETS, toSpot, type Form, type StreetForm, type StreetName } from './spotForm';
@@ -111,6 +111,23 @@ export function SolverPage() {
   const progress = status.kind === 'running' ? status.progress : status.kind === 'stopped' ? status.result : null;
   const streets = activeStreets(form.board);
 
+  // Live memory estimate from the solver's own estimator (count-only, no allocation), on the
+  // shared quick worker so it never disturbs a running solve.
+  const [estimate, setEstimate] = useState<{ bytes: number } | { error: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const timer = setTimeout(() => {
+      solverClient()
+        .call('estimateMemory', { spot: toSpot(form) })
+        .then((r) => live && setEstimate(r))
+        .catch((e: Error) => live && setEstimate({ error: e.message }));
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [form]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -152,7 +169,14 @@ export function SolverPage() {
         <Field label={t('solver.rakeCap')} value={form.rakeCap} onChange={set('rakeCap')} />
         <Field label={t('solver.target')} value={form.target} onChange={set('target')} />
         <Field label={t('solver.maxIterations')} value={form.maxIterations} onChange={set('maxIterations')} />
-        <Field label={t('solver.budget')} value={form.budgetMb} onChange={set('budgetMb')} />
+        <div>
+          <Field label={t('solver.budget')} value={form.budgetMb} onChange={set('budgetMb')} />
+          {estimate && 'bytes' in estimate && (
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400" data-testid="memory-estimate" data-bytes={estimate.bytes}>
+              {t('solver.estimate', { mb: (estimate.bytes / 1e6).toFixed(2) })}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-sm sm:col-span-3">
           <input
             id={simplifyId}

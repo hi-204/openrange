@@ -611,5 +611,109 @@ mod tests {
                 assert_eq!(t.nodes[child].kind, NodeKind::Showdown);
             }
         }
+        assert_no_betting_after_all_in(&t);
+        // Positive control: a river shove after a turn check-check is legitimate and must
+        // exist (an earlier, wrong version of this test forbade it, see D-039).
+        let river_shove = t.nodes.iter().any(|n| {
+            n.street == Street::River
+                && n.invested == [1000, 0]
+                && matches!(&n.kind, NodeKind::Action { player: 1, actions, .. } if actions == &vec![Action::Fold, Action::Call])
+        });
+        assert!(river_shove);
+    }
+
+    /// Once a player is all-in nobody may bet or raise again: a player facing an all-in can
+    /// only fold or call, an all-in player never acts, and below a point where both players
+    /// are all-in there are only chance cards and the showdown. A fold is only possible for
+    /// the player who has put in less.
+    fn assert_no_betting_after_all_in(t: &Tree) {
+        let stack = t.config.stack;
+        fn below(t: &Tree, id: usize, out: &mut Vec<usize>) {
+            out.push(id);
+            match &t.nodes[id].kind {
+                NodeKind::Action { children, .. } => {
+                    children.iter().for_each(|&c| below(t, c, out))
+                }
+                NodeKind::Chance { child, .. } => below(t, *child, out),
+                _ => {}
+            }
+        }
+        for (id, n) in t.nodes.iter().enumerate() {
+            let all_in = [n.invested[0] == stack, n.invested[1] == stack];
+            match &n.kind {
+                NodeKind::Action {
+                    player, actions, ..
+                } => {
+                    assert!(
+                        !all_in[*player],
+                        "node {id}: an all-in player is asked to act"
+                    );
+                    if all_in[1 - player] {
+                        assert_eq!(
+                            actions,
+                            &vec![Action::Fold, Action::Call],
+                            "node {id}: facing an all-in"
+                        );
+                    }
+                }
+                NodeKind::Fold { folder } => {
+                    assert!(
+                        n.invested[*folder] < n.invested[1 - folder],
+                        "node {id}: fold without facing a bet"
+                    );
+                }
+                _ => {}
+            }
+            if all_in[0] && all_in[1] {
+                let mut sub = Vec::new();
+                below(t, id, &mut sub);
+                for s in sub {
+                    assert!(
+                        matches!(
+                            t.nodes[s].kind,
+                            NodeKind::Chance { .. } | NodeKind::Showdown
+                        ),
+                        "node {s}: decision after both players are all-in"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn no_betting_after_all_in_on_any_street() {
+        let trees = [
+            TreeConfig::simple(
+                Street::Flop,
+                1000,
+                1500,
+                &Size::parse_list("50, a").unwrap(),
+                &Size::parse_list("a").unwrap(),
+            ),
+            TreeConfig::simple(
+                Street::Turn,
+                1000,
+                2500,
+                &Size::parse_list("75").unwrap(),
+                &Size::parse_list("100").unwrap(),
+            ),
+            TreeConfig::simple(
+                Street::River,
+                1000,
+                700,
+                &Size::parse_list("33, 150").unwrap(),
+                &Size::parse_list("100").unwrap(),
+            ),
+        ];
+        for cfg in trees {
+            let t = Tree::build(&cfg).unwrap();
+            // Each of these stacks is small enough that some line ends all-in.
+            assert!(
+                t.nodes.iter().any(|n| n.invested == [cfg.stack, cfg.stack]),
+                "{:?}",
+                cfg.street
+            );
+            assert_no_betting_after_all_in(&t);
+        }
     }
 }

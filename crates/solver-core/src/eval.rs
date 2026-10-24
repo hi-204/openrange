@@ -508,7 +508,18 @@ mod tests {
     #[test]
     #[ignore = "heavy: run in release with --include-ignored"]
     fn seven_card_category_counts() {
+        let start = std::time::Instant::now();
         let counts = count_seven_card_categories();
+        // Visible with --nocapture, so the run can be inspected, not just its pass/fail.
+        for (cat, n) in Category::ALL.iter().zip(&counts) {
+            println!("{:>16}: {n:>11}", cat.name());
+        }
+        println!(
+            "{:>16}: {:>11} in {:.2} s",
+            "total",
+            counts.iter().sum::<u64>(),
+            start.elapsed().as_secs_f64()
+        );
         assert_eq!(
             counts,
             [
