@@ -13,3 +13,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 solver-core.workspace = true
 wasm-bindgen.workspace = true
+serde_json.workspace = true

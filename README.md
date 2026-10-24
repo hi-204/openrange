@@ -7,8 +7,9 @@ by expected value, and a course from the rules to solver study.
 > to any poker site. Hand-history import is for reviewing sessions *after* you play. Using
 > real-time assistance during play is against the rules of virtually every poker site.
 
-**Status:** milestone M0 (app shell). See [docs/STATE.md](docs/STATE.md) for what works today
-and [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) for what doesn't.
+**Status:** milestone M1 — hand evaluator, ranges and an equity calculator work. See
+[docs/STATE.md](docs/STATE.md) for what works today and
+[docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) for what doesn't.
 
 ## Run it (Windows, PowerShell)
 

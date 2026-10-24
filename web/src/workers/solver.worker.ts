@@ -20,19 +20,22 @@ function reply(msg: WorkerResponse) {
   self.postMessage(msg);
 }
 
+function handle(wasm: SolverWasm, req: WorkerRequest): unknown {
+  switch (req.type) {
+    case 'hello':
+      return { version: wasm.version(), combos: wasm.countStartingCombos() };
+    case 'parseRange':
+      return JSON.parse(wasm.parseRange(req.text));
+    case 'equity':
+      return JSON.parse(wasm.equity(JSON.stringify(req.request)));
+  }
+}
+
 self.addEventListener('message', async (e: MessageEvent<WorkerRequest>) => {
   const req = e.data;
   try {
     const wasm = await loadWasm();
-    switch (req.type) {
-      case 'hello':
-        reply({
-          id: req.id,
-          type: 'hello',
-          result: { version: wasm.version(), combos: wasm.countStartingCombos() },
-        });
-        break;
-    }
+    reply({ id: req.id, type: 'ok', result: handle(wasm, req) });
   } catch (err) {
     reply({ id: req.id, type: 'error', message: err instanceof Error ? err.message : String(err) });
   }

@@ -2,6 +2,30 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-24 — M1 complete: cards, evaluator, ranges, equity
+
+**Works (verified):**
+- 7-card evaluator: the full enumeration of all 133,784,560 seven-card hands reproduces the
+  exact category counts (1.99 s, release build); 7,462 distinct hand values; 200,000 random
+  5–7-card hands agree with an independent best-of-21 reference evaluator.
+- Range parser/printer: pairs, `+`, dash runs, connector runs, `s`/`o`/both, single combos,
+  weights; canonical printing; print→parse is exact on 500 random weighted ranges.
+- Equity: exact hand-vs-hand and range-vs-range (O(n log n) per runout sweep, cross-checked
+  against pairwise enumeration), seeded multiway Monte Carlo (agrees with exact within 4σ;
+  symmetric 3-way ranges split evenly), turn results match a brute-force reference.
+- Suit isomorphism helpers (canonical sets, stabilizers, combo-pair keys).
+- `solver-cli gen-equity` writes the exact 169×169 preflop table with provenance
+  (47,008 suit classes, ~160 s on 24 threads). AA vs a random hand = 85.20 %; mirrored
+  cells sum to 1 within rounding.
+- Web: Equity calculator page (#/equity) running in the worker: exact or Monte Carlo
+  (with ± standard error), up to 6 players, board and dead cards, cancel button, live range
+  validation. Playwright test covers it.
+
+**Not done / not verified:** no browser performance measurements beyond manual use; the
+GitHub Actions workflow still hasn't run.
+
+**Next:** M2 — tabular CFR (DCFR, CFR+), Kuhn and Leduc validation, VALIDATION.md generator.
+
 ## 2026-10-24 — M0 complete: scaffolding
 
 **Works (verified on this machine, Windows 11, PowerShell 5.1):**

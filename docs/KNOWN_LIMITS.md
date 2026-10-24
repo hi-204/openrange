@@ -4,8 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24: nothing is built yet. The items below are limits that are known by
-design and will stay true when the features exist._
+_Status 2026-10-24 (M1): cards, evaluator, ranges and equity exist; no solver yet._
 
 ## By design
 
@@ -24,7 +23,17 @@ design and will stay true when the features exist._
 - **Solver strategies are equilibrium approximations against an equally strong opponent.**
   They are not the most profitable play against a specific weak opponent.
 
+## Current tools
+
+- **Equity calculator:** exact enumeration is offered for two players only; 3–6 players use
+  Monte Carlo sampling (200,000 deals by default), shown with ± one standard error.
+  Preflop range-vs-range is usually Monte Carlo because exact enumeration would take too
+  long in the browser.
+- **Preflop equity table** (`data/equity/preflop-169.json`): exact, values rounded to
+  6 decimals.
+
 ## Not yet verified
 
-- Everything. Validation results will appear in `docs/VALIDATION.md` (generated) as the
-  solver is built.
+- The CFR solver doesn't exist yet (M2+). Validation results will appear in
+  `docs/VALIDATION.md` (generated) as it is built.
+- Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).

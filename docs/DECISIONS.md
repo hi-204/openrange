@@ -165,3 +165,22 @@ Users who only run the app still need neither (prebuilt WASM, D-009).
 so no browser binary is downloaded. CI (and `PW_BROWSER=chromium`) uses Playwright's
 Chromium, installed explicitly in the workflow. **Why:** D-020 (no downloaded binaries in
 the user's build).
+
+### D-027 · Randomized property tests with our own seeded RNG (no proptest)
+**Decision:** Property tests (evaluator vs reference, range round trips, equity method
+agreement) use `solver_core::rng` with fixed seeds instead of the `proptest` crate.
+**Why:** one fewer dependency tree (proptest pulls in `rand`/`getrandom`); fixed seeds make
+failures reproducible by construction. **Cost:** no automatic shrinking of failing cases;
+tests print the failing input instead.
+
+### D-028 · serde_json at the CLI/WASM boundary only
+**Decision:** `serde_json` (MIT/Apache-2.0) is used by `solver-cli` and `solver-wasm`;
+`solver-core` stays dependency-free. `rayon` (MIT/Apache-2.0) is used only by `solver-cli`.
+**Cost:** WASM grew from 19 KiB to 234 KiB (uncompressed), acceptable for a one-time load.
+
+### D-029 · Equity "auto" mode threshold
+**Decision:** Exact enumeration when two players and runouts × live combos ≤ 3·10⁷,
+otherwise Monte Carlo with 200,000 samples (seed shown in the UI). **Why:** keeps the
+browser responsive (well under a second for exact) while giving exact answers for most
+postflop spots. Monte Carlo results always display their standard error.
+

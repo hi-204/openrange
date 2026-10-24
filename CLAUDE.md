@@ -43,7 +43,8 @@ npm run check               # everything CI runs: fmt, clippy, cargo test, typec
 npm run build:wasm          # rebuild web/public/wasm (needs Rust)
 cargo test --workspace
 cargo test --release -p solver-core -- --include-ignored    # includes the 133M-hand test
-cargo run --release -p solver-cli -- validate               # regenerates docs/VALIDATION.md
+cargo run --release -p solver-cli -- gen-equity             # regenerates data/equity/preflop-169.json (~3 min)
+cargo run --release -p solver-cli -- validate               # regenerates docs/VALIDATION.md (from M2)
 npm --workspace web run test:e2e                            # Playwright smoke tests
 ```
 

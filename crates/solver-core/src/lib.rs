@@ -1,6 +1,15 @@
 //! OpenRange solver core.
 //!
-//! Pure library: no I/O, no clock, no global mutable state. See docs/ARCHITECTURE.md §1.
+//! Pure library: no I/O, no clock, no global mutable state (the evaluator's lookup tables
+//! are built once and immutable afterwards). See docs/ARCHITECTURE.md §1.
+
+pub mod cards;
+pub mod equity;
+pub mod eval;
+pub mod hands;
+pub mod iso;
+pub mod range;
+pub mod rng;
 
 /// Crate version, surfaced in the UI and in every provenance block.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
