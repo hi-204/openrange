@@ -2,6 +2,33 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-24 — M3 complete: river solver
+
+**Works (verified):**
+- Betting-tree builder: bet sizes as % of pot, raises as % of the pot after calling, all-in
+  threshold, minimum raises, raise caps, rake with cap, chance nodes for later streets.
+- Vectorized DCFR over hands with O(n) fold/showdown evaluation and exact card removal;
+  exploitability (NashConv/2) in chips, bb and % of pot; memory estimator.
+- Validation (`docs/VALIDATION.md`, 57/57): polarized toy game matches MDF P/(P+B) and bluff
+  share B/(P+2B) within 0.01 at 33%, 75% and 150% pot; on 12 random river spots the
+  vectorized exploitability equals an independent tabular best response (max difference
+  ~1e-5 chips) and an independent tabular solve reaches the same value; suit relabelling,
+  identical-range symmetry, determinism and regression goldens all pass.
+- The committed WASM reproduces the native goldens bit for bit (Vitest).
+- Performance: a 290 × 433-hand river spot with 20 decision points runs 1,000 iterations in
+  ~0.3 s natively and at about the same speed in the browser (measured once, this machine).
+- Web: River solver page (#/solver): spot form, memory check before allocating, live
+  progress, pause/resume/cancel, provenance badge, node browser with a 13×13 strategy grid
+  and per-combo strategy and EV. Playwright tests cover solving, browsing and the memory
+  refusal.
+- CLI: `solver-cli solve <spot.json>`, `solver-cli gen-goldens`.
+
+**Not done / not verified:** turn/flop (M4); the tree editor and opponent-range views are
+basic; GitHub Actions still hasn't run.
+
+**Next:** M4 — turn and flop solving with suit isomorphism, abstraction ladder, progress
+for long solves.
+
 ## 2026-10-24 — M2 complete: CFR engine and validation report
 
 **Works (verified):**

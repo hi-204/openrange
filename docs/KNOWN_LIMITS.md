@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24 (M2): cards, evaluator, ranges, equity and a validated tabular CFR engine exist; no poker solver yet._
+_Status 2026-10-24 (M3): river solving works and is validated; turn and flop arrive in M4._
 
 ## By design
 
@@ -34,6 +34,10 @@ _Status 2026-10-24 (M2): cards, evaluator, ranges, equity and a validated tabula
 
 ## Not yet verified
 
-- The CFR engine is validated on Kuhn and Leduc only (see `docs/VALIDATION.md`); the poker
-  (river/turn/flop) solver doesn't exist yet (M3+).
+- **River solver:** heads-up only; one bet-size list per player per street (no separate
+  donk or probe sizes yet); strategies are stored as 32-bit floats. A solve stops at the
+  exploitability target (default 0.3% of the pot in the app) or the iteration limit, and the
+  result badge always shows which. Turn and flop solving are not available yet (M4).
+- **Node browser:** strategies are shown for the acting player only; there is no "opponent
+  range at this node" view yet (M9 workbench).
 - Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).

@@ -1,0 +1,154 @@
+{
+  "provenance": {
+    "abstraction": null,
+    "generatedAt": "2026-10-24T22:13:25Z",
+    "generator": "solver-cli gen-goldens",
+    "gitCommit": "b5af8ec90c5e",
+    "gitDirty": true,
+    "model": null,
+    "notes": "Regression goldens: fixed river spots solved for a fixed number of iterations. Not converged strategies for study; they exist to detect changes in solver output.",
+    "schema": "openrange.provenance/1",
+    "seed": null,
+    "solver": {
+      "algorithm": "dcfr",
+      "alpha": 1.5,
+      "beta": 0,
+      "gamma": 2
+    },
+    "solverCoreVersion": "0.1.0",
+    "source": "solver_exact"
+  },
+  "spots": [
+    {
+      "algorithm": "dcfr(1.5,0,2)",
+      "evBb": [
+        2.255638938295214,
+        7.7443611225328945
+      ],
+      "exploitabilityPctPot": 0.0007077036719550734,
+      "fingerprint": "e4ac9ae0ba0c1df7",
+      "iterations": 1000,
+      "name": "toy-polarized-75",
+      "spot": {
+        "allInThreshold": 2.0,
+        "board": "Ah Kd 8c 5s 2h",
+        "maxRaises": 0,
+        "pot": 10.0,
+        "rake": {
+          "capBb": 0.0,
+          "percent": 0.0
+        },
+        "ranges": {
+          "ip": "QQ",
+          "oop": "88, 76s, 76o"
+        },
+        "schema": "openrange.spot/1",
+        "sizes": {
+          "flop": {
+            "ip": {
+              "bet": "",
+              "raise": ""
+            },
+            "oop": {
+              "bet": "75",
+              "raise": ""
+            }
+          },
+          "river": {
+            "ip": {
+              "bet": "",
+              "raise": ""
+            },
+            "oop": {
+              "bet": "75",
+              "raise": ""
+            }
+          },
+          "turn": {
+            "ip": {
+              "bet": "",
+              "raise": ""
+            },
+            "oop": {
+              "bet": "75",
+              "raise": ""
+            }
+          }
+        },
+        "stack": 1000.0
+      }
+    },
+    {
+      "algorithm": "dcfr(1.5,0,2)",
+      "evBb": [
+        5.518406463773233,
+        4.481593592809684
+      ],
+      "exploitabilityPctPot": 0.025771765834184633,
+      "fingerprint": "696126681721e946",
+      "iterations": 500,
+      "name": "single-raised-pot-river",
+      "spot": {
+        "allInThreshold": 0.67,
+        "board": "Qs Jh 7d 4c 2s",
+        "maxRaises": 2,
+        "pot": 10,
+        "ranges": {
+          "ip": "22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, A5o+, K9o+, Q9o+, J9o+, T9o",
+          "oop": "22+, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, ATo+, KTo+, QTo+, JTo"
+        },
+        "sizes": {
+          "default": {
+            "ip": {
+              "bet": "33, 75, 150",
+              "raise": "100"
+            },
+            "oop": {
+              "bet": "33, 75, 150",
+              "raise": "100"
+            }
+          }
+        },
+        "stack": 90
+      }
+    },
+    {
+      "algorithm": "dcfr(1.5,0,2)",
+      "evBb": [
+        2.2503821220593427,
+        3.354662219557885
+      ],
+      "exploitabilityPctPot": 0.004038248714387294,
+      "fingerprint": "875ff81702b32767",
+      "iterations": 500,
+      "name": "raked-river",
+      "spot": {
+        "allInThreshold": 0.67,
+        "board": "Ah 9d 6c 6s 2h",
+        "maxRaises": 1,
+        "pot": 6,
+        "rake": {
+          "capBb": 3,
+          "percent": 5
+        },
+        "ranges": {
+          "ip": "QQ+, 99-55, A8s+, 76s, 54s, AQo+",
+          "oop": "TT-77, A9s+, KTs+, 87s, 65s, AJo+"
+        },
+        "sizes": {
+          "default": {
+            "ip": {
+              "bet": "75",
+              "raise": "a"
+            },
+            "oop": {
+              "bet": "50, a",
+              "raise": "a"
+            }
+          }
+        },
+        "stack": 47
+      }
+    }
+  ]
+}

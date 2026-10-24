@@ -191,3 +191,29 @@ postflop spots. Monte Carlo results always display their standard error.
 value at the time is written next to the threshold in the report. Thresholds are never
 relaxed to make a failing run pass without a new entry here.
 
+### D-031 · Bit-identical results across platforms
+**Decision:** The default DCFR discount factors are computed with sqrt, × and ÷ only
+(t^1.5 = t·√t, x^2 = x·x), never the platform `powf`, and every summation has a fixed
+order. **Why:** `powf` differs in the last bit between math libraries (MSVC, glibc,
+WebAssembly), which would make "reproducible" outputs differ between the CLI that
+generates data and the browser that displays it. Non-default exponents fall back to `powf`
+and are documented as not bit-reproducible across platforms.
+
+### D-032 · Regression goldens are fingerprints, not tolerances
+**Decision:** `data/goldens/river.json` stores, per spot, an FNV-1a hash of all strategy-sum
+bits after a fixed number of iterations, plus EVs and exploitability. Tests require an
+exact fingerprint match in native (`cargo test`) and WASM (`npm test`) builds. An
+intentional solver change regenerates the goldens (`solver-cli gen-goldens`) in the same
+commit, with the reason in the message.
+
+### D-033 · Optional `json` feature in solver-core
+**Decision:** The spot JSON format lives in solver-core behind `features = ["json"]`
+(enabled by solver-cli and solver-wasm via the workspace dependency). **Why:** one parser
+for the CLI, the browser and the golden files; the default core build stays dependency-free.
+
+### D-034 · EVs shown per action are spot-relative
+**Decision:** Per-hand action EVs are in big blinds, measured from the start of the spot
+(pot winnings minus chips put in after the spot began), given both players follow the
+solved average strategies below the node. **Why:** it makes actions at one node directly
+comparable (the difference is the EV loss used for grading in M6). The UI says so next to
+every EV table.

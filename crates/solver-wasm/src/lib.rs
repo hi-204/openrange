@@ -3,6 +3,7 @@
 //! Poker logic lives in solver-core; this crate only translates and picks methods.
 
 mod api;
+mod solver;
 
 use wasm_bindgen::prelude::*;
 
@@ -30,4 +31,55 @@ pub fn parse_range(text: &str) -> String {
 #[wasm_bindgen]
 pub fn equity(request_json: &str) -> String {
     api::equity(request_json).to_string()
+}
+
+/// Memory a spot would need, without allocating it: `{bytes}`. Throws on a bad spot.
+#[wasm_bindgen(js_name = estimateMemory)]
+pub fn estimate_memory(spot_json: &str) -> Result<String, JsError> {
+    solver::estimate(spot_json)
+        .map(|v| v.to_string())
+        .map_err(|e| JsError::new(&e))
+}
+
+/// A postflop solving session. Created only if the memory estimate fits the budget.
+#[wasm_bindgen]
+pub struct Solver(solver::Session);
+
+#[wasm_bindgen]
+impl Solver {
+    #[wasm_bindgen(constructor)]
+    pub fn new(spot_json: &str, budget_bytes: f64) -> Result<Solver, JsError> {
+        solver::Session::new(spot_json, budget_bytes)
+            .map(Solver)
+            .map_err(|e| JsError::new(&e))
+    }
+
+    /// `{estimateBytes, hands: [[combo]...], actionNodes, storageEntries, algorithm}`
+    pub fn info(&self) -> String {
+        self.0.info().to_string()
+    }
+
+    /// Run `n` more iterations; returns the total.
+    pub fn step(&mut self, n: u32) -> u32 {
+        self.0.step(n)
+    }
+
+    /// `{iterations, chips, bb, pctPot, evBb: [oop, ip]}`
+    pub fn exploitability(&mut self) -> String {
+        self.0.exploitability().to_string()
+    }
+
+    /// Hex fingerprint of the solver state; equal across native and WASM builds for the same
+    /// inputs (checked against the regression goldens).
+    pub fn fingerprint(&self) -> String {
+        format!("{:016x}", self.0.game.fingerprint())
+    }
+
+    /// Node reached by `pathJson` (array of action/card indices).
+    pub fn node(&mut self, path_json: &str) -> Result<String, JsError> {
+        self.0
+            .node(path_json)
+            .map(|v| v.to_string())
+            .map_err(|e| JsError::new(&e))
+    }
 }

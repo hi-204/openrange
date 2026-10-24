@@ -1,10 +1,17 @@
-import type { CallType, Calls, WorkerRequest, WorkerResponse } from './protocol';
+import type { CallType, Calls, ExploitabilityReport, WorkerRequest, WorkerResponse } from './protocol';
 
-type Pending = { resolve: (r: unknown) => void; reject: (e: Error) => void };
+export type Progress = ExploitabilityReport & { elapsedMs: number };
+
+type Pending = {
+  resolve: (r: unknown) => void;
+  reject: (e: Error) => void;
+  onProgress?: (p: Progress) => void;
+};
 
 /**
  * Talks to the solver worker. All solver work happens off the UI thread. `cancel()` stops
- * whatever is running by terminating the worker; the next call starts a fresh one.
+ * whatever is running by terminating the worker (which also frees its memory); the next call
+ * starts a fresh one.
  */
 export class SolverClient {
   private worker: Worker | null = null;
@@ -18,6 +25,10 @@ export class SolverClient {
       const msg = e.data;
       const p = this.pending.get(msg.id);
       if (!p) return;
+      if (msg.type === 'progress') {
+        p.onProgress?.(msg.progress);
+        return;
+      }
       this.pending.delete(msg.id);
       if (msg.type === 'error') p.reject(new Error(msg.message));
       else p.resolve(msg.result);
@@ -32,11 +43,15 @@ export class SolverClient {
     this.pending.clear();
   }
 
-  call<K extends CallType>(type: K, args: Calls[K]['args']): Promise<Calls[K]['result']> {
+  call<K extends CallType>(
+    type: K,
+    args: Calls[K]['args'],
+    onProgress?: (p: Progress) => void,
+  ): Promise<Calls[K]['result']> {
     const id = this.nextId++;
     const req = { id, type, ...args } as WorkerRequest;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve: resolve as (r: unknown) => void, reject });
+      this.pending.set(id, { resolve: resolve as (r: unknown) => void, reject, onProgress });
       this.ensureWorker().postMessage(req);
     });
   }
@@ -56,6 +71,7 @@ export class CancelledError extends Error {
 }
 
 let shared: SolverClient | null = null;
+/** Shared worker for quick jobs (range parsing, equity). */
 export function solverClient(): SolverClient {
   shared ??= new SolverClient();
   return shared;

@@ -3,6 +3,7 @@
 //! Every row states what theory (or an independent method) predicts, what we measured, and
 //! the tolerance. The report is generated; never edit it by hand.
 
+use crate::goldens;
 use crate::provenance::{git_commit_label, utc_now};
 use solver_core::cards::{CardSet, Combo, parse_cards};
 use solver_core::cfr::tabular::{
@@ -12,7 +13,11 @@ use solver_core::cfr::tabular::{
 use solver_core::equity::{exact_range_vs_range, hand_vs_hand, monte_carlo};
 use solver_core::eval::{Evaluator, count_seven_card_categories};
 use solver_core::games::{kuhn::Kuhn, leduc::Leduc};
+use solver_core::iso::{permute_card, permute_combo};
+use solver_core::postflop::json::spot_from_json;
+use solver_core::postflop::{PostflopGame, SpotConfig, reference};
 use solver_core::range::Range;
+use solver_core::rng::Rng;
 use std::fmt::Write as _;
 use std::time::Instant;
 
@@ -387,6 +392,207 @@ fn leduc_section(quick: bool) -> Section {
     s
 }
 
+fn river_theory_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "River solver vs theory (polarized toy game)",
+        "OOP holds only nut hands (88 on Ah Kd 8c 5s 2h) and air (76); IP holds only \
+         bluff-catchers (QQ). OOP may check or bet B; IP may only call or fold. Theory: IP \
+         defends P/(P+B) (minimum defense frequency) and bluffs make up B/(P+2B) of the betting \
+         range. Solved with DCFR for 3,000 iterations at three bet sizes.",
+    );
+    for f in [0.33, 0.75, 1.5] {
+        let r = reference::toy_check(f, 3000)?;
+        let label = format!("{:.0}% pot", f * 100.0);
+        s.check(
+            &format!("{label}: IP call frequency"),
+            format!("P/(P+B) = {:.4} (±0.01)", r.mdf),
+            format!("{:.4}", r.call),
+            (r.call - r.mdf).abs() < 0.01,
+        );
+        s.check(
+            &format!("{label}: bluff share of the betting range"),
+            format!("B/(P+2B) = {:.4} (±0.01)", r.theory_bluff_share),
+            format!("{:.4}", r.bluff_share),
+            (r.bluff_share - r.theory_bluff_share).abs() < 0.01,
+        );
+        s.check(
+            &format!("{label}: value hands bet"),
+            "100% (> 99%)",
+            format!("{:.2}%", r.value_bet * 100.0),
+            r.value_bet > 0.99,
+        );
+        s.check(
+            &format!("{label}: exploitability"),
+            "< 0.05% of pot",
+            format!("{:.4}% of pot", r.exploitability_pct),
+            r.exploitability_pct < 0.05,
+        );
+    }
+    Ok(s)
+}
+
+fn river_reference_section(quick: bool) -> Result<Section, String> {
+    let mut s = Section::new(
+        "River solver vs independent reference",
+        "Random small river spots (4-9 weighted combos per side, two bet sizes, raises, \
+         card overlap between ranges) are restated as ordinary extensive-form games, one chance \
+         outcome per pair of hands, with showdowns scored by the slow reference evaluator, and \
+         solved by the tabular engine validated above. (1) The vectorized solution is \
+         translated into that game and its exploitability is measured by the tabular \
+         best-response code; it must equal the vectorized solver's own figure. (2) Both \
+         solvers must reach the same game value. 1,500 DCFR iterations each.",
+    );
+    let mut rng = Rng::seed(0x00C0_FFEE);
+    let n = if quick { 4 } else { 12 };
+    let (mut worst_br, mut worst_value, mut worst_ex) = (0f64, 0f64, 0f64);
+    for _ in 0..n {
+        let cfg = reference::random_river_spot(&mut rng);
+        let r = reference::reference_check(&cfg, 1500)?;
+        worst_br = worst_br.max((r.tabular_exploitability - r.vectorized_exploitability).abs());
+        worst_value = worst_value.max((r.tabular_value - r.vectorized_value).abs());
+        worst_ex = worst_ex.max(r.vectorized_exploitability);
+    }
+    s.check(
+        &format!("best response: vectorized vs tabular ({n} spots)"),
+        "max difference < 0.01 chips (0.001% of pot)",
+        format!("{worst_br:.2e} chips"),
+        worst_br < 0.01,
+    );
+    s.check(
+        &format!("game value: vectorized vs tabular solve ({n} spots)"),
+        "max difference < 0.2% of pot",
+        format!("{:.4}% of pot", worst_value / 10.0),
+        worst_value < 2.0,
+    );
+    s.check(
+        "largest vectorized exploitability among these spots",
+        "(reported)",
+        format!("{:.4}% of pot", worst_ex / 10.0),
+        true,
+    );
+    Ok(s)
+}
+
+fn solve_spot(cfg: &SpotConfig, iterations: u32) -> Result<PostflopGame, String> {
+    let mut g = PostflopGame::new(cfg.clone(), Algorithm::DCFR_DEFAULT)?;
+    for _ in 0..iterations {
+        g.iterate();
+    }
+    Ok(g)
+}
+
+fn river_invariance_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "River solver: symmetry, determinism and regression goldens",
+        "Relabelling suits must not change values or strategies; identical ranges with no \
+         betting must split the pot; the same inputs must give bit-identical results; and the \
+         stored golden spots (`data/goldens/river.json`) must re-solve to exactly the stored \
+         fingerprints. The committed WebAssembly build is checked against the same \
+         fingerprints by `npm test` (web/src/lib/wasm/goldens.test.ts).",
+    );
+    let spot = |board: &str, oop: &str, ip: &str, bet: &str| -> Result<SpotConfig, String> {
+        spot_from_json(&serde_json::json!({
+            "board": board, "pot": 10, "stack": 50,
+            "ranges": { "oop": oop, "ip": ip },
+            "sizes": { "default": { "oop": { "bet": bet, "raise": "100" }, "ip": { "bet": bet, "raise": "100" } } },
+            "maxRaises": 2
+        }))
+    };
+    let (oop, ip) = (
+        "TT+, AJs+, KQs, 98s, 76s, AQo+",
+        "99+, ATs+, KJs+, QJs, JTs, T9s, AJo+, KQo",
+    );
+    // Swap spades and hearts everywhere.
+    let perm = [0u8, 1, 3, 2];
+    let base = spot("Ks Th 7d 4c 2s", oop, ip, "50, 100")?;
+    let mut permuted = base.clone();
+    permuted.board = base.board.iter().map(|&c| permute_card(c, &perm)).collect();
+    for p in 0..2 {
+        let mut r = Range::empty();
+        for (c, w) in base.ranges[p].iter() {
+            r.set(permute_combo(c, &perm), w);
+        }
+        permuted.ranges[p] = r;
+    }
+    let (mut a, mut b) = (solve_spot(&base, 500)?, solve_spot(&permuted, 500)?);
+    let (ea, eb) = (a.expected_values(), b.expected_values());
+    let ev_diff = (ea[0] - eb[0]).abs().max((ea[1] - eb[1]).abs());
+    let (sa, sb) = (
+        a.river_average(0).ok_or("root")?,
+        b.river_average(0).ok_or("root")?,
+    );
+    let n = a.hands(0).len();
+    let mut strat_diff: f32 = 0.0;
+    for (h, &c) in a.hands(0).iter().enumerate() {
+        let hb = b
+            .hands(0)
+            .iter()
+            .position(|&x| x == permute_combo(c, &perm))
+            .ok_or("hand")?;
+        for act in 0..sa.len() / n {
+            strat_diff = strat_diff.max((sa[act * n + h] - sb[act * n + hb]).abs());
+        }
+    }
+    s.check(
+        "suit relabelling: EV difference",
+        "< 0.001 chips",
+        format!("{ev_diff:.1e} chips"),
+        ev_diff < 1e-3,
+    );
+    s.check(
+        "suit relabelling: max strategy difference (any combo, any action)",
+        "< 0.001",
+        format!("{strat_diff:.1e}"),
+        strat_diff < 1e-3,
+    );
+
+    let mut sym = solve_spot(&spot("Ks Th 7d 4c 2s", oop, oop, "")?, 1)?;
+    let ev = sym.expected_values();
+    let half = 500.0;
+    s.check(
+        "identical ranges, no betting: each player expects half the pot",
+        "500 chips each (±0.001)",
+        format!("{:.4} / {:.4}", ev[0], ev[1]),
+        (ev[0] - half).abs() < 1e-3 && (ev[1] - half).abs() < 1e-3,
+    );
+
+    let (x, y) = (solve_spot(&base, 300)?, solve_spot(&base, 300)?);
+    s.check(
+        "determinism: two identical solves",
+        "identical fingerprints",
+        format!("{:016x} / {:016x}", x.fingerprint(), y.fingerprint()),
+        x.fingerprint() == y.fingerprint(),
+    );
+
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data/goldens/river.json");
+    match std::fs::read_to_string(path) {
+        Err(_) => s.check(
+            "regression goldens",
+            "file present",
+            "missing (run gen-goldens)",
+            false,
+        ),
+        Ok(text) => {
+            let doc: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+            for g in doc["spots"].as_array().ok_or("goldens: no spots")? {
+                let name = g["name"].as_str().unwrap_or("?");
+                let cfg = spot_from_json(&g["spot"])?;
+                let iterations = g["iterations"].as_u64().unwrap_or(0) as u32;
+                let r = goldens::solve(&cfg, iterations)?;
+                let want = g["fingerprint"].as_str().unwrap_or("");
+                let got = format!("{:016x}", r.fingerprint);
+                s.check(
+                    &format!("golden {name}"),
+                    format!("fingerprint {want}"),
+                    got.clone(),
+                    got == want,
+                );
+            }
+        }
+    }
+    Ok(s)
+}
+
 /// Table cells may contain `|` (e.g. "|z| < 4"), which Markdown would read as a column break.
 fn cell(x: &str) -> String {
     x.replace('|', r"\|")
@@ -404,6 +610,12 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(best_response_section());
     eprintln!("validate: leduc");
     sections.push(leduc_section(quick));
+    eprintln!("validate: river theory");
+    sections.push(river_theory_section()?);
+    eprintln!("validate: river reference");
+    sections.push(river_reference_section(quick)?);
+    eprintln!("validate: river invariance");
+    sections.push(river_invariance_section()?);
 
     let failed: usize = sections
         .iter()
@@ -438,9 +650,8 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     );
     let _ = writeln!(
         md,
-        "Not yet covered (arrives with the poker solver, M3+): river toy game vs MDF and \
-         bluff-share theory, poker best-response cross-check, suit-symmetry tests, regression \
-         goldens, reference-solver cross-check.\n"
+        "Not yet covered (arrives with turn and flop solving, M4): chance-node and \
+         suit-isomorphism checks on turn/flop trees.\n"
     );
     for s in &sections {
         let _ = writeln!(

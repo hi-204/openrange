@@ -1,6 +1,121 @@
 /* @ts-self-types="./solver_wasm.d.ts" */
 
 /**
+ * A postflop solving session. Created only if the memory estimate fits the budget.
+ */
+export class Solver {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        SolverFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_solver_free(ptr, 0);
+    }
+    /**
+     * `{iterations, chips, bb, pctPot, evBb: [oop, ip]}`
+     * @returns {string}
+     */
+    exploitability() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.solver_exploitability(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Hex fingerprint of the solver state; equal across native and WASM builds for the same
+     * inputs (checked against the regression goldens).
+     * @returns {string}
+     */
+    fingerprint() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.solver_fingerprint(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * `{estimateBytes, hands: [[combo]...], actionNodes, storageEntries, algorithm}`
+     * @returns {string}
+     */
+    info() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.solver_info(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @param {string} spot_json
+     * @param {number} budget_bytes
+     */
+    constructor(spot_json, budget_bytes) {
+        const ptr0 = passStringToWasm0(spot_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.solver_new(ptr0, len0, budget_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        SolverFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Node reached by `pathJson` (array of action/card indices).
+     * @param {string} path_json
+     * @returns {string}
+     */
+    node(path_json) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(path_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.solver_node(this.__wbg_ptr, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * Run `n` more iterations; returns the total.
+     * @param {number} n
+     * @returns {number}
+     */
+    step(n) {
+        const ret = wasm.solver_step(this.__wbg_ptr, n);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) Solver.prototype[Symbol.dispose] = Solver.prototype.free;
+
+/**
  * M0 smoke test: number of two-card combos, computed in Rust.
  * @returns {number}
  */
@@ -27,6 +142,32 @@ export function equity(request_json) {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Memory a spot would need, without allocating it: `{bytes}`. Throws on a bad spot.
+ * @param {string} spot_json
+ * @returns {string}
+ */
+export function estimateMemory(spot_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(spot_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.estimateMemory(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 
@@ -70,6 +211,13 @@ export function version() {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg_Error_30c8987f7c2ed4e2: function(arg0, arg1) {
+            const ret = Error(getStringFromWasm0(arg0, arg1));
+            return ret;
+        },
+        __wbg___wbindgen_throw_41e9ee4f547fc59a: function(arg0, arg1) {
+            throw new Error(getStringFromWasm0(arg0, arg1));
+        },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
             const offset = table.grow(4);
@@ -85,6 +233,10 @@ function __wbg_get_imports() {
         "./solver_wasm_bg.js": import0,
     };
 }
+
+const SolverFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_solver_free(ptr, 1));
 
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
@@ -133,6 +285,12 @@ function passStringToWasm0(arg, malloc, realloc) {
 
     WASM_VECTOR_LEN = offset;
     return ptr;
+}
+
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_externrefs.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
 }
 
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });

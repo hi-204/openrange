@@ -42,7 +42,7 @@ impl Algorithm {
     }
 
     /// Weight of iteration `t`'s strategy in the running average (before discounting).
-    fn strategy_weight(&self, t: u32) -> f64 {
+    pub(crate) fn strategy_weight(&self, t: u32) -> f64 {
         match self {
             Algorithm::CfrPlus { delay } => t.saturating_sub(*delay) as f64,
             _ => 1.0,
@@ -51,23 +51,35 @@ impl Algorithm {
 
     /// Discount factors (positive regret, negative regret, strategy sum) applied after
     /// iteration `t` (1-based).
-    fn discounts(&self, t: u32) -> (f64, f64, f64) {
+    pub(crate) fn discounts(&self, t: u32) -> (f64, f64, f64) {
         match *self {
             Algorithm::Dcfr { alpha, beta, gamma } => {
+                // `powf` comes from the platform's math library and may differ in the last bit
+                // between Windows, Linux and WebAssembly. For the default parameters use only
+                // operations IEEE 754 rounds exactly (sqrt, ×, ÷) so results are bit-identical
+                // everywhere.
                 let t = t as f64;
-                let pa = t.powf(alpha);
-                let pb = t.powf(beta);
-                (
-                    pa / (pa + 1.0),
-                    pb / (pb + 1.0),
-                    (t / (t + 1.0)).powf(gamma),
-                )
+                let pow = |x: f64, e: f64| {
+                    if e == 0.0 {
+                        1.0
+                    } else if e == 1.0 {
+                        x
+                    } else if e == 1.5 {
+                        x * x.sqrt()
+                    } else if e == 2.0 {
+                        x * x
+                    } else {
+                        x.powf(e)
+                    }
+                };
+                let (pa, pb) = (pow(t, alpha), pow(t, beta));
+                (pa / (pa + 1.0), pb / (pb + 1.0), pow(t / (t + 1.0), gamma))
             }
             _ => (1.0, 1.0, 1.0),
         }
     }
 
-    fn floors_regrets(&self) -> bool {
+    pub(crate) fn floors_regrets(&self) -> bool {
         matches!(self, Algorithm::CfrPlus { .. })
     }
 }

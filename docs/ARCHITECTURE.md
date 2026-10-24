@@ -139,6 +139,13 @@ hand at once.
 - Rake is applied to the pot at terminals; no-flop-no-drop is a flag that zeroes rake for
   hands ending preflop (preflop solver only).
 
+**Payoffs**: measured from the start of the spot. A player's payoff is what they win from
+the pot minus what they put in after the spot started; the starting pot is dead money.
+Rake is taken from the contested pot (starting pot + matched bets; an uncalled bet just
+returns). Implemented in `solver-core/src/postflop/game.rs`; the action tree (card-free,
+with chance nodes for later streets) in `postflop/tree.rs`; the expanded game creates one
+node per (tree node, board) so turn/flop spots reuse the same code (M4).
+
 **Exploitability**: best response for each player against the opponent's *average*
 strategy via the same vectorized walk (max instead of mix at the BR player's nodes).
 Defined generally as `NashConv / 2 = Σᵢ (BRᵢ − uᵢ(σ̄)) / 2`, which stays correct with rake
@@ -156,8 +163,10 @@ budget with concrete suggestions (fewer sizes, lower raise cap, compressed stora
 (4) one bet size on flop. The chosen step is stored in the result and shown as a warning.
 
 **Determinism**: no RNG in full-traversal CFR; fixed summation order; no `f32::mul_add`;
-tests assert bit-identical results for identical inputs and seed. Native-vs-WASM equality
-is tested via golden hashes.
+the default DCFR discounts use only sqrt/×/÷ (no platform `powf`), so results are
+bit-identical on Windows, Linux and WebAssembly. Regression goldens
+(`data/goldens/river.json`) store fingerprints; `cargo test` and `npm test` (WASM) both
+re-solve them and must match bit for bit.
 
 ### 1.9 Preflop *(planned, M5)*
 - **Push/fold**: per-combo (1326) decisions with exact all-in equities; heads-up solved by
@@ -185,7 +194,10 @@ Thin wasm-bindgen layer. Requests and responses are JSON strings (handled in
 `solver-wasm/src/api.rs`, unit-tested natively). Current exports: `version()`,
 `parseRange(text)`, `equity(requestJson)` — "auto" mode enumerates exactly for two players
 when the work estimate is ≤ 3·10⁷ evaluations, otherwise uses seeded Monte Carlo.
-Planned stateful solver handle (M3+); large arrays will move to typed arrays then:
+Stateful postflop session (`Solver` class, `solver-wasm/src/solver.rs`). The constructor
+refuses spots whose memory estimate exceeds the budget. Spots use the JSON format in
+`solver-core/src/postflop/json.rs` (`openrange.spot/1`, behind the `json` feature).
+Shape (large arrays may move to typed arrays later):
 
 ```
 new Solver(configJson) -> handle          // builds tree, validates config

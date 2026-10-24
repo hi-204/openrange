@@ -10,6 +10,7 @@ pub mod eval;
 pub mod games;
 pub mod hands;
 pub mod iso;
+pub mod postflop;
 pub mod range;
 pub mod rng;
 

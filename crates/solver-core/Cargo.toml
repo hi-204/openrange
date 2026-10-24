@@ -7,4 +7,10 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+# JSON spot format (used by solver-cli and solver-wasm); off by default so the core has no
+# dependencies.
+json = ["dep:serde_json"]
+
 [dependencies]
+serde_json = { workspace = true, optional = true }
