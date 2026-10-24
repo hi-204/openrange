@@ -92,7 +92,12 @@ by the CLI.
 - Algorithms share one `RegretRule` module: **DCFR** (positive regrets × tᵅ/(tᵅ+1), negative
   × tᵝ/(tᵝ+1), strategy sum × (t/(t+1))ᵞ, α = 1.5, β = 0, γ = 2) and **CFR+** (regrets
   floored at 0, linear averaging with configurable delay). Alternating updates.
-- Exact best response by full tree walk → exploitability.
+- The current strategy σᵗ is snapshotted once per pass: an infoset sits at many tree nodes
+  (one per hidden chance outcome) and all of them must use the same σᵗ while its regrets
+  accumulate. CFR+ flooring and DCFR discounting are applied after the pass.
+- Exact best response by tree walk with per-infoset action choice (memoized, deepest first)
+  → exploitability; cross-checked against brute force over all pure strategies on Kuhn.
+- Implemented in `solver-core/src/cfr/tabular.rs`; games in `solver-core/src/games/`.
 
 ### 1.8 Postflop solver
 **Game tree** (`tree`): built from a `TreeConfig`: starting street, pot, effective stack,

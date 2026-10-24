@@ -37,6 +37,9 @@ jobs:
       - name: Heavy Rust tests (release, includes ignored)
         run: cargo test --workspace --release --locked -- --include-ignored
 
+      - name: Validation suite (report written to target/, the committed one is regenerated locally)
+        run: cargo run --release --locked -p solver-cli -- validate --out target/VALIDATION.md
+
       - name: Playwright smoke test
         env:
           PW_BROWSER: chromium

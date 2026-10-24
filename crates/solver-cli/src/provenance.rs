@@ -27,6 +27,15 @@ fn git(args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
+/// Short commit hash, with " (uncommitted changes)" when the working tree is dirty.
+pub fn git_commit_label() -> String {
+    let commit = git(&["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".into());
+    match git(&["status", "--porcelain"]) {
+        Some(s) if !s.is_empty() => format!("{commit} (uncommitted changes)"),
+        _ => commit,
+    }
+}
+
 /// Current UTC time as `YYYY-MM-DDTHH:MM:SSZ` (civil-from-days, H. Hinnant's algorithm).
 pub fn utc_now() -> String {
     let secs = SystemTime::now()

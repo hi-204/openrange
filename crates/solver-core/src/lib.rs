@@ -4,8 +4,10 @@
 //! are built once and immutable afterwards). See docs/ARCHITECTURE.md §1.
 
 pub mod cards;
+pub mod cfr;
 pub mod equity;
 pub mod eval;
+pub mod games;
 pub mod hands;
 pub mod iso;
 pub mod range;

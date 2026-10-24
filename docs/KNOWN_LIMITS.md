@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24 (M1): cards, evaluator, ranges and equity exist; no solver yet._
+_Status 2026-10-24 (M2): cards, evaluator, ranges, equity and a validated tabular CFR engine exist; no poker solver yet._
 
 ## By design
 
@@ -34,6 +34,6 @@ _Status 2026-10-24 (M1): cards, evaluator, ranges and equity exist; no solver ye
 
 ## Not yet verified
 
-- The CFR solver doesn't exist yet (M2+). Validation results will appear in
-  `docs/VALIDATION.md` (generated) as it is built.
+- The CFR engine is validated on Kuhn and Leduc only (see `docs/VALIDATION.md`); the poker
+  (river/turn/flop) solver doesn't exist yet (M3+).
 - Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).

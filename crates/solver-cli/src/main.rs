@@ -5,6 +5,7 @@
 
 mod gen_equity;
 mod provenance;
+mod validate;
 
 use std::process::ExitCode;
 
@@ -15,6 +16,9 @@ commands:
   version                      print the solver-core version
   gen-equity [--out <file>]    exact 169x169 preflop equity table
                                (default: data/equity/preflop-169.json)
+  validate [--quick] [--out <file>]
+                               run the validation suite and write the report
+                               (default: docs/VALIDATION.md)
   help                         show this message";
 
 /// Value following `--name`, if present.
@@ -35,6 +39,10 @@ fn main() -> ExitCode {
         Some("gen-equity") => {
             gen_equity::run(opt(&args, "--out").unwrap_or("data/equity/preflop-169.json"))
         }
+        Some("validate") => validate::run(
+            args.iter().any(|a| a == "--quick"),
+            opt(&args, "--out").unwrap_or("docs/VALIDATION.md"),
+        ),
         None | Some("help" | "--help" | "-h") => {
             println!("{USAGE}");
             Ok(())

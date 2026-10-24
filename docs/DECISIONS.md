@@ -184,3 +184,10 @@ otherwise Monte Carlo with 200,000 samples (seed shown in the UI). **Why:** keep
 browser responsive (well under a second for exact) while giving exact answers for most
 postflop spots. Monte Carlo results always display their standard error.
 
+### D-030 · How validation thresholds are set
+**Decision:** Where theory gives an exact answer (Kuhn value −1/18, equilibrium structure,
+7-card counts) the test compares against theory with a stated tolerance. Where it doesn't
+(Leduc), thresholds are set from a measured run with roughly 5× margin, and the measured
+value at the time is written next to the threshold in the report. Thresholds are never
+relaxed to make a failing run pass without a new entry here.
+

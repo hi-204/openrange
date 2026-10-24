@@ -2,6 +2,27 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-24 — M2 complete: CFR engine and validation report
+
+**Works (verified):**
+- Tabular CFR engine with DCFR (α=1.5, β=0, γ=2), CFR+ and vanilla CFR, alternating updates.
+- Kuhn poker: all three algorithms reach the closed-form equilibrium (value −1/18,
+  P(bet K) = 3·P(bet J), P(call with Q) = 1/3); DCFR exploitability 2.4e-5 after 10,000
+  iterations.
+- Leduc hold'em: exploitability falls at every checkpoint; DCFR 1.7e-4 at 1,000 and 7.9e-6
+  at 10,000 iterations; game value −0.085606 (reported, no closed form).
+- Best response: recursive implementation matches a brute force over every pure strategy
+  exactly on 36 Kuhn cases.
+- `solver-cli validate` (or `npm run validate`) runs everything (including the 133M-hand
+  enumeration and equity checks) in ~35 s and writes `docs/VALIDATION.md`: 35/35 checks pass.
+
+**Bug found and fixed on the way:** the first version recomputed an infoset's strategy
+mid-iteration from already-updated regrets; Kuhn still converged but Leduc stalled
+(exploitability 0.056 after 1,000 DCFR iterations). Fixed by snapshotting σᵗ per pass.
+
+**Next:** M3 — river solver (vectorized over hands), toy-game theory tests (MDF, bluff
+share), poker best-response cross-check, reference solver, minimal river workbench UI.
+
 ## 2026-10-24 — M1 complete: cards, evaluator, ranges, equity
 
 **Works (verified):**

@@ -19,6 +19,7 @@
     "test:e2e": "npm --workspace web run test:e2e",
     "check": "node scripts/check.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
+    "validate": "cargo run --release --locked -p solver-cli -- validate",
     "licenses": "node scripts/license-report.mjs"
   }
 }
