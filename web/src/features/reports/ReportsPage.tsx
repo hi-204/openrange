@@ -1,5 +1,5 @@
 // Aggregated flop report (D-077): one spot solved on a sample of flops by the CLI, grouped by
-// texture. Data: web/public/data/reports/*.json, with provenance.
+// texture. Data: data/reports/*.json (served from web/public/data/reports), with provenance.
 
 import { useEffect, useState } from 'react';
 import { pct } from '../../lib/format';

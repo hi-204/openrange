@@ -16,7 +16,7 @@ use solver_core::postflop::{PostflopGame, ViewKind, estimate_memory};
 use solver_core::range::Range;
 use std::time::Instant;
 
-pub const OUT: &str = "web/public/data/reports/flop-srp-btn-bb.json";
+pub const OUT: &str = "data/reports/flop-srp-btn-bb.json";
 
 /// Reach-weighted frequency of each action at `view`, counting each hand by its chart weight
 /// (`chart[class]`) times the share of its starting weight still present (`reach / init`).

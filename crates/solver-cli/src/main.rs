@@ -33,7 +33,7 @@ commands:
                                (default output: data/eqr/eqr-v2.json)
   report [--charts <cash chart file>] [--flops 48] [--raises 0] [--target 1]
                                aggregated flop report: BTN vs BB single-raised pot
-                               (default output: web/public/data/reports/flop-srp-btn-bb.json)
+                               (default output: data/reports/flop-srp-btn-bb.json)
   validate [--quick] [--out <file>]
                                run the validation suite and write the report
                                (default: docs/VALIDATION.md)

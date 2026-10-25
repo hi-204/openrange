@@ -1,0 +1,899 @@
+{
+  "flops": [
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.3065,
+        "Check": 0.6935
+      },
+      "bbVsCbet": {
+        "Call": 0.4303,
+        "Fold": 0.5697
+      },
+      "board": "Qh 9d 5h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9908,
+        "Check": 0.0092
+      },
+      "btnEquity": 0.5807,
+      "exploitabilityPctPot": 0.6061,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.1215,
+        "Check": 0.8785
+      },
+      "bbVsCbet": {
+        "Call": 0.4757,
+        "Fold": 0.5243
+      },
+      "board": "Kh Qh Qd",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9619,
+        "Check": 0.0381
+      },
+      "btnEquity": 0.6034,
+      "exploitabilityPctPot": 0.529,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2712,
+        "Check": 0.7288
+      },
+      "bbVsCbet": {
+        "Call": 0.4575,
+        "Fold": 0.5425
+      },
+      "board": "Kc Qs 5c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9481,
+        "Check": 0.0519
+      },
+      "btnEquity": 0.5836,
+      "exploitabilityPctPot": 0.6958,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.1287,
+        "Check": 0.8713
+      },
+      "bbVsCbet": {
+        "Call": 0.5815,
+        "Fold": 0.4185
+      },
+      "board": "Ah Kd 6c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.8125,
+        "Check": 0.1875
+      },
+      "btnEquity": 0.5731,
+      "exploitabilityPctPot": 0.4493,
+      "iterations": 75
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.3779,
+        "Check": 0.6221
+      },
+      "bbVsCbet": {
+        "Call": 0.3751,
+        "Fold": 0.6249
+      },
+      "board": "Jh 8c 4s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9931,
+        "Check": 0.0069
+      },
+      "btnEquity": 0.5794,
+      "exploitabilityPctPot": 0.6491,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4856,
+        "Check": 0.5144
+      },
+      "bbVsCbet": {
+        "Call": 0.4276,
+        "Fold": 0.5724
+      },
+      "board": "Jh 7c 4d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9936,
+        "Check": 0.0064
+      },
+      "btnEquity": 0.5475,
+      "exploitabilityPctPot": 0.7158,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.656,
+        "Check": 0.344
+      },
+      "bbVsCbet": {
+        "Call": 0.4319,
+        "Fold": 0.5681
+      },
+      "board": "Th 5d 3c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9918,
+        "Check": 0.0082
+      },
+      "btnEquity": 0.5271,
+      "exploitabilityPctPot": 0.7308,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4384,
+        "Check": 0.5616
+      },
+      "bbVsCbet": {
+        "Call": 0.4852,
+        "Fold": 0.5148
+      },
+      "board": "Kh 4s 3h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9366,
+        "Check": 0.0634
+      },
+      "btnEquity": 0.5424,
+      "exploitabilityPctPot": 0.7813,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2083,
+        "Check": 0.7917
+      },
+      "bbVsCbet": {
+        "Call": 0.4818,
+        "Fold": 0.5182
+      },
+      "board": "Ks Qs 7h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9509,
+        "Check": 0.0491
+      },
+      "btnEquity": 0.5886,
+      "exploitabilityPctPot": 0.6534,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.3786,
+        "Check": 0.6214
+      },
+      "bbVsCbet": {
+        "Call": 0.4943,
+        "Fold": 0.5057
+      },
+      "board": "Th 8s 5c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.988,
+        "Check": 0.012
+      },
+      "btnEquity": 0.5566,
+      "exploitabilityPctPot": 0.6974,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.6741,
+        "Check": 0.3259
+      },
+      "bbVsCbet": {
+        "Call": 0.5047,
+        "Fold": 0.4953
+      },
+      "board": "5s 5c 4h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9737,
+        "Check": 0.0263
+      },
+      "btnEquity": 0.5168,
+      "exploitabilityPctPot": 0.6182,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.5388,
+        "Check": 0.4612
+      },
+      "bbVsCbet": {
+        "Call": 0.335,
+        "Fold": 0.665
+      },
+      "board": "9s 2s 2d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9893,
+        "Check": 0.0107
+      },
+      "btnEquity": 0.5539,
+      "exploitabilityPctPot": 0.7506,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.364,
+        "Check": 0.636
+      },
+      "bbVsCbet": {
+        "Call": 0.5601,
+        "Fold": 0.4399
+      },
+      "board": "9d 7s 6c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9686,
+        "Check": 0.0314
+      },
+      "btnEquity": 0.5373,
+      "exploitabilityPctPot": 0.6624,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2412,
+        "Check": 0.7588
+      },
+      "bbVsCbet": {
+        "Call": 0.5239,
+        "Fold": 0.4761
+      },
+      "board": "Qh Th 8h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.7191,
+        "Check": 0.2809
+      },
+      "btnEquity": 0.5741,
+      "exploitabilityPctPot": 0.7123,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.5138,
+        "Check": 0.4862
+      },
+      "bbVsCbet": {
+        "Call": 0.4376,
+        "Fold": 0.5624
+      },
+      "board": "Js 6h 4d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9942,
+        "Check": 0.0058
+      },
+      "btnEquity": 0.5427,
+      "exploitabilityPctPot": 0.6914,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2444,
+        "Check": 0.7556
+      },
+      "bbVsCbet": {
+        "Call": 0.4614,
+        "Fold": 0.5386
+      },
+      "board": "Kd 9h 3s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.982,
+        "Check": 0.018
+      },
+      "btnEquity": 0.5766,
+      "exploitabilityPctPot": 0.615,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2294,
+        "Check": 0.7706
+      },
+      "bbVsCbet": {
+        "Call": 0.4578,
+        "Fold": 0.5422
+      },
+      "board": "Kh Qh 3s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9198,
+        "Check": 0.0802
+      },
+      "btnEquity": 0.5871,
+      "exploitabilityPctPot": 0.6865,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.3043,
+        "Check": 0.6957
+      },
+      "bbVsCbet": {
+        "Call": 0.4728,
+        "Fold": 0.5272
+      },
+      "board": "Ks Qs Jd",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.977,
+        "Check": 0.023
+      },
+      "btnEquity": 0.5924,
+      "exploitabilityPctPot": 0.6663,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.5681,
+        "Check": 0.4319
+      },
+      "bbVsCbet": {
+        "Call": 0.5467,
+        "Fold": 0.4533
+      },
+      "board": "As 5h 4d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.7739,
+        "Check": 0.2261
+      },
+      "btnEquity": 0.5137,
+      "exploitabilityPctPot": 0.5676,
+      "iterations": 75
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4347,
+        "Check": 0.5653
+      },
+      "bbVsCbet": {
+        "Call": 0.4849,
+        "Fold": 0.5151
+      },
+      "board": "Ts 7d 2s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.984,
+        "Check": 0.016
+      },
+      "btnEquity": 0.5429,
+      "exploitabilityPctPot": 0.7593,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.5935,
+        "Check": 0.4065
+      },
+      "bbVsCbet": {
+        "Call": 0.4296,
+        "Fold": 0.5704
+      },
+      "board": "6h 6c 2c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9834,
+        "Check": 0.0166
+      },
+      "btnEquity": 0.5291,
+      "exploitabilityPctPot": 0.6228,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2328,
+        "Check": 0.7672
+      },
+      "bbVsCbet": {
+        "Call": 0.5211,
+        "Fold": 0.4789
+      },
+      "board": "As Tc 2c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.7675,
+        "Check": 0.2325
+      },
+      "btnEquity": 0.5663,
+      "exploitabilityPctPot": 0.6999,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.275,
+        "Check": 0.725
+      },
+      "bbVsCbet": {
+        "Call": 0.4472,
+        "Fold": 0.5528
+      },
+      "board": "Jd Tc 7s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9896,
+        "Check": 0.0104
+      },
+      "btnEquity": 0.5824,
+      "exploitabilityPctPot": 0.6696,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2664,
+        "Check": 0.7336
+      },
+      "bbVsCbet": {
+        "Call": 0.4136,
+        "Fold": 0.5864
+      },
+      "board": "Kc Jd Th",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9932,
+        "Check": 0.0068
+      },
+      "btnEquity": 0.6045,
+      "exploitabilityPctPot": 0.5903,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2414,
+        "Check": 0.7586
+      },
+      "bbVsCbet": {
+        "Call": 0.4603,
+        "Fold": 0.5397
+      },
+      "board": "Js 9c 2c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.971,
+        "Check": 0.029
+      },
+      "btnEquity": 0.5746,
+      "exploitabilityPctPot": 0.6229,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4083,
+        "Check": 0.5917
+      },
+      "bbVsCbet": {
+        "Call": 0.414,
+        "Fold": 0.586
+      },
+      "board": "Jd 6h 6c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9873,
+        "Check": 0.0127
+      },
+      "btnEquity": 0.5568,
+      "exploitabilityPctPot": 0.6095,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.6625,
+        "Check": 0.3375
+      },
+      "bbVsCbet": {
+        "Call": 0.511,
+        "Fold": 0.489
+      },
+      "board": "8h 4s 3c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9945,
+        "Check": 0.0055
+      },
+      "btnEquity": 0.5383,
+      "exploitabilityPctPot": 0.7571,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.1856,
+        "Check": 0.8144
+      },
+      "bbVsCbet": {
+        "Call": 0.5203,
+        "Fold": 0.4797
+      },
+      "board": "As Jd 6c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.906,
+        "Check": 0.094
+      },
+      "btnEquity": 0.575,
+      "exploitabilityPctPot": 0.6888,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2667,
+        "Check": 0.7333
+      },
+      "bbVsCbet": {
+        "Call": 0.3589,
+        "Fold": 0.6411
+      },
+      "board": "Qd Jh 5c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9891,
+        "Check": 0.0109
+      },
+      "btnEquity": 0.5938,
+      "exploitabilityPctPot": 0.6234,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.5944,
+        "Check": 0.4056
+      },
+      "bbVsCbet": {
+        "Call": 0.425,
+        "Fold": 0.575
+      },
+      "board": "9s 3c 2c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9913,
+        "Check": 0.0087
+      },
+      "btnEquity": 0.533,
+      "exploitabilityPctPot": 0.6858,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.1847,
+        "Check": 0.8153
+      },
+      "bbVsCbet": {
+        "Call": 0.4812,
+        "Fold": 0.5188
+      },
+      "board": "Ah Ad 9d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.8892,
+        "Check": 0.1108
+      },
+      "btnEquity": 0.5818,
+      "exploitabilityPctPot": 0.688,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2399,
+        "Check": 0.7601
+      },
+      "bbVsCbet": {
+        "Call": 0.444,
+        "Fold": 0.556
+      },
+      "board": "Ks Qh 3s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9305,
+        "Check": 0.0695
+      },
+      "btnEquity": 0.5906,
+      "exploitabilityPctPot": 0.6885,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2825,
+        "Check": 0.7175
+      },
+      "bbVsCbet": {
+        "Call": 0.3952,
+        "Fold": 0.6048
+      },
+      "board": "Kd Kc 6s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9907,
+        "Check": 0.0093
+      },
+      "btnEquity": 0.5734,
+      "exploitabilityPctPot": 0.5528,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2371,
+        "Check": 0.7629
+      },
+      "bbVsCbet": {
+        "Call": 0.4792,
+        "Fold": 0.5208
+      },
+      "board": "Kc Td 3d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9496,
+        "Check": 0.0504
+      },
+      "btnEquity": 0.5766,
+      "exploitabilityPctPot": 0.6779,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2596,
+        "Check": 0.7404
+      },
+      "bbVsCbet": {
+        "Call": 0.4617,
+        "Fold": 0.5383
+      },
+      "board": "Ks Jh 6d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9777,
+        "Check": 0.0223
+      },
+      "btnEquity": 0.5795,
+      "exploitabilityPctPot": 0.7008,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2733,
+        "Check": 0.7267
+      },
+      "bbVsCbet": {
+        "Call": 0.5326,
+        "Fold": 0.4674
+      },
+      "board": "Ac Td 5d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.8252,
+        "Check": 0.1748
+      },
+      "btnEquity": 0.5575,
+      "exploitabilityPctPot": 0.7908,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.7614,
+        "Check": 0.2386
+      },
+      "bbVsCbet": {
+        "Call": 0.5366,
+        "Fold": 0.4634
+      },
+      "board": "7h 4d 3h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9542,
+        "Check": 0.0458
+      },
+      "btnEquity": 0.4953,
+      "exploitabilityPctPot": 0.6715,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.6827,
+        "Check": 0.3173
+      },
+      "bbVsCbet": {
+        "Call": 0.5312,
+        "Fold": 0.4688
+      },
+      "board": "7h 6s 3h",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9792,
+        "Check": 0.0208
+      },
+      "btnEquity": 0.5075,
+      "exploitabilityPctPot": 0.6354,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4694,
+        "Check": 0.5306
+      },
+      "bbVsCbet": {
+        "Call": 0.4025,
+        "Fold": 0.5975
+      },
+      "board": "Qh 4s 3c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.995,
+        "Check": 0.005
+      },
+      "btnEquity": 0.5578,
+      "exploitabilityPctPot": 0.6802,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2383,
+        "Check": 0.7617
+      },
+      "bbVsCbet": {
+        "Call": 0.4654,
+        "Fold": 0.5346
+      },
+      "board": "Kd 8c 3d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9714,
+        "Check": 0.0286
+      },
+      "btnEquity": 0.5809,
+      "exploitabilityPctPot": 0.6674,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2416,
+        "Check": 0.7584
+      },
+      "bbVsCbet": {
+        "Call": 0.5626,
+        "Fold": 0.4374
+      },
+      "board": "Ac 9c 2c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.5291,
+        "Check": 0.4709
+      },
+      "btnEquity": 0.5488,
+      "exploitabilityPctPot": 0.698,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.302,
+        "Check": 0.698
+      },
+      "bbVsCbet": {
+        "Call": 0.5323,
+        "Fold": 0.4677
+      },
+      "board": "Ad Ks Ts",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9657,
+        "Check": 0.0343
+      },
+      "btnEquity": 0.5921,
+      "exploitabilityPctPot": 0.7893,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.6811,
+        "Check": 0.3189
+      },
+      "bbVsCbet": {
+        "Call": 0.5488,
+        "Fold": 0.4512
+      },
+      "board": "7h 6c 4s",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9862,
+        "Check": 0.0138
+      },
+      "btnEquity": 0.5059,
+      "exploitabilityPctPot": 0.6056,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.8185,
+        "Check": 0.1815
+      },
+      "bbVsCbet": {
+        "Call": 0.5993,
+        "Fold": 0.4007
+      },
+      "board": "7s 4h 3c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9596,
+        "Check": 0.0404
+      },
+      "btnEquity": 0.4947,
+      "exploitabilityPctPot": 0.7571,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2551,
+        "Check": 0.7449
+      },
+      "bbVsCbet": {
+        "Call": 0.5115,
+        "Fold": 0.4885
+      },
+      "board": "Ad Jh 4d",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.819,
+        "Check": 0.181
+      },
+      "btnEquity": 0.567,
+      "exploitabilityPctPot": 0.8133,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.4797,
+        "Check": 0.5203
+      },
+      "bbVsCbet": {
+        "Call": 0.3964,
+        "Fold": 0.6036
+      },
+      "board": "8d 6s 6c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9897,
+        "Check": 0.0103
+      },
+      "btnEquity": 0.5498,
+      "exploitabilityPctPot": 0.6366,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.6582,
+        "Check": 0.3418
+      },
+      "bbVsCbet": {
+        "Call": 0.3862,
+        "Fold": 0.6138
+      },
+      "board": "7d 3d 3c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9884,
+        "Check": 0.0116
+      },
+      "btnEquity": 0.5273,
+      "exploitabilityPctPot": 0.6913,
+      "iterations": 50
+    },
+    {
+      "bbFirst": {
+        "Bet 1.82": 0.2345,
+        "Check": 0.7655
+      },
+      "bbVsCbet": {
+        "Call": 0.4162,
+        "Fold": 0.5838
+      },
+      "board": "Ts Th 8c",
+      "btnAfterCheck": {
+        "Bet 1.82": 0.9844,
+        "Check": 0.0156
+      },
+      "btnEquity": 0.5852,
+      "exploitabilityPctPot": 0.4634,
+      "iterations": 50
+    }
+  ],
+  "provenance": {
+    "abstraction": null,
+    "generatedAt": "2026-10-25T22:41:17Z",
+    "generator": "solver-cli report --charts data/charts/cash-6max-100bb.json --flops 48 --raises 0 --seed 2026",
+    "gitCommit": "b0be40da823b",
+    "gitDirty": true,
+    "model": null,
+    "notes": "Single-raised pot, BTN opens and BB calls, ranges from the input cash chart file (an approximate model). Each flop is solved with a small tree: one bet size per street (33% flop, 66% turn, 75% river), raises as given, solved to the stated accuracy. Frequencies count each hand by its chart weight.",
+    "schema": "openrange.provenance/1",
+    "seed": 2026,
+    "solver": {
+      "algorithm": "dcfr",
+      "maxIterations": 300,
+      "targetPctPot": 1.0
+    },
+    "solverCoreVersion": "0.1.0",
+    "source": "solver_approx"
+  },
+  "spot": {
+    "ip": "BTN",
+    "name": "single-raised pot: BTN opens, BB calls",
+    "oop": "BB",
+    "pot": 5.5,
+    "raises": 0,
+    "sizes": {
+      "flop": 33,
+      "river": 75,
+      "turn": 66
+    },
+    "stack": 97.5
+  }
+}
