@@ -1,5 +1,5 @@
 {
-  "sourceHash": "b5ea5f33f528b6275edbca1b3c7cfc622ebc30bb9dddfd99e016f2e76532aea3",
+  "sourceHash": "d08e835bdd2bd8f4fa73cd1c33d161b23238d92135abaecd35ce07069fb3ce84",
   "wasmSha256": "b80745f755010338e0839830187896466a2cc9665f4a695068d2f4c646f294d2",
   "wasmBytes": 398983,
   "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",

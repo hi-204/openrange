@@ -12,8 +12,7 @@ use serde_json::json;
 use solver_core::cards::{COMBOS, CardSet, Combo, NUM_COMBOS};
 use solver_core::equity::hand_vs_hand;
 use solver_core::hands::{HandClass, NUM_CLASSES};
-use solver_core::iso::canonical_combo_pair;
-use std::collections::HashMap;
+use solver_core::preflop::pairs::{BOARDS, PairClasses, pair_classes};
 use std::time::Instant;
 
 pub struct Table {
@@ -23,34 +22,17 @@ pub struct Table {
     /// Number of non-overlapping combo pairs behind each cell.
     pub pairs: Vec<Vec<u32>>,
     pub suit_classes: usize,
+    /// Per suit class (in `pair_classes()` order): representative and integer win/tie counts
+    /// for its hero, out of `BOARDS`.
+    pub reps: Vec<(u16, u16)>,
+    pub wins: Vec<u32>,
+    pub ties: Vec<u32>,
 }
 
 pub fn compute(progress: bool) -> Table {
-    // 1. One representative per suit class of unordered combo pairs.
-    let mut keys: HashMap<(u16, u16), usize> = HashMap::new();
-    let mut reps: Vec<(u16, u16)> = Vec::new();
-    // For every ordered pair (a, b): which rep, and whether it is stored reversed.
-    let mut lookup: Vec<(u32, bool)> = vec![(u32::MAX, false); NUM_COMBOS * NUM_COMBOS];
-    for a in 0..NUM_COMBOS {
-        for b in (a + 1)..NUM_COMBOS {
-            let (ca, cb) = (COMBOS[a], COMBOS[b]);
-            if ca.cards().intersects(cb.cards()) {
-                continue;
-            }
-            let (fwd, rev) = (canonical_combo_pair(ca, cb), canonical_combo_pair(cb, ca));
-            let (key, reversed) = if fwd <= rev {
-                (fwd, false)
-            } else {
-                (rev, true)
-            };
-            let id = *keys.entry(key).or_insert_with(|| {
-                reps.push(key);
-                reps.len() - 1
-            });
-            lookup[a * NUM_COMBOS + b] = (id as u32, reversed);
-            lookup[b * NUM_COMBOS + a] = (id as u32, !reversed);
-        }
-    }
+    // 1. One representative per suit class of unordered combo pairs (shared numbering with
+    //    solver-core, which expands the counts back to every ordered pair).
+    let PairClasses { reps, lookup } = pair_classes();
     if progress {
         eprintln!(
             "gen-equity: {} suit classes of combo pairs to enumerate",
@@ -62,7 +44,7 @@ pub fn compute(progress: bool) -> Table {
     //    so the result does not depend on thread scheduling.
     let start = Instant::now();
     let done = std::sync::atomic::AtomicUsize::new(0);
-    let results: Vec<(f64, f64)> = reps
+    let results: Vec<(u32, u32)> = reps
         .par_iter()
         .map(|&(x, y)| {
             let r = hand_vs_hand(
@@ -72,6 +54,7 @@ pub fn compute(progress: bool) -> Table {
                 CardSet::EMPTY,
             )
             .expect("disjoint combos");
+            assert_eq!(r.runouts, BOARDS as u64);
             let n = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             if progress && n.is_multiple_of(5000) {
                 eprintln!(
@@ -80,11 +63,16 @@ pub fn compute(progress: bool) -> Table {
                     start.elapsed().as_secs_f64()
                 );
             }
-            (r.equity(), r.tie)
+            // Probabilities are exact multiples of 1/BOARDS, so the counts are recovered exactly.
+            (
+                (r.win * BOARDS as f64).round() as u32,
+                (r.tie * BOARDS as f64).round() as u32,
+            )
         })
         .collect();
 
     // 3. Aggregate to classes.
+    let nb = BOARDS as f64;
     let mut eq_sum = vec![vec![0f64; NUM_CLASSES]; NUM_CLASSES];
     let mut tie_sum = vec![vec![0f64; NUM_CLASSES]; NUM_CLASSES];
     let mut pairs = vec![vec![0u32; NUM_CLASSES]; NUM_CLASSES];
@@ -95,7 +83,9 @@ pub fn compute(progress: bool) -> Table {
             if id == u32::MAX {
                 continue;
             }
-            let (eq, tie) = results[id as usize];
+            let (w, t) = results[id as usize];
+            let (win, tie) = (w as f64 / nb, t as f64 / nb);
+            let eq = win + tie / 2.0;
             let cb = HandClass::of(COMBOS[b]).index();
             eq_sum[ca][cb] += if reversed { 1.0 - eq } else { eq };
             tie_sum[ca][cb] += tie;
@@ -116,6 +106,9 @@ pub fn compute(progress: bool) -> Table {
         tie: avg(&tie_sum),
         pairs,
         suit_classes: reps.len(),
+        wins: results.iter().map(|r| r.0).collect(),
+        ties: results.iter().map(|r| r.1).collect(),
+        reps,
     }
 }
 
@@ -163,6 +156,26 @@ pub fn run(out: &str) -> Result<(), String> {
     });
     let text = serde_json::to_string(&doc).map_err(|e| e.to_string())?;
     std::fs::write(out, format!("{text}\n")).map_err(|e| format!("writing {out}: {e}"))?;
+
+    let pairs_out = std::path::Path::new(out).with_file_name("preflop-pairs.json");
+    let pairs_doc = json!({
+        "provenance": provenance(
+            Source::SolverExact,
+            "solver-cli gen-equity",
+            serde_json::Value::Null,
+            "Exact all-in results for every suit class of non-overlapping combo pairs: integer \
+             win and tie counts of the hero combo over all 1,712,304 boards. Class numbering is \
+             solver_core::preflop::pairs::pair_classes().",
+        ),
+        "boards": BOARDS,
+        "classes": t.suit_classes,
+        "reps": t.reps.iter().map(|&(a, b)| [a, b]).collect::<Vec<_>>(),
+        "wins": t.wins,
+        "ties": t.ties,
+    });
+    let text = serde_json::to_string(&pairs_doc).map_err(|e| e.to_string())?;
+    std::fs::write(&pairs_out, format!("{text}\n"))
+        .map_err(|e| format!("writing {}: {e}", pairs_out.display()))?;
     eprintln!(
         "gen-equity: wrote {out} in {:.0}s (AA vs random = {:.4}, mirrored max error = {mirrored_max_error:.1e})",
         start.elapsed().as_secs_f64(),

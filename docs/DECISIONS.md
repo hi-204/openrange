@@ -331,3 +331,17 @@ rather than arithmetic noise. (Pot in these spots is 1000 chips = 10 bb.)
 
 **Report-only rows** (values with no pass/fail criterion, e.g. the Leduc game value) are now
 counted separately from checks in VALIDATION.md.
+
+### D-041 · Debug builds of our own crates use opt-level 1
+**Decision:** `[profile.dev] opt-level = 1` in the workspace (dependencies already used 2).
+**Why:** the solver tests are numeric loops; at opt-level 0 the debug `cargo test` of
+solver-core took ~86 s. Release builds, generated data and goldens are unaffected (they use
+the release profile). Overflow checks and debug assertions stay on.
+
+### D-042 · Combo-level preflop equities stored as exact integer counts
+**Decision:** `data/equity/preflop-pairs.json` stores, for each of the 47,008 suit classes of
+combo pairs (numbered by `solver_core::preflop::pairs::pair_classes()`), the hero's win and
+tie counts out of 1,712,304 boards. **Why:** exact (no rounding), compact (~1 MB), and enough
+to rebuild all-in equity for every ordered combo pair, which push/fold and the cash-game
+model need with exact card removal.
+

@@ -24,5 +24,10 @@ codegen-units = 1
 panic = "abort"
 opt-level = 3
 
+# Our own crates get light optimisation in debug builds: the solver tests are numeric and
+# otherwise take minutes (D-041).
+[profile.dev]
+opt-level = 1
+
 [profile.dev.package."*"]
 opt-level = 2

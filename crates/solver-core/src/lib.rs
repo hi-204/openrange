@@ -11,6 +11,7 @@ pub mod games;
 pub mod hands;
 pub mod iso;
 pub mod postflop;
+pub mod preflop;
 pub mod range;
 pub mod rng;
 
