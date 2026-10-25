@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { t, type MessageKey } from '../../../lib/i18n';
 import { Cards } from '../../../lib/poker/Cards';
 import { ProvenanceBadge } from '../../../lib/provenance/ProvenanceBadge';
@@ -55,16 +55,19 @@ export function PreflopDrill() {
     store.settings().then(setSettings).catch(() => undefined);
   }, []);
 
-  // Load the chart files the filters use.
+  // Load the chart files the filters use, each once. (Re-requesting files still in flight let
+  // a late duplicate response rebuild the pool and re-deal over an answer.)
+  const requested = useRef(new Set<string>());
   useEffect(() => {
     if (!filters) return;
     for (const f of filters.files) {
-      if (docs.has(f)) continue;
+      if (requested.current.has(f)) continue;
+      requested.current.add(f);
       loadJson<ChartFile>(`data/charts/${f}`)
-        .then((d) => setDocs((m) => new Map(m).set(f, d)))
+        .then((d) => setDocs((m) => (m.has(f) ? m : new Map(m).set(f, d))))
         .catch((e: Error) => setError(e.message));
     }
-  }, [filters, docs]);
+  }, [filters]);
 
   const sources = useMemo(() => (index ? drillSources(index) : []), [index]);
   const ready = !!filters && filters.files.every((f) => docs.has(f));

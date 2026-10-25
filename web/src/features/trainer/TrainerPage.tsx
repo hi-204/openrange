@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { t, type MessageKey } from '../../lib/i18n';
 import { PostflopDrill } from './postflop/PostflopDrill';
 import { PreflopDrill } from './preflop/PreflopDrill';
+import { ReviewPage } from './ReviewPage';
 
 const TABS = ['preflop', 'postflop', 'review'] as const;
 type Tab = (typeof TABS)[number];
@@ -33,6 +34,7 @@ export function TrainerPage() {
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'preflop' && <PreflopDrill />}
         {tab === 'postflop' && <PostflopDrill />}
+        {tab === 'review' && <ReviewPage />}
       </div>
     </div>
   );

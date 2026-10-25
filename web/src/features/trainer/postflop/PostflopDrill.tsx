@@ -258,7 +258,9 @@ export function PostflopDrill() {
 
           {phase.kind === 'decide' && (
             <>
-              <p className="font-medium">{t('trainer.post.yourMove')}</p>
+              <p className="font-medium" data-testid="your-move">
+                {t('trainer.post.yourMove')}
+              </p>
               <ul className="flex flex-wrap gap-2" aria-label={t('solver.actions')}>
                 {phase.node.actions.map((a, i) => (
                   <li key={a}>
