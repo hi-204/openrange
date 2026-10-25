@@ -399,7 +399,7 @@ owner chose to calibrate rather than tune.
 **Method (`solver-cli calibrate-eqr`, output `data/eqr/eqr-v2.json`):** four lines taken from
 the 100 bb cash chart file: single-raised BTN vs BB and CO vs BTN; 3-bet BB vs BTN and BTN vs
 CO. Each side's flop range is the chart's frequency for that line. Each line is solved with
-the validated postflop solver on a seeded sample of 20 flops, distinct up to suit
+the validated postflop solver on a seeded sample of 60 flops (D-049), distinct up to suit
 relabelling, to ≤ 1% of the pot. The tree has one bet size per street (33% / 66% / 75% of pot),
 no raises, and all-in above 67% of the stack. For each role (pot type × in position ×
 preflop aggressor) and class, the factor is Σ EV share of the pot ÷ Σ all-in equity against
@@ -417,7 +417,27 @@ hand-independent assumption v1 already failed on).
 chart provenance.
 **Circularity:** the ranges come from a chart solved with the previous model, so one
 stability round is run: recalibrate from the v2 charts and compare the factors and the first-in
-frequencies. The outcome is recorded below (D-049).
+frequencies. The outcome is recorded below (D-050).
 **Not done:** calibration only at 100 bb (shallower stacks reuse it); no rake; a one-size
-tree (more sizes would let both players realize more); 20 flops (sampling error is reported
+tree (more sizes would let both players realize more); 60 flops (sampling error is reported
 per role in the file).
+
+### D-049 · EQR calibration: no raises in the tree, 60 flops
+**Context:** the first full calibration (20 flops, tree without raises) fixed the button
+(44.3% first-in at 100 bb) but pushed UTG/HJ/CO below their bands; in-position players 3-bet
+about 10% against UTG. Hypothesis: with no raises the caller can never check-raise, so
+c-betting any two cards can't be punished. That would inflate aggressor realization,
+especially for junk hands (72o measured 1.7–2.9× its equity as the aggressor).
+**Test (decided before looking at charts):** the same v1 input and the same 4 seeded flops,
+solved with no raises and with one pot-sized raise allowed per street
+(`calibrate-eqr --flops 4 --raises 0|1`).
+**Result — hypothesis refuted:** role averages moved by ≤ 0.025. Class factors moved by
+0.03–0.09 on average (combo-weighted). Aggressor junk did not drop (72o, single-raised OOP
+aggressor: 2.89 → 2.97). The largest changes were for premium hands as callers (AA, BB vs
+BTN: 2.04 → 2.44), which gain from check-raising. Flop sampling matters far more. The same
+input with 4 vs 20 flops moved class factors by 0.18–0.44 on average. At 20 flops the
+median jackknife standard error of a class factor is 0.07–0.16.
+**Decision:** keep the tree without raises (`--raises 0`; raises need 3.4× the memory,
+5.6 GB per solve, and about 3× the time) and spend the compute on 60 flops instead of 20.
+That cuts the sampling error by √3. The raise option stays available and documented.
+

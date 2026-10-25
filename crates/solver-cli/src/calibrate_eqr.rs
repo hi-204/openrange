@@ -176,18 +176,21 @@ fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
     ])
 }
 
-/// The small calibration tree: one bet size per street, no raises.
-fn spot(m: &Matchup, board: &[solver_core::cards::Card]) -> Result<SpotConfig, String> {
+/// Raise size (% of pot after calling) in the calibration tree.
+const RAISE: &str = "100";
+
+/// The small calibration tree: one bet size per street and up to `raises` raises per street.
+fn spot(m: &Matchup, board: &[solver_core::cards::Card], raises: u8) -> Result<SpotConfig, String> {
     let mut cfg = spot_from_json(&json!({
         "board": board.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(" "),
         "pot": m.pot, "stack": m.stack,
         "ranges": { "oop": "AA", "ip": "KK" },
         "sizes": {
-            "flop": { "oop": { "bet": "33" }, "ip": { "bet": "33" } },
-            "turn": { "oop": { "bet": "66" }, "ip": { "bet": "66" } },
-            "river": { "oop": { "bet": "75" }, "ip": { "bet": "75" } }
+            "flop": { "oop": { "bet": "33", "raise": RAISE }, "ip": { "bet": "33", "raise": RAISE } },
+            "turn": { "oop": { "bet": "66", "raise": RAISE }, "ip": { "bet": "66", "raise": RAISE } },
+            "river": { "oop": { "bet": "75", "raise": RAISE }, "ip": { "bet": "75", "raise": RAISE } }
         },
-        "maxRaises": 0, "allInThreshold": 0.67
+        "maxRaises": raises, "allInThreshold": 0.67
     }))?;
     cfg.ranges = [m.oop.range.clone(), m.ip.range.clone()];
     Ok(cfg)
@@ -227,10 +230,11 @@ struct SolveResult {
 fn solve_one(
     m: &Matchup,
     board: &[solver_core::cards::Card],
+    raises: u8,
     target: f64,
     max_iterations: u32,
 ) -> Result<SolveResult, String> {
-    let cfg = spot(m, board)?;
+    let cfg = spot(m, board, raises)?;
     let pot_chips = cfg.tree.pot as f64;
     let mut g = PostflopGame::new(cfg.clone(), Algorithm::DCFR_DEFAULT)?;
     let mut ex = g.exploitability();
@@ -287,9 +291,11 @@ fn solve_one(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     charts_path: &str,
     flops: usize,
+    raises: u8,
     target: f64,
     max_iterations: u32,
     memory_gb: f64,
@@ -303,7 +309,9 @@ pub fn run(
         json!({ "algorithm": "dcfr", "targetPctPot": target, "maxIterations": max_iterations });
     let mut prov = provenance(
         Source::SolverApprox,
-        &format!("solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --seed {seed}"),
+        &format!(
+            "solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --raises {raises} --seed {seed}"
+        ),
         solver,
         "Equity-realization factors measured from postflop solves (one bet size per street, no \
          raises) of ranges taken from the input chart file, on a seeded sample of flops. \
@@ -322,7 +330,7 @@ pub fn run(
     // Run as many solves at once as fit in the memory allowance.
     let mut worst = 0usize;
     for &(m, b) in &jobs {
-        worst = worst.max(estimate_memory(&spot(&matchups[m], &boards[b])?)?);
+        worst = worst.max(estimate_memory(&spot(&matchups[m], &boards[b], raises)?)?);
     }
     let threads = ((memory_gb * 1e9 / worst as f64).floor() as usize).clamp(
         1,
@@ -341,7 +349,7 @@ pub fn run(
     let results: Vec<Result<SolveResult, String>> = pool.install(|| {
         jobs.par_iter()
             .map(|&(m, b)| {
-                let r = solve_one(&matchups[m], &boards[b], target, max_iterations);
+                let r = solve_one(&matchups[m], &boards[b], raises, target, max_iterations);
                 let n = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
                 if let Ok(r) = &r {
                     eprintln!(
@@ -427,7 +435,7 @@ pub fn run(
         "classes": HandClass::all().map(|c| c.to_string()).collect::<Vec<_>>(),
         "index": "[potType][inPosition][aggressor][class]",
         "probeWeight": PROBE,
-        "tree": { "flop": "33% pot", "turn": "66% pot", "river": "75% pot", "raises": "none", "allInThreshold": 0.67 },
+        "tree": { "flop": "33% pot", "turn": "66% pot", "river": "75% pot", "raisePctPot": RAISE, "maxRaisesPerStreet": raises, "allInThreshold": 0.67 },
         "matchups": matchups.iter().map(|m| json!({ "name": m.name, "potBb": m.pot, "stackBb": m.stack,
             "oop": { "seat": m.oop.seat, "aggressor": m.oop.aggressor, "range": m.oop.range.to_string() },
             "ip": { "seat": m.ip.seat, "aggressor": m.ip.aggressor, "range": m.ip.range.to_string() } })).collect::<Vec<_>>(),
