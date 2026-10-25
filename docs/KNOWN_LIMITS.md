@@ -107,6 +107,22 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
   On another platform, create them first with `--update-snapshots`.
 - **Sound effects are simple synthesized tones** (off by default).
 
+## Lessons (M7)
+
+- **Preflop lessons teach from approximate charts.** Levels 1 and 3 read the 100 bb cash
+  charts, which are below their sanity bands for UTG, HJ and CO. The lessons say so, teach the
+  aggregate patterns (who defends more, which sizes get more folds), and avoid edge hands. Every
+  chart claim is pinned by `lessonCharts.test.ts`, so regenerating the charts flags any lesson
+  text that stops being true.
+- **Some chart cells look odd** (e.g. 44 going all-in against a 4-bet). Their EVs are within
+  the sampling margin of the alternatives; the chart widget shows each EV with ± two standard
+  errors so learners can see this.
+- **Chart EVs are sampled and depend on the EQR model**, so small EV differences between actions
+  aren't meaningful. Lessons only call one action better when the gap is more than two
+  standard errors.
+- **Limping isn't covered by data**: the cash tree has no limps, so lesson 1.4 argues from
+  arithmetic only.
+
 ## Not yet verified
 
 - **River solver:** heads-up only; one bet-size list per player per street (no separate

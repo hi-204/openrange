@@ -6,7 +6,7 @@ import { ProvenanceBadge } from '../../../lib/provenance/ProvenanceBadge';
 import { loadJson, type ChartFile } from '../../../lib/provenance/types';
 import { solverClient } from '../../../lib/wasm/client';
 import type { EquityResult } from '../../../lib/wasm/protocol';
-import { ClassGrid } from '../../charts/ClassGrid';
+import { ClassGrid, UNREACHED } from '../../charts/ClassGrid';
 import { actionColors } from '../../solver/colors';
 import { rangeSummary } from '../../trainer/postflop/features';
 import { COMBO_STRINGS } from './cards';
@@ -80,6 +80,7 @@ export function ChartEmbed({ config }: { config: Config }) {
   useEffect(() => {
     loadJson<ChartFile>(`data/charts/${file}`).then(setDoc, (e: Error) => setError(e.message));
   }, [file]);
+  const [cell, setCell] = useState<number | null>(null);
   const chart = doc?.charts.find((c) => c.id === id);
   if (error) return <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>;
   if (!doc) return <p className="text-sm">…</p>;
@@ -110,10 +111,38 @@ export function ChartEmbed({ config }: { config: Config }) {
         ))}
       </ul>
       <div className="max-w-md">
-        <ClassGrid classes={doc.classes} strategy={chart.strategy} actions={chart.actions} colors={colors} reach={chart.reach} selected={null} onSelect={noop} label={chart.title} />
+        <ClassGrid classes={doc.classes} strategy={chart.strategy} actions={chart.actions} colors={colors} reach={chart.reach} selected={cell} onSelect={setCell} label={chart.title} />
       </div>
+      <CellDetail chart={chart} name={cell === null ? null : doc.classes[cell]!} index={cell} />
       {doc.provenance.source !== 'solver_exact' && <p className="text-xs text-ink-muted">{t('widget.chart.approx')}</p>}
       {outOfBand && <p className="text-xs font-semibold text-[#a34700] dark:text-[#ff8f4a]">{t('widget.chart.outOfBand')}</p>}
+    </div>
+  );
+}
+
+/** One cell of a chart: each action's frequency and, where the chart has them, its EV. */
+function CellDetail({ chart, name, index }: { chart: ChartFile['charts'][number]; name: string | null; index: number | null }) {
+  if (name === null || index === null) return <p className="text-xs text-ink-muted">{t('widget.chart.pick')}</p>;
+  if (chart.reach && chart.reach[index]! < UNREACHED) return <p className="text-sm" data-testid="chart-cell">{t('widget.chart.notReached', { hand: name })}</p>;
+  const ev = chart.ev?.[index];
+  const se = chart.evStdError?.[index];
+  return (
+    <div className="space-y-1 text-sm" data-testid="chart-cell">
+      <p className="font-medium">{name}</p>
+      <ul className="space-y-0.5">
+        {chart.actions.map((a, k) => (
+          <li key={a}>
+            {a} <span className="num">{pct(chart.strategy[index]![k]!, 0)}</span>
+            {ev && ev[k] !== null && ev[k] !== undefined && (
+              <span className="num text-ink-muted">
+                {' · '}
+                {t('widget.chart.ev', { ev: ev[k]!.toFixed(2), se: (2 * (se?.[k] ?? 0)).toFixed(2) })}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {ev && <p className="text-xs text-ink-muted">{t('widget.chart.evNote')}</p>}
     </div>
   );
 }

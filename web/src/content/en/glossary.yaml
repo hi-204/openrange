@@ -140,3 +140,25 @@ card removal: >-
   How the cards you can see (yours and the board) change which hands your opponent can hold.
 blocker: >-
   A card in your hand that makes some of your opponent's hands impossible or less likely.
+3-bet: >-
+  The re-raise of an open before the flop (the blinds count as the first bet, the open as the second).
+4-bet: >-
+  The re-raise of a 3-bet.
+5-bet: >-
+  The re-raise of a 4-bet. At 100 bb it is usually all-in.
+cold call: >-
+  Calling a raise when you have no money in the pot yet, for example calling an open from the button.
+closing the action: >-
+  Being the last player to act in a betting round, so nobody can raise after your call.
+value: >-
+  Betting or raising with a strong hand so that worse hands put more money in.
+bluff: >-
+  Betting or raising with a weak hand to make better hands fold.
+squeeze: >-
+  A 3-bet after an open and at least one call.
+capped range: >-
+  A range without the strongest hands, usually because the player would have raised with them.
+dead money: >-
+  Chips in the pot from a player who is likely to fold, which anyone can win.
+stack-to-pot ratio: >-
+  The smaller stack behind divided by the pot (SPR). The lower it is, the sooner all the money goes in.

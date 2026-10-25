@@ -79,3 +79,21 @@ Outs and showdown claims are checked with the engine's `countOuts` and evaluator
 | 2.6 Implied odds | EV = h(P + C + X) − C, break-even X = C/h − (P + C); gutshot 4/46 = 8.7%, price 25%, X = 37.5 bb; only a jack makes 9♠8♠ a straight on Q♣T♦3♥2♠ (checked); set-mining profit needed 2.5/p − 2.5 with p = 11.8% → 18.75 bb | calc + test + reasoning |
 | 2.7 Combinatorics | pair combos k(k − 1)/2, two ranks a × b; on K♠7♦2♣: KK 3, 77 3, K7 9, AK 12, AA 6; sets together 9 < AK 12; holding A♠K♦: KK 1, AK 6 | calc (the combo widget counts the same way) |
 | 2.8 Blockers | QQ+/AK = 34 combos, with A♠ 27 (AA 3, AK 12); on K♥9♥4♥7♣2♦ 45 heart combos, 36 with A♥ in hand; the A-high flush is the best hand there | calc + test (evaluator) |
+
+## Level 3
+
+Every chart claim is checked against the 100 bb cash charts in `lessonCharts.test.ts`
+("charts"): action shares, which hands take which action, and EV comparisons, where "clearly
+better" means the EV difference is more than two standard errors of the sampled EVs. Tree sizes
+(opens, 3-bet multipliers, 4-bet 2.3×, squeeze +1× per caller) are asserted from the chart
+file's tree. Pot arithmetic is `{{calc}}`.
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 3.1 Defending | BB price vs a 2.5 bb BTN open 1.5 ÷ 5.5 = 27.3%; BB defends over half vs BTN, under half that vs UTG; BB 3-bets only TT+/AK vs UTG; BTN calls < 2% vs CO, SB < 5% vs BTN; K9o calls vs BTN, folds vs UTG | calc + charts; "calling invites squeezes" is reasoning |
+| 3.2 3-betting | AA, KK, QQ, A-K 3-bet in every facing-an-open chart; pure-bluff 3-bet to 10 needs 9 ÷ 13 = 69.2%; BTN vs CO 3-bets A5s, 76s, 65s, which BB vs BTN calls; BB calls A9s–A2s; BTN 3-bets at least four of them | calc + charts |
+| 3.3 Facing 3-bets | BTN price vs 3-bet to 10: 7.5 ÷ 20.5 = 36.6%; UTG vs 3-bet to 7.5: 5 ÷ 16.5 = 30.3%; UTG, HJ and CO fold less to the BTN's 3-bet than to the BB's; BTN folds under half to the BB; AA/KK 4-bet; AJo calls | calc + charts |
+| 3.4 4-bets and 5-bets | pot 46.5 after a called 4-bet, 77 behind, SPR 1.7; all-in price 77 ÷ 200.5 = 38.4%; BTN calls the all-in with exactly AA–99 and A-K; BB all-in with AA, KK, A-K (over 60% of its all-in combos), QQ mixes, 44 all-in within EV noise; JJ 18.4% vs QQ+, 56.1% vs AK, 36.2% vs both (short of the price), yet the chart calls and call EV is clearly above fold | calc + engine + charts |
+| 3.5 Blind vs blind | SB opens 3 bb, over 30% of hands; BB price 2 ÷ 6 = 33.3% vs 27.3% against BTN; BB defends more vs SB and 3-bets 1.7–2.5× as often; K2o calls vs SB, folds vs BTN | calc + charts; position as the reason is reasoning |
+| 3.6 Squeezes | squeeze to 12.5 into 6; pure bluff needs 11.5 ÷ 17.5 = 65.7%; SB's calls vs BTN contain no AA, KK, QQ, AK; with a caller BB raises more and calls under half as often; KQo squeezes, clearly above calling | calc + charts |
+| 3.7 Calling vs raising | 77, KQo, KJs: 3-bet clearly above call for BTN vs CO; for over 80% of the hands BTN 3-bets there, 3-bet EV > call EV; BB vs BTN: A5s call clearly above 3-bet; BB fold EV −1 bb | charts |

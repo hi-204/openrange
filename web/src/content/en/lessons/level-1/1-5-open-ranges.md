@@ -79,7 +79,7 @@ diagonal, and the offsuit aces fill the first column.
 - From **UTG** it's almost always a fold: five players could still wake up with a better ace.
 - From the **cutoff** and the **button** it's a raise.
 
-Point at a cell (or focus it with the keyboard) to read its exact frequencies.
+Click a cell (or focus it and press Enter) to see its exact frequencies and EVs below the grid.
 
 ## Common mistakes
 

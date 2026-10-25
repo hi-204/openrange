@@ -29,7 +29,7 @@ Here is the big blind facing a button open to 2.5 bb, with three actions:
 
 Most cells are one colour: the hand always takes that action. A cell split into colours is a
 [[mixed strategy]]: the model plays the hand more than one way, and the width of each colour is
-how often. Point at a cell to read the exact numbers.
+how often. Click a cell to read the exact numbers below the grid.
 
 A mix doesn't mean "it doesn't matter". It means the options are close in value, and mixing
 keeps the range hard to read. In practice you can lean towards the bigger part of the mix; the
@@ -66,7 +66,7 @@ Colour width is frequency. Grey is "never gets here". The badge says how far to 
 You hold T♠9♠ (T9s) in the big blind and the button has raised. Find T9s on the first chart
 above: suited hands are above the diagonal.
 
-1. Point at it and read its frequencies: it's split between calling and 3-betting.
+1. Click it and read its frequencies: it's split between calling and 3-betting.
 2. Both actions are close in value for the model, so either is fine to practise.
 3. Check the badge: this is an approximate model, so treat the exact split as a guide.
 
