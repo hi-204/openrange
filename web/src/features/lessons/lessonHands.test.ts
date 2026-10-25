@@ -1,13 +1,15 @@
-// Every showdown claim in the Level 0 lessons, checked with the engine's hand evaluator
+// Every showdown claim in the Level 0 lessons and every outs claim in Level 2, checked with the engine's hand evaluator
 // (docs/LESSON_REVIEW.md cites this test).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { evaluateHand, initSync } from '../../../public/wasm/solver_wasm.js';
+import FACTS_JSON from '../../content/en/facts.json';
+import { countOuts, equity, evaluateHand, initSync } from '../../../public/wasm/solver_wasm.js';
 
 const root = (p: string) => fileURLToPath(new URL(`../../../../${p}`, import.meta.url));
 initSync({ module: readFileSync(root('web/public/wasm/solver_wasm_bg.wasm')) });
 
+const FACTS = FACTS_JSON as Record<string, number>;
 const ev = (cards: string) => JSON.parse(evaluateHand(cards.replace(/\s+/g, ''))) as { ok: boolean; strength: number; category: string; best: string[] };
 /** Winner of a showdown: 'a', 'b' or 'split'. */
 const winner = (a: string, b: string, board: string) => {
@@ -52,5 +54,67 @@ describe('Level 0 showdown claims', () => {
     expect(winner('QhTc', 'Qd9s', 'QsJd8c5h2s')).toBe('a'); // quiz 1
     expect(winner('2c2d', '4s5h', 'AsKdQcJh3s')).toBe('a'); // quiz 2
     expect(winner('Ac2d', 'QhJh', '7s7d7c7hKs')).toBe('a'); // quiz 3
+  });
+});
+
+const outs = (hero: string, villain: string, board: string) =>
+  (JSON.parse(countOuts(JSON.stringify({ hero, villain, board }))) as { ahead: string[] }).ahead;
+const eq = (a: string, b: string, board = '') =>
+  (JSON.parse(equity(JSON.stringify({ ranges: [a, b], board, dead: '', mode: 'exact' }))) as { players: { equity: number }[] }).players[0]!.equity;
+
+describe('Level 2 outs and equity claims', () => {
+  it('2.1: combo draw 15 outs against aces', () => {
+    const o = outs('8h7h', 'AsAd', '9h6c2h');
+    expect(o.length).toBe(15);
+    expect(o.filter((c) => c.endsWith('h')).length).toBe(9);
+    expect(o.filter((c) => !c.endsWith('h')).sort()).toEqual(['5c', '5d', '5s', 'Tc', 'Td', 'Ts']);
+  });
+
+  it('2.1: tainted out against a set; overcards are not outs', () => {
+    const o = outs('AhKh', 'QsQd', 'Qh7h2c');
+    expect(o.length).toBe(8);
+    expect(o).not.toContain('2h');
+    expect(o.some((c) => c[0] === 'A' || c[0] === 'K')).toBe(false);
+    expect(ev('Ah Kh Qh 7h 2c 2h').category).toBe('flush');
+    expect(ev('Qs Qd Qh 7h 2c 2h').category).toBe('full house');
+  });
+
+  it('2.1: worked hand, 8 outs against aces and more against A-K', () => {
+    const o = outs('JcTc', 'AhAd', '9h8d2s');
+    expect(o.map((c) => c[0]).sort().join('')).toBe('7777QQQQ'); // four sevens, four queens
+    expect(outs('JcTc', 'AsKd', '9h8d2s').length).toBeGreaterThan(o.length);
+  });
+
+  it('2.2: runner-runner two pair beats aces', () => {
+    expect(winner('8h7h', 'AsAd', '9h6c2h8c7d')).toBe('a');
+    expect(eq('8h7h', 'AsAd', '9h6c2h')).toBeGreaterThan(1 - (32 * 31) / (47 * 46));
+    expect(eq('AhKh', 'QsQd', 'Qh7h2c')).toBeLessThan(1 - (39 * 38) / (47 * 46));
+  });
+
+  // Uses the build-time facts (content.test checks them against the engine).
+  it('2.4: equity against a range is the combo-weighted average; the worked hand folds', () => {
+    const avg = (18 * FACTS['JsJd vs QQ+']! + 16 * FACTS['JsJd vs AKs, AKo']!) / 34;
+    expect(FACTS['JsJd vs QQ+, AKs, AKo']!).toBeCloseTo(avg, 9);
+    expect(FACTS['JsJd vs QQ+, AKs, AKo']!).toBeLessThan(50 / 110);
+    expect(FACTS['KsKd vs AcAd']!).toBeGreaterThan(0.15); // "about four times in five"
+    expect(FACTS['KsKd vs AcAd']!).toBeLessThan(0.25);
+    for (const k of ['AhKh vs QsQd', 'AhKd vs 7c7d', 'JsJd vs AcKc']) expect(Math.abs(FACTS[k]! - 0.5), k).toBeLessThan(0.1); // close to a coin flip
+  });
+
+  it('2.6: on Q-T-3-2 only a jack gives 9-8 a straight', () => {
+    const board = 'QcTd3h2s';
+    const seen = new Set(['9s', '8s', 'Qc', 'Td', '3h', '2s']);
+    const straights: string[] = [];
+    for (const r of '23456789TJQKA') for (const s of 'cdhs') {
+      const c = r + s;
+      if (!seen.has(c) && ev('9s8s' + board + c).category === 'straight') straights.push(c);
+    }
+    expect(straights.sort()).toEqual(['Jc', 'Jd', 'Jh', 'Js']);
+  });
+
+  it('2.8: with the ace of hearts, nothing beats an ace-high flush on K-9-4 of hearts', () => {
+    // The best possible hand on this board is the A-high flush (no pair, no straight flush).
+    expect(ev('Ah Th Kh 9h 4h 7c 2d').category).toBe('flush');
+    for (const x of ['Qh Jh', 'Th 8h', '6h 5h']) expect(winner('AhTh', x.replace(' ', ''), 'Kh9h4h7c2d')).toBe('a');
   });
 });

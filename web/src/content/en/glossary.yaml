@@ -116,3 +116,27 @@ fold equity: >-
   The value a bet gains from the chance that your opponent folds.
 mixed strategy: >-
   Playing the same hand in more than one way, each a set share of the time. Charts show it as a cell split into colours.
+outs: >-
+  The cards still to come that would give you the best hand.
+draw: >-
+  A hand that is behind now but can improve to the best hand with the right cards, such as four cards to a flush.
+flush draw: >-
+  Four cards of one suit, needing one more for a flush. Nine cards of that suit are left.
+open-ended straight draw: >-
+  Four cards in a row that a card at either end turns into a straight, such as 9-8-7-6. Eight cards complete it.
+gutshot: >-
+  A straight draw missing one card in the middle, such as 9-8-6-5 needing a 7. Four cards complete it.
+tainted out: >-
+  A card that completes your hand but also gives your opponent a better one, so it isn't a real out.
+runner-runner: >-
+  A hand made by both the turn and the river, when neither card alone would be enough.
+coin flip: >-
+  An all-in where both players have close to half the equity, such as a pair against two higher cards.
+expected value: >-
+  What a decision wins or loses on average if you made it many times (EV): the sum of each outcome's chance times its result.
+reverse implied odds: >-
+  Money you expect to lose on later streets when you hit a hand that is still second best.
+card removal: >-
+  How the cards you can see (yours and the board) change which hands your opponent can hold.
+blocker: >-
+  A card in your hand that makes some of your opponent's hands impossible or less likely.

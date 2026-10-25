@@ -27,18 +27,16 @@ describe('course content', () => {
     expect(problems).toEqual([]);
   });
 
-  it('facts.json holds exactly the current engine equities for every {{eq}}', () => {
-    const wanted = new Set<string>();
-    for (const l of LESSONS) {
-      for (const e of eqDirectives(l.body)) {
-        const k = eqKey(e);
-        wanted.add(k);
-        const r = JSON.parse(equity(JSON.stringify({ ranges: [e.a, e.b], board: e.board, dead: '', mode: 'exact' })));
-        expect(r.ok, k).toBe(true);
-        expect(FACTS[k], `${k} missing or stale: run npm run facts`).toBeCloseTo(r.players[0].equity, 12);
-      }
+  // Exact preflop range equities are slow, so this test has its own time limit (D-070).
+  it('facts.json holds exactly the current engine equities for every {{eq}}', { timeout: 300_000 }, () => {
+    const wanted = new Map<string, ReturnType<typeof eqDirectives>[number]>();
+    for (const l of LESSONS) for (const e of eqDirectives(l.body)) wanted.set(eqKey(e), e);
+    for (const [k, e] of wanted) {
+      const r = JSON.parse(equity(JSON.stringify({ ranges: [e.a, e.b], board: e.board, dead: '', mode: 'exact' })));
+      expect(r.ok, k).toBe(true);
+      expect(FACTS[k], `${k} missing or stale: run npm run facts`).toBeCloseTo(r.players[0].equity, 12);
     }
-    expect(Object.keys(FACTS).sort()).toEqual([...wanted].sort());
+    expect(Object.keys(FACTS).sort()).toEqual([...wanted.keys()].sort());
   });
 
   it('the glossary has plain definitions and placement questions are well formed', () => {

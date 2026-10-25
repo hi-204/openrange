@@ -734,3 +734,12 @@ results.
 **Decision:** a decimal directly followed by "bb" is allowed, and so is a lesson number after
 the word "lesson(s)" (e.g. "lesson 0.3"). Percentages, other decimals and `$` stay banned.
 Results about money (EVs, prices) are still written with `{{calc}}`.
+
+### D-070 · Lesson facts check: deduplicated, with its own time limit
+**Context:** the test that recomputes every `{{eq}}` in the lessons with the engine took about
+20 s after Level 2, because exact preflop equities against ranges enumerate every board. More
+lessons will push it past the 30 s limit of D-068.
+**Decision:** the test computes each distinct equity once and has its own limit of 300 s. It
+still recomputes every value exactly; nothing is sampled or skipped. Other tests that need these
+equities read `facts.json` instead of computing them again. Lesson table cells write `\|` for
+the pipe in `{{calc … \| fmt}}` and `[[term\|label]]`; the lint accepts both.

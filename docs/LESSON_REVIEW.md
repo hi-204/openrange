@@ -64,3 +64,18 @@ typed.
 | 1.4 Raise, don't limp | a limp can't win the blinds at once because the BB may check; worst-case raise to 2.5 bb breaks even at 2.5 ÷ (2.5 + 1.5) = 62.5% folds; EV widget numbers are labelled illustrative assumptions; OpenRange's tree has no limps | calc + reasoning; tree fact from DECISIONS (cash tree) and KNOWN_LIMITS |
 | 1.5 Open-raise ranges | raise share grows UTG < HJ < CO < BTN, BTN more than three times UTG; SB between CO and BTN; each seat keeps the previous range; HJ adds 66–44, CO adds A7s–A4s, 76s, 65s, 98s, BTN adds suited kings/queens and many offsuit hands; A9o folds UTG, raises CO and BTN; BTN in its sanity band, UTG/HJ/CO below; charts approximate | charts |
 | 1.6 Reading the grid | BB vs BTN has mixed cells; T9s mixes call and 3-bet; BTN facing a 3-bet has greyed hands and every one is a first-in fold; the trainer counts any action in the mix as correct | charts; grading rule from `grading.ts` (MIX_THRESHOLD) |
+
+## Level 2 (2.1, 2.2, 2.4–2.8)
+
+Outs and showdown claims are checked with the engine's `countOuts` and evaluator in
+`lessonHands.test.ts`; quoted equities are engine facts (`facts.json`).
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 2.1 Counting outs | flush draw 13 − 4 = 9, OESD 8, gutshot 4, two overcards 6, combo draw 9 + 8 − 2 = 15; 8♥7♥ vs A♠A♦ on 9♥6♣2♥ has 15 outs (9 hearts, three 5s, three Ts); A♥K♥ vs Q♠Q♦ on Q♥7♥2♣ has 8 (2♥ fills them up; A/K not outs); J♣T♣ vs A-A on 9♥8♦2♠ has 8 (Qs, 7s), more vs A-K | calc + test (countOuts, evaluator) |
+| 2.2 Rule of 2 and 4 | 9/47 = 19.1%, 9/46 = 19.6%; two cards 1 − (47 − o)(46 − o)/(47 × 46): 9 outs 35.0%, 15 outs 54.1%, 8 outs 31.5%; engine 25.6% for A♥K♥ vs Q♠Q♦ (below the formula) and 56.3% for 8♥7♥ vs A♠A♦ (above it: runner-runner, e.g. 8 then 7, checked); the counter divides by 45 because it knows both hands | calc + engine + test |
+| 2.4 Equity | AKs vs QQ 46.2%, AKo vs 77 45.0%, JJ vs AKs 53.9%, KK vs AA 18.1% ("about four in five" for the higher pair); JJ vs QQ+ 18.4%, vs AK 56.1%, vs both 36.2% = the 18/16-combo weighted average; worked hand: 36.2% < 50 ÷ 110 = 45.5%, so fold | engine + test (identity and comparisons on the facts) |
+| 2.5 Expected value | EV = Σ p·v; 0.5·10 − 0.5·5 = 2.5 bb; EV(call) = e(P + C) − C: 0 at a quarter, 3 bb at two fifths; bluff breaks even at B ÷ (P + B): 7.5 into 10 → 42.9%; worked hand 2 bb with an assumed fold rate (labelled as a guess), break-even 40% | calc + reasoning (same identity as 2.3) |
+| 2.6 Implied odds | EV = h(P + C + X) − C, break-even X = C/h − (P + C); gutshot 4/46 = 8.7%, price 25%, X = 37.5 bb; only a jack makes 9♠8♠ a straight on Q♣T♦3♥2♠ (checked); set-mining profit needed 2.5/p − 2.5 with p = 11.8% → 18.75 bb | calc + test + reasoning |
+| 2.7 Combinatorics | pair combos k(k − 1)/2, two ranks a × b; on K♠7♦2♣: KK 3, 77 3, K7 9, AK 12, AA 6; sets together 9 < AK 12; holding A♠K♦: KK 1, AK 6 | calc (the combo widget counts the same way) |
+| 2.8 Blockers | QQ+/AK = 34 combos, with A♠ 27 (AA 3, AK 12); on K♥9♥4♥7♣2♦ 45 heart combos, 36 with A♥ in hand; the A-high flush is the best hand there | calc + test (evaluator) |
