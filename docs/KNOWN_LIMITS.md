@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24 (M5, in progress): postflop solving and push/fold are validated; the cash-game preflop charts miss sanity checks and are not yet published (D-047)._
+_Status 2026-10-25 (M5, in progress): postflop solving and push/fold are validated; the cash-game preflop charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050)._
 
 ## By design
 
@@ -42,11 +42,25 @@ _Status 2026-10-24 (M5, in progress): postflop solving and push/fold are validat
   class (not per combo), solved by sampling; CFR with 3+ players has no equilibrium
   guarantee. The reported best-response gain is a sampled estimate of single-decision
   deviations.
-- **6-max cash charts (EQR v1) are not published as reference:** late positions open less
-  than is plausible (BTN ≈32% at 100 bb vs a 40–50% sanity band) because realization doesn't
-  depend on the hand (D-047). The tree has no limps, at most one cold caller, no cold 4-bets
-  or cold calls of 3-bets, and is rake-free. Multiway flops approximate equity from heads-up
-  matchups.
+- **6-max cash charts (EQR v2) are approximate and partly outside the sanity bands.** At 100 bb
+  the button opens 44.7% (band 40–50%). UTG, HJ and CO open 12.6 / 16.1 / 22.7%, about 1.5–2
+  points under their bands (D-050). Cash charts are not used for EV-graded drills.
+  - **How realization is measured:** per hand class from OpenRange's own postflop solves
+    (D-048), on 60 flops with a one-size tree and no raises. A raise ablation found raises
+    change the factors little (D-049).
+  - **Sampling error:** each factor has a standard error of about 0.04–0.10.
+  - **Unstable role:** the button flatting a CO open is nearly empty in every round, so its
+    factors are unstable.
+  - **Measured at 100 bb only:** the 20/40/60 bb charts reuse the 100 bb factors.
+  - **Extrapolations:**
+    - factors measured against one opener are reused against every opener (BB defends only 23%
+      against UTG, which looks low);
+    - 4-bet+ pots reuse 3-bet factors;
+    - multiway flops reuse single-raised factors and approximate equity from heads-up matchups.
+  - **Circularity:** the ranges come from the previous round's charts; three rounds were run
+    and stopped by a rule fixed in advance.
+  - **Tree simplifications:** no limps, at most one cold caller, no cold 4-bets or cold calls
+    of 3-bets, rake-free.
 - **Charts are per class.** Within a class, suits can matter slightly (card removal); the
   exact heads-up charts average their combos.
 

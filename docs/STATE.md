@@ -2,6 +2,27 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M5 in progress: EQR v2 and cash charts
+
+**Works (verified):**
+- `solver-cli calibrate-eqr` measures equity realization per hand class from our postflop
+  solves (D-048).
+  - Every solve reaches ≤ 1% of the pot, and the players' EVs sum to the pot within 1.2e-7.
+  - A raise ablation (D-049) showed the cheap tree is adequate.
+- Three calibration rounds (D-050). Factors committed in `data/eqr/eqr-v2.json`; 6-max cash
+  charts at 20/40/60/100 bb committed with model `eqr-v2`.
+- The button now opens 44.7% at 100 bb (inside its band; v1: 31.8%). BB defence vs the button
+  fell from 81% to 56%.
+- Long generators now record provenance when they start.
+
+**Not done / known issues:**
+- UTG/HJ/CO open 1.5–2 points under their sanity bands.
+- BB defends only 23% vs UTG.
+- The button-flats-CO role is unstable.
+- Cash charts stay out of EV-graded drills (KNOWN_LIMITS).
+
+**Next:** M6 (trainer). The GitHub push and Linux CI (item 8) wait for the repo URL.
+
 ## 2026-10-25 — M5 in progress: preflop
 
 **Works (verified):**

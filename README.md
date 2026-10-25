@@ -7,7 +7,7 @@ by expected value, and a course from the rules to solver study.
 > to any poker site. Hand-history import is for reviewing sessions *after* you play. Using
 > real-time assistance during play is against the rules of virtually every poker site.
 
-**Status:** milestone M5 in progress — equity calculator, validated postflop solver, exact and approximate push/fold charts, ICM push/fold calculator. See
+**Status:** milestone M5 in progress — equity calculator, validated postflop solver, exact and approximate push/fold charts, ICM push/fold calculator, approximate 6-max cash charts with equity realization measured from our own postflop solves. See
 [docs/STATE.md](docs/STATE.md) for what works today and
 [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) for what doesn't.
 

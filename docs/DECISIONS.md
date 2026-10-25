@@ -441,3 +441,44 @@ median jackknife standard error of a class factor is 0.07–0.16.
 5.6 GB per solve, and about 3× the time) and spend the compute on 60 flops instead of 20.
 That cuts the sampling error by √3. The raise option stays available and documented.
 
+### D-050 · EQR v2 outcome: three rounds, button fixed, early positions slightly tight
+**Rounds** (100 bb). Each round calibrates from the previous round's 100 bb chart; rounds 2
+and 3 use 60 flops.
+
+| First-in | v1 (authored) | Round 1 | Round 2 | Round 3 (final) | Band |
+|---|---|---|---|---|---|
+| UTG | 15.4% | 12.9% | 13.8% | 12.6% | 14–18% |
+| HJ | 18.5% | 15.1% | 15.7% | 16.1% | 18–22% |
+| CO | 23.0% | 21.3% | 23.3% | 22.7% | 24–29% |
+| BTN | 31.8% | 44.3% | 41.1% | 44.7% | 40–50% |
+
+BB defence against a BTN open went from 80.8% (v1) to 61%, then 54%, then 56%.
+
+**Stopping rule (fixed before round 3 was run):** round 3's factors are final whatever they
+show; no further rounds and no tuning toward the bands (D-047).
+
+**Stability:** from round 2 to round 3, six of the eight roles moved by 0.03–0.09 per class on
+average (combo-weighted), about the size of their standard errors (median 0.04–0.10). One role
+is unstable: the button flatting a CO open, which moved 0.29 on average with 85 of 169 classes
+beyond 2 SE. That range is nearly empty (the button flats 0.3–2.6% across rounds), so the CO's
+strategy against it changes with every small change in its composition. The first-in
+frequencies move by up to ±2 points between rounds 1–3, partly from this and partly from the
+charts' own sampling.
+
+**Outcome:** the button is inside its band. UTG, HJ and CO are 1.4–1.9 points below theirs in
+the final charts (all three were below their bands in every v2 round).
+
+**Observations not covered by any band:**
+- BB defends only 23% against a UTG open (v1: 51%). The BB's factors are measured against a
+  button range and reused against every opener, which is an extrapolation.
+- In-position players 3-bet 8–10% against UTG and cold-call almost never. The tree allows at
+  most one cold caller, and 3-bet pots reuse factors measured in BB-vs-BTN and BTN-vs-CO
+  3-bet pots.
+
+**Decision:**
+- Commit the v2 charts for 20/40/60/100 bb, labelled `solver_approx` with model `eqr-v2`.
+- The 100 bb file keeps its "outside the sanity checks" warning for UTG, HJ and CO.
+- The 20/40/60 bb files reuse the 100 bb factors, and their stack depth isn't calibrated
+  separately, which KNOWN_LIMITS says.
+- Cash charts stay excluded from EV-graded trainer drills (as in D-047) until all four 100 bb
+  bands pass. The trainer may show them as reference with the warning.

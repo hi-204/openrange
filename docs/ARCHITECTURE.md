@@ -195,7 +195,12 @@ re-solve them and must match bit for bit.
   gives per-action EVs with standard errors, each class's own reach, and a cross-validated,
   own-reach-weighted best-response gain (D-044, D-045).
 - **EQR model** (`EqrModel`): v1 authored, hand-independent (D-046); it misses the late
-  position sanity bands (D-047). v2 is to be calibrated from our own postflop solves.
+  position sanity bands (D-047). v2 (`EqrModel::with_class_factors`) reads per-class factors
+  indexed [pot type][in position][aggressor][class] from `data/eqr/eqr-v2.json`.
+- **EQR calibration** (`solver-cli calibrate-eqr`, D-048/D-049): solves four 100 bb lines from
+  a chart file on 60 seeded flops with the postflop solver; factor = Σ pot share ÷ Σ equity
+  per class, with probe hands for classes the chart doesn't play and jackknife errors.
+  Rounds feed each chart back as the next input (D-050).
 
 ### 1.10 ICM (`preflop/icm.rs`)
 Malmuth–Harville by recursion over subsets of unplaced players (2ⁿ states); busted players
