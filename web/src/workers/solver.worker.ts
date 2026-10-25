@@ -70,6 +70,14 @@ async function run(id: number, maxIterations: number, targetPct: number) {
   }
 }
 
+/** Exact combo-pair equities (~1 MB), fetched from this site once per worker. */
+async function ensurePairs(wasm: SolverWasm) {
+  if (wasm.pairsLoaded()) return;
+  const res = await fetch(`${import.meta.env.BASE_URL}data/equity/preflop-pairs.json`);
+  if (!res.ok) throw new Error(`couldn't load preflop equities (${res.status})`);
+  wasm.loadPairs(await res.text());
+}
+
 async function handle(wasm: SolverWasm, req: WorkerRequest): Promise<unknown> {
   switch (req.type) {
     case 'hello':
@@ -91,13 +99,11 @@ async function handle(wasm: SolverWasm, req: WorkerRequest): Promise<unknown> {
       paused = true;
       return {};
     case 'pushFold':
-      // Exact combo-pair equities (~1 MB), fetched from this site once per worker.
-      if (!wasm.pairsLoaded()) {
-        const res = await fetch(`${import.meta.env.BASE_URL}data/equity/preflop-pairs.json`);
-        if (!res.ok) throw new Error(`couldn't load preflop equities (${res.status})`);
-        wasm.loadPairs(await res.text());
-      }
+      await ensurePairs(wasm);
       return JSON.parse(wasm.pushFold(JSON.stringify(req.spot)));
+    case 'preflopMatchup':
+      await ensurePairs(wasm);
+      return JSON.parse(wasm.preflopMatchup(JSON.stringify({ hero: req.hero, villain: req.villain })));
     case 'solverNode':
       if (!session) throw new Error('no spot loaded');
       return JSON.parse(session.node(JSON.stringify(req.path)));

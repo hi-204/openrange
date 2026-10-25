@@ -47,6 +47,8 @@ export type SpotJson = {
   maxRaises: number | Record<string, number>;
   allInThreshold: number;
   rake?: { percent: number; capBb: number };
+  /** Suit isomorphism (default on); tests turn it off to compare. */
+  isomorphism?: boolean;
 };
 
 export type SolverInfo = {
@@ -122,6 +124,7 @@ export type Calls = {
   solverPause: { args: Record<string, never>; result: Record<string, never> };
   solverNode: { args: { path: number[] }; result: SolverNode };
   pushFold: { args: { spot: PushFoldSpotJson }; result: PushFoldResult };
+  preflopMatchup: { args: { hero: string; villain: number[] }; result: { combos: { combo: string; share: number; equity: number | null }[] } };
 };
 
 export type CallType = keyof Calls;
