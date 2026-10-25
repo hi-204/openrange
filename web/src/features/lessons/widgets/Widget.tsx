@@ -1,4 +1,5 @@
 import { t, type MessageKey } from '../../../lib/i18n';
+import { IcmWidget, ToyGame, VarianceWidget } from './games';
 import { BoardExplorer, ComboCounter, HandRanker, OutsCalculator } from './hands';
 import { EvCalculator, PotOdds, SizingExplorer, SprCalculator } from './math';
 import { ChartEmbed, EquityWidget, RangeAdvantage, RangeGrid } from './ranges';
@@ -23,6 +24,9 @@ const COMPONENTS: Record<string, (p: { config: Config }) => React.JSX.Element> =
   table: TableDiagram,
   handflow: HandFlow,
   minisolver: MiniSolver,
+  toygame: ToyGame,
+  icm: IcmWidget,
+  variance: VarianceWidget,
 };
 
 /** A lesson widget in a labelled frame. */

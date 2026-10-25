@@ -268,3 +268,64 @@ describe('Level 4 solver claims', () => {
     sv.free();
   });
 });
+
+describe('Level 5 solver claims', () => {
+  it('5.4: J♦T♦ is medium and bets small; K♥Q♦ is strong here and bets three quarters', () => {
+    const sv = solveDrill('river-qj742');
+    const r = sv.node([]);
+    const g = riverGroups(sv, r, 0);
+    const find = (c: string) => sv.info.hands[0]!.findIndex((h) => h === c || h === c.slice(2) + c.slice(0, 2));
+    const jt = find('JdTd');
+    const kq = find('KhQd');
+    expect(g[jt]).toBe('medium');
+    expect(freq(sv, r, 1, (h) => h === jt)).toBeGreaterThan(0.9);
+    expect(freq(sv, r, 2, (h) => h === jt) + freq(sv, r, 3, (h) => h === jt)).toBeLessThan(0.05);
+    expect(g[kq]).toBe('strong');
+    const kq75 = freq(sv, r, 2, (h) => h === kq);
+    expect(kq75).toBeGreaterThan(0.5); // "about two times in three"
+    expect(kq75).toBeLessThan(0.8);
+    sv.free();
+  });
+
+  it('5.5: on a three-heart river, high-card hands with a heart bluff over twice as often', () => {
+    const sv = solveDrill('river-k9472');
+    const r = sv.node([]);
+    expect(r.actions).toEqual(['Check', 'Bet 3.3', 'Bet 7.5', 'Bet 15']);
+    const board = boardOf(r);
+    const hands = sv.info.hands[0]!;
+    const highCard = (h: number) => ev(hands[h]! + board).categoryIndex === 0;
+    const heart = (h: number) => hands[h]![1] === 'h' || hands[h]![3] === 'h';
+    const bet = (k: number[], keep: (h: number) => boolean) => k.reduce((a, x) => a + freq(sv, r, x, keep), 0);
+    const withHeart = (h: number) => highCard(h) && heart(h);
+    const without = (h: number) => highCard(h) && !heart(h);
+    expect(bet([1, 2, 3], withHeart)).toBeGreaterThan(2 * bet([1, 2, 3], without));
+    expect(bet([2], withHeart)).toBeGreaterThan(2 * bet([2], without));
+    // Worked hand: queen-jack with the queen of hearts bets more than without a heart.
+    const one = (c: string) => (h: number) => hands[h] === c || hands[h] === c.slice(2) + c.slice(0, 2);
+    expect(bet([1, 2, 3], one('QhJc'))).toBeGreaterThan(bet([1, 2, 3], one('QsJc')));
+    sv.free();
+  });
+
+  it('5.5: on the dry river, weak hands with no showdown value bluff more than weak hands with some', () => {
+    const sv = solveDrill('river-qj742');
+    const r = sv.node([]);
+    const board = boardOf(r);
+    const opp = sv.info.hands[1]!;
+    const so = opp.map((h) => ev(h + board).strength);
+    const eqOf = sv.info.hands[0]!.map((h) => {
+      const x = ev(h + board).strength;
+      let w = 0;
+      let e = 0;
+      opp.forEach((o, j) => {
+        const rr = r.reach[1]![j]!;
+        if (!rr || overlap(h, o)) return;
+        w += rr;
+        e += rr * (x > so[j]! ? 1 : x === so[j]! ? 0.5 : 0);
+      });
+      return e / w;
+    });
+    const betAny = (keep: (h: number) => boolean) => 1 - freq(sv, r, 0, keep);
+    expect(betAny((h) => eqOf[h]! < 0.05)).toBeGreaterThan(betAny((h) => eqOf[h]! >= 0.1 && eqOf[h]! < 0.25));
+    sv.free();
+  });
+});

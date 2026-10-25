@@ -197,3 +197,11 @@ describe('Level 3: preflop in depth', () => {
     expect(evOf('vs-open-BB-vs-BTN', 'K2o', 0)).toBe(-1); // folding the big blind
   });
 });
+
+describe('Level 5: chart facts', () => {
+  it('5.6: the big blind squeezes KQo almost always but mixes T9s', () => {
+    expect(at('squeeze-BB-vs-BTN-SB', 'KQo')[2]!).toBeGreaterThan(0.9);
+    const t9 = at('squeeze-BB-vs-BTN-SB', 'T9s');
+    expect(t9.filter((f) => f > 0.1).length).toBeGreaterThanOrEqual(2);
+  });
+});

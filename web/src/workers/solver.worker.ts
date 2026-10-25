@@ -101,6 +101,8 @@ async function handle(wasm: SolverWasm, req: WorkerRequest): Promise<unknown> {
     case 'pushFold':
       await ensurePairs(wasm);
       return JSON.parse(wasm.pushFold(JSON.stringify(req.spot)));
+    case 'icm':
+      return JSON.parse(wasm.icm(JSON.stringify({ stacks: req.stacks, payouts: req.payouts })));
     case 'countOuts':
       return JSON.parse(wasm.countOuts(JSON.stringify({ hero: req.hero, villain: req.villain, board: req.board })));
     case 'evaluateHand':

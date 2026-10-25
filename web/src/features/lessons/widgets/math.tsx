@@ -5,7 +5,7 @@ import { t } from '../../../lib/i18n';
 type Config = Record<string, unknown>;
 const n = (c: Config, k: string, d: number) => (typeof c[k] === 'number' ? (c[k] as number) : d);
 
-function Slider({ label, value, min, max, step, onChange, unit }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; unit: string }) {
+export function Slider({ label, value, min, max, step, onChange, unit }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; unit: string }) {
   const id = useId();
   return (
     <div>

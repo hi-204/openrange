@@ -188,4 +188,4 @@ export function mathCoach(correct: boolean, drill: string, given: string, answer
   };
 }
 
-const MATH_LESSON: Record<string, string> = { potodds: '2.3', outs: '2.1', equity: '2.4', mdf: '5.2', bluff: '5.3', combos: '2.7' };
+const MATH_LESSON: Record<string, string> = { potodds: '2.3', outs: '2.1', equity: '2.4', mdf: '5.2', bluff: '5.3', combos: '2.7', texture: '4.2', reading: '2.7' };

@@ -9,6 +9,7 @@ export type DrillSpot = { id: string; street: 'flop' | 'turn' | 'river'; spot: S
 
 export const DRILL_SPOTS: DrillSpot[] = [
   { id: 'river-qj742', street: 'river', spot: toSpot(PRESETS.river), target: 0.3, maxIterations: 2000 },
+  { id: 'river-k9472', street: 'river', spot: { ...toSpot(PRESETS.river), board: 'Kh 9h 4h 7c 2d' }, target: 0.3, maxIterations: 2000 },
   { id: 'turn-qj74', street: 'turn', spot: toSpot(PRESETS.turn), target: 0.5, maxIterations: 500 },
   { id: 'turn-kt63', street: 'turn', spot: { ...toSpot(PRESETS.turn), board: 'Kh Th 6h 3s' }, target: 0.5, maxIterations: 500 },
   { id: 'flop-qj4', street: 'flop', spot: toSpot(PRESETS.flop), target: 1, maxIterations: 300, slow: true },

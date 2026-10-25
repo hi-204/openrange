@@ -4,8 +4,9 @@ import { SubNav } from '../../lib/ui/SubNav';
 import { MathDrill } from './math/MathDrill';
 import { PostflopDrill } from './postflop/PostflopDrill';
 import { PreflopDrill } from './preflop/PreflopDrill';
+import { RangeDrill } from './ranges/RangeDrill';
 
-const TABS = ['preflop', 'postflop', 'math'] as const;
+const TABS = ['preflop', 'postflop', 'ranges', 'math'] as const;
 
 export function TrainerPage({ route }: { route: Route }) {
   const tab = (TABS as readonly string[]).includes(route.rest[0] ?? '') ? route.rest[0]! : 'preflop';
@@ -19,11 +20,13 @@ export function TrainerPage({ route }: { route: Route }) {
         items={[
           { id: 'preflop', label: t('trainer.tab.preflop') },
           { id: 'postflop', label: t('trainer.tab.postflop') },
+          { id: 'ranges', label: t('trainer.tab.ranges') },
           { id: 'math', label: t('trainer.tab.math') },
         ]}
       />
       {tab === 'preflop' && <PreflopDrill files={route.query.get('files')?.split(',')} />}
       {tab === 'postflop' && <PostflopDrill spot={route.query.get('spot') ?? undefined} />}
+      {tab === 'ranges' && <RangeDrill />}
       {tab === 'math' && <MathDrill drill={route.query.get('drill') ?? undefined} />}
     </div>
   );

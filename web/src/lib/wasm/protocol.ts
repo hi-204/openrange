@@ -121,6 +121,9 @@ export type HandValue = { ok: true; strength: number; category: string; category
 /** Next-card outcomes against a known hand (flop or turn). */
 export type OutsResult = { ok: true; behindNow: boolean; tiedNow: boolean; ahead: string[]; tied: string[]; behind: string[] } | { ok: false; error: string };
 
+/** ICM prize equity of each stack (same units as the payouts). */
+export type IcmResult = { ok: true; equity: number[] } | { ok: false; error: string };
+
 /** Request payloads by type, and what each one resolves to. */
 export type Calls = {
   hello: { args: Record<string, never>; result: HelloResult };
@@ -135,6 +138,7 @@ export type Calls = {
   evaluateHand: { args: { cards: string }; result: HandValue };
   countOuts: { args: { hero: string; villain: string; board: string }; result: OutsResult };
   preflopMatchup: { args: { hero: string; villain: number[] }; result: { combos: { combo: string; share: number; equity: number | null }[] } };
+  icm: { args: { stacks: number[]; payouts: number[] }; result: IcmResult };
 };
 
 export type CallType = keyof Calls;

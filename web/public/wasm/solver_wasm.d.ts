@@ -62,6 +62,11 @@ export function estimateMemory(spot_json: string): string;
 export function evaluateHand(cards: string): string;
 
 /**
+ * ICM prize equity of each stack for a payout list (Malmuth–Harville).
+ */
+export function icm(request_json: string): string;
+
+/**
  * Load the exact combo-pair equities (`data/equity/preflop-pairs.json` text) once.
  */
 export function loadPairs(json: string): string;
@@ -102,6 +107,7 @@ export interface InitOutput {
     readonly equity: (a: number, b: number) => [number, number];
     readonly estimateMemory: (a: number, b: number) => [number, number, number, number];
     readonly evaluateHand: (a: number, b: number) => [number, number];
+    readonly icm: (a: number, b: number) => [number, number];
     readonly loadPairs: (a: number, b: number) => [number, number, number, number];
     readonly pairsLoaded: () => number;
     readonly parseRange: (a: number, b: number) => [number, number];

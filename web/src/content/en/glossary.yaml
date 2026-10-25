@@ -208,3 +208,43 @@ minimum defence frequency: >-
   The share of your range you must continue with so that a pure bluff of B into a pot P doesn't profit at once: P ÷ (P + B).
 overbet: >-
   A bet bigger than the pot.
+equilibrium: >-
+  A pair of strategies where neither player can win more by changing theirs while the other keeps theirs (a Nash equilibrium).
+indifference: >-
+  When two actions are worth exactly the same to a player. At an equilibrium, players only mix between actions they are indifferent between.
+game theory optimal: >-
+  Playing an equilibrium strategy, or one very close to it (GTO). It guarantees a minimum result, not the most profit against a given opponent.
+exploitability: >-
+  How much a perfect counter-strategy would win against a strategy, compared with the equilibrium. OpenRange shows it as a share of the pot.
+best response: >-
+  The most profitable strategy against one fixed strategy of the opponent.
+showdown value: >-
+  The chance that a hand wins at showdown without betting, for example a weak pair that beats bluffs.
+exploitative play: >-
+  Moving away from equilibrium to win more against an opponent's specific mistakes, at the risk of being countered.
+node-locking: >-
+  Fixing one player's strategy at a decision in a solver, then solving everything else against it.
+ICM: >-
+  The Independent Chip Model: a way to turn tournament stacks into shares of the prize pool, using each player's chance of finishing in each place.
+prize equity: >-
+  Your expected share of a tournament's prize money, given the current stacks and payouts.
+bubble: >-
+  The point in a tournament just before the paid places, when one more elimination puts everyone left in the money.
+bubble factor: >-
+  What losing an all-in costs in prize equity divided by what winning it gains. Above 1, calls need more than half the equity.
+win rate: >-
+  Your average result, usually in big blinds per 100 hands (bb/100).
+standard deviation: >-
+  How widely results spread around the average, here in big blinds per 100 hands.
+bankroll: >-
+  The money you set aside for playing poker, separate from money you need for anything else.
+risk of ruin: >-
+  The chance of losing your whole bankroll at some point.
+rake: >-
+  The fee the room takes, usually a small share of each pot up to a cap.
+tilt: >-
+  Playing worse than you know how to because of emotions such as frustration after bad results.
+stop-loss: >-
+  A rule set before a session to stop playing after losing a set amount.
+session review: >-
+  Looking back at hands after a session, with study tools, to find and fix mistakes.

@@ -205,9 +205,51 @@ pub fn outs(request_json: &str) -> Value {
     inner().unwrap_or_else(err)
 }
 
+/// ICM prize equity: `{stacks: [..], payouts: [..]}` → `{ok, equity: [..]}` in prize units.
+/// Up to 10 players (a table); stacks must be finite and non-negative, payouts finite.
+pub fn icm(request_json: &str) -> Value {
+    let inner = || -> Result<Value, String> {
+        let req: Value = serde_json::from_str(request_json).map_err(|e| format!("bad request: {e}"))?;
+        let nums = |name: &str| -> Result<Vec<f64>, String> {
+            let arr = req[name].as_array().ok_or(format!("\"{name}\" must be a list of numbers"))?;
+            arr.iter()
+                .map(|v| v.as_f64().filter(|x| x.is_finite()).ok_or(format!("\"{name}\" must be a list of numbers")))
+                .collect()
+        };
+        let stacks = nums("stacks")?;
+        let payouts = nums("payouts")?;
+        if stacks.len() < 2 || stacks.len() > 10 {
+            return Err("ICM needs 2 to 10 players".into());
+        }
+        if stacks.iter().any(|&s| s < 0.0) || stacks.iter().all(|&s| s == 0.0) {
+            return Err("stacks must be zero or more, and not all zero".into());
+        }
+        if payouts.iter().any(|&p| p < 0.0) {
+            return Err("payouts must be zero or more".into());
+        }
+        let eq = solver_core::preflop::icm::icm_equity(&stacks, &payouts);
+        Ok(json!({ "ok": true, "equity": eq }))
+    };
+    inner().unwrap_or_else(err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn icm_two_players_is_linear_and_prizes_are_conserved() {
+        let r = icm(r#"{"stacks": [3000, 1000], "payouts": [70, 30]}"#);
+        assert_eq!(r["ok"], true, "{r}");
+        let eq: Vec<f64> = serde_json::from_value(r["equity"].clone()).unwrap();
+        // First place with probability 3/4: 0.75 × 70 + 0.25 × 30 = 60.
+        assert!((eq[0] - 60.0).abs() < 1e-9 && (eq[1] - 40.0).abs() < 1e-9, "{eq:?}");
+        let r = icm(r#"{"stacks": [5000, 3000, 1500, 500], "payouts": [50, 30, 20]}"#);
+        let eq: Vec<f64> = serde_json::from_value(r["equity"].clone()).unwrap();
+        assert!((eq.iter().sum::<f64>() - 100.0).abs() < 1e-9);
+        assert_eq!(icm(r#"{"stacks": [1], "payouts": [1]}"#)["ok"], false);
+        assert_eq!(icm(r#"{"stacks": [1, -1], "payouts": [1]}"#)["ok"], false);
+    }
 
     #[test]
     fn outs_against_a_known_hand() {

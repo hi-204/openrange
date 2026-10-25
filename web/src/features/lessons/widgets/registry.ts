@@ -33,4 +33,7 @@ export const WIDGETS: Record<string, Check> = {
   table: (c) => (c.highlight === undefined || Array.isArray(c.highlight) ? [] : ['"highlight" must be a list of seats']),
   handflow: () => [],
   minisolver: (c) => str(c, 'spot'),
+  toygame: (c) => [...num(c, 'bet', false), ...num(c, 'air', false), ...num(c, 'call', false)],
+  icm: (c) => ['stacks', 'payouts'].flatMap((k) => (c[k] === undefined || (Array.isArray(c[k]) && (c[k] as unknown[]).every((x) => typeof x === 'number')) ? [] : [`"${k}" must be a list of numbers`])),
+  variance: (c) => [...num(c, 'winrate', false), ...num(c, 'sd', false), ...num(c, 'hands', false), ...num(c, 'bankroll', false)],
 };

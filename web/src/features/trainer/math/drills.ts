@@ -2,10 +2,12 @@
 // its solution is computed here (or by the engine), never typed.
 
 import { combosOf, DECK } from '../../lessons/widgets/cards';
+import { t, type MessageKey } from '../../../lib/i18n';
+import { texture } from '../postflop/features';
 
-export type MathDrillId = 'potodds' | 'outs' | 'equity' | 'mdf' | 'bluff' | 'combos';
+export type MathDrillId = 'potodds' | 'outs' | 'equity' | 'mdf' | 'bluff' | 'combos' | 'texture' | 'reading';
 
-export const MATH_DRILLS: { id: MathDrillId }[] = [{ id: 'potodds' }, { id: 'mdf' }, { id: 'bluff' }, { id: 'outs' }, { id: 'equity' }, { id: 'combos' }];
+export const MATH_DRILLS: { id: MathDrillId }[] = [{ id: 'potodds' }, { id: 'mdf' }, { id: 'bluff' }, { id: 'outs' }, { id: 'equity' }, { id: 'combos' }, { id: 'texture' }, { id: 'reading' }];
 
 /** What a problem needs from the engine (the worker in the app, WASM directly in tests). */
 export type Engine = {
@@ -58,6 +60,19 @@ export const bandLabel = (k: number) => `${k === 0 ? 0 : Math.round(EQUITY_BANDS
 export const bandOf = (eq: number) => EQUITY_BANDS.findIndex((b) => eq < b);
 
 const COMBO_HANDS = ['AA', 'KK', 'QQ', '77', 'AK', 'AKs', 'AKo', 'AQs', 'KQo', 'QJs', 'T9s', 'A5s'];
+
+type Shape = { suits: 1 | 2 | 3; paired: boolean; straight: boolean };
+const SUIT_KEY = { 1: 'rainbow', 2: 'twotone', 3: 'monotone' } as const;
+/** A flop description from its texture (suits, pairing, connectedness). */
+export const describeFlop = (s: Shape) =>
+  t('math.texture.desc', {
+    suits: t(`math.texture.${SUIT_KEY[s.suits]}` as MessageKey),
+    pair: t(s.paired ? 'math.texture.paired' : 'math.texture.unpaired'),
+    straight: t(s.straight ? 'math.texture.straight' : 'math.texture.noStraight'),
+  });
+/** Shapes a flop can have (a paired flop can't be monotone). */
+const SHAPES: Shape[] = ([1, 2, 3] as const).flatMap((suits) => [false, true].flatMap((paired) => [false, true].map((straight) => ({ suits, paired, straight })))).filter((s) => !(s.paired && s.suits === 3));
+const RANK_ORDER = 'AKQJT98765432';
 
 export async function generate(drill: MathDrillId, rnd: () => number, engine: Engine): Promise<MathProblem> {
   switch (drill) {
@@ -178,6 +193,64 @@ export async function generate(drill: MathDrillId, rnd: () => number, engine: En
         cards: { hero, villain },
         facts: { exact: eq, band },
       };
+    }
+    case 'texture': {
+      const board = shuffle(DECK, rnd).slice(0, 3);
+      const tex = texture(board);
+      const right: Shape = { suits: tex.maxSuit as 1 | 2 | 3, paired: tex.paired, straight: tex.straightPossible };
+      const same = (a: Shape, b: Shape) => a.suits === b.suits && a.paired === b.paired && a.straight === b.straight;
+      const options = shuffle([right, ...shuffle(SHAPES.filter((s) => !same(s, right)), rnd).slice(0, 3)], rnd);
+      const answer = options.findIndex((s) => same(s, right));
+      return {
+        drill,
+        kind: 'choice',
+        answer,
+        choices: options.map(describeFlop),
+        prompt: { key: 'math.texture.q', params: {} },
+        steps: [
+          { key: tex.maxSuit === 3 ? 'math.texture.s.monotone' : tex.maxSuit === 2 ? 'math.texture.s.twotone' : 'math.texture.s.rainbow', params: {} },
+          { key: tex.paired ? 'math.texture.s.paired' : 'math.texture.s.unpaired', params: {} },
+          { key: tex.straightPossible ? 'math.texture.s.straight' : 'math.texture.s.noStraight', params: {} },
+        ],
+        cards: { board: board.join('') },
+        facts: { suits: tex.maxSuit, paired: String(tex.paired), straight: String(tex.straightPossible) },
+      };
+    }
+    case 'reading': {
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const deck = shuffle(DECK, rnd);
+        const board = deck.slice(0, 3);
+        const hero = deck.slice(3, 5);
+        const ranks = [...new Set(board.map((c) => c[0]!))].sort((a, b) => RANK_ORDER.indexOf(a) - RANK_ORDER.indexOf(b));
+        if (ranks.length < 3) continue;
+        const [top, mid, low] = ranks as [string, string, string];
+        const kicker = top === 'A' ? 'K' : 'A';
+        const over = RANK_ORDER[Math.max(0, RANK_ORDER.indexOf(top) - 1)]!;
+        // Hands an opponent might bet with here: sets, two pair, top pair with a top kicker, an overpair.
+        const candidates = [...new Set([top + top, mid + mid, low + low, top + mid, top + low, kicker + top, ...(over !== top ? [over + over] : [])])];
+        const [a, b] = shuffle(candidates, rnd) as [string, string];
+        const known = [...board, ...hero];
+        const left = (h: string) => combosOf(h).filter((c) => !known.some((k) => c.includes(k))).length;
+        const na = left(a);
+        const nb = left(b);
+        if (na === 0 && nb === 0) continue;
+        const answer = na > nb ? 0 : nb > na ? 1 : 2;
+        return {
+          drill,
+          kind: 'choice',
+          answer,
+          choices: [a, b, t('math.reading.same')],
+          prompt: { key: 'math.reading.q', params: { a, b } },
+          steps: [
+            { key: 'math.reading.s1', params: { hand: a, total: combosOf(a).length, left: na } },
+            { key: 'math.reading.s1', params: { hand: b, total: combosOf(b).length, left: nb } },
+            { key: answer === 2 ? 'math.reading.s2same' : 'math.reading.s2', params: { more: answer === 1 ? b : a, ratio: (Math.max(na, nb) / Math.max(1, Math.min(na, nb))).toFixed(1) } },
+          ],
+          cards: { hero: hero.join(''), board: board.join('') },
+          facts: { a, b, na, nb },
+        };
+      }
+      throw new Error('could not deal a reading problem');
     }
   }
 }

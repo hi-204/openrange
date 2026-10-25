@@ -10,6 +10,7 @@ export function drillIds(chartFiles: string[]): Set<string> {
     'preflop',
     'postflop',
     'math',
+    'ranges',
     'review',
     ...chartFiles.map((f) => `preflop:${f}`),
     ...DRILL_SPOTS.map((s) => `postflop:${s.id}`),
@@ -22,5 +23,6 @@ export function drillHref(id: string): string {
   if (kind === 'preflop') return href('train', ['preflop'], arg ? { files: arg } : {});
   if (kind === 'postflop') return href('train', ['postflop'], arg ? { spot: arg } : {});
   if (kind === 'math') return href('train', ['math'], arg ? { drill: arg } : {});
+  if (kind === 'ranges') return href('train', ['ranges']);
   return href('stats');
 }
