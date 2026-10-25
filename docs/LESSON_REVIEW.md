@@ -34,8 +34,9 @@ The lesson lint (D-059) also guarantees, for every lesson:
 ## Level 0
 
 The Level 0 claims are rules of No-Limit Hold'em, checked by hand (reasoning) unless marked
-otherwise. Hands quoted at showdown were also checked with the hand evaluator
-(`evaluateHand`, tested in solver-wasm and, for 133,784,560 seven-card hands, in solver-core).
+otherwise. Every hand quoted at a showdown (worked hands, callouts, quiz answers) is checked
+with the engine's hand evaluator in `web/src/features/lessons/lessonHands.test.ts` ("evaluator"
+below).
 
 | Lesson | Key claims | Method |
 |---|---|---|
