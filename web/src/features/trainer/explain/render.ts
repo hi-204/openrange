@@ -43,7 +43,8 @@ export function renderClaim(c: Claim): string[] {
         }),
       ];
     case 'mix':
-      return [t('trainer.mix', { list: c.frequencies.map((f) => `${f.action} ${pct(f.p, 0)}`).join(', ') })];
+      // Actions the solution (almost) never takes would only clutter the sentence.
+      return [t('trainer.mix', { list: c.frequencies.filter((f) => f.p >= 0.005).map((f) => `${f.action} ${pct(f.p, 0)}`).join(', ') })];
     case 'sampled':
       return [t('trainer.sampled', { se: c.largestStdError.toFixed(2) })];
     case 'practice':

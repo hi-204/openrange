@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { t, type MessageKey } from '../../lib/i18n';
+import { PostflopDrill } from './postflop/PostflopDrill';
 import { PreflopDrill } from './preflop/PreflopDrill';
 
 const TABS = ['preflop', 'postflop', 'review'] as const;
@@ -31,6 +32,7 @@ export function TrainerPage() {
       </div>
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'preflop' && <PreflopDrill />}
+        {tab === 'postflop' && <PostflopDrill />}
       </div>
     </div>
   );
