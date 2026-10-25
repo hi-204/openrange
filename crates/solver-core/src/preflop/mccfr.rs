@@ -34,7 +34,16 @@ pub struct EqrModel {
     pub multi_last: f64,
     pub multi_other: f64,
     pub multi_aggressor: f64,
+    /// EQR v2: hand-dependent factors measured from OpenRange's own postflop solves, replacing
+    /// `heads_up` and the multiway scalars when present (see [`ClassFactors`]).
+    pub class_factors: Option<Box<ClassFactors>>,
 }
+
+/// Realization factor per hand class, indexed
+/// `[pot type: single-raised, 3-bet][in position][preflop aggressor][class]`. Four-bet and
+/// bigger pots use the 3-bet table; multiway flops use the single-raised table with "in
+/// position" meaning last to act (both are extrapolations, documented in D-048).
+pub type ClassFactors = [[[[f64; NUM_CLASSES]; 2]; 2]; 2];
 
 impl EqrModel {
     /// Version 1 (authored, 2026-10-24). Rough, commonly assumed shape: the player in
@@ -53,6 +62,7 @@ impl EqrModel {
             multi_last: 1.0,
             multi_other: 0.88,
             multi_aggressor: 0.04,
+            class_factors: None,
         }
     }
 
@@ -65,7 +75,24 @@ impl EqrModel {
             }
         }
         m.multi_other *= scale;
+        if let Some(cf) = m.class_factors.as_mut() {
+            for pot in cf.iter_mut() {
+                for aggr in pot[0].iter_mut() {
+                    for r in aggr.iter_mut() {
+                        *r *= scale;
+                    }
+                }
+            }
+        }
         m
+    }
+
+    /// EQR v2: the v1 structure with hand-dependent factors from calibration.
+    pub fn with_class_factors(factors: ClassFactors) -> EqrModel {
+        EqrModel {
+            class_factors: Some(Box::new(factors)),
+            ..EqrModel::v1()
+        }
     }
 }
 
@@ -283,8 +310,12 @@ impl<'a> Engine<'a> {
             let lvl = (level as usize).clamp(1, 3) - 1;
             let r = |s: usize| {
                 let other = if s == a { b } else { a };
-                let ip = postflop_rank(n, s) > postflop_rank(n, other);
-                m.heads_up[lvl][usize::from(ip)][usize::from(s == aggressor)]
+                let ip = usize::from(postflop_rank(n, s) > postflop_rank(n, other));
+                let aggr = usize::from(s == aggressor);
+                match &m.class_factors {
+                    Some(cf) => cf[lvl.min(1)][ip][aggr][deal.classes[s]],
+                    None => m.heads_up[lvl][ip][aggr],
+                }
             };
             let (wa, wb) = (e * r(a), (1.0 - e) * r(b));
             let wsum = wa + wb;
@@ -310,14 +341,22 @@ impl<'a> Engine<'a> {
                     p *= eq.equity(deal.combos[s], deal.combos[o]) as f64;
                 }
             }
-            let r = if s == last {
-                m.multi_last
-            } else {
-                m.multi_other
-            } + if s == aggressor {
-                m.multi_aggressor
-            } else {
-                0.0
+            let r = match &m.class_factors {
+                // Single-raised table, "in position" = last to act (extrapolation, D-048).
+                Some(cf) => {
+                    cf[0][usize::from(s == last)][usize::from(s == aggressor)][deal.classes[s]]
+                }
+                None => {
+                    (if s == last {
+                        m.multi_last
+                    } else {
+                        m.multi_other
+                    }) + if s == aggressor {
+                        m.multi_aggressor
+                    } else {
+                        0.0
+                    }
+                }
             };
             weights.push(p * r);
         }

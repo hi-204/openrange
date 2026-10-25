@@ -392,3 +392,32 @@ numbers to remembered outputs, which principle 1 forbids). The charts ship label
 approximate with a prominent "outside the sanity checks" warning in the UI, and are excluded
 from trainer grading until a calibrated model exists. **Next:** EQR v2 calibrated from
 OpenRange's own postflop solves (owner's decision pending on scope/timing).
+
+### D-048 · EQR v2: realization measured per hand class from our own postflop solves
+**Context:** D-047 (v1's hand-independent realization makes the big blind over-defend). The
+owner chose to calibrate rather than tune.
+**Method (`solver-cli calibrate-eqr`, output `data/eqr/eqr-v2.json`):** four lines taken from
+the 100 bb cash chart file: single-raised BTN vs BB and CO vs BTN; 3-bet BB vs BTN and BTN vs
+CO. Each side's flop range is the chart's frequency for that line. Each line is solved with
+the validated postflop solver on a seeded sample of 20 flops, distinct up to suit
+relabelling, to ≤ 1% of the pot. The tree has one bet size per street (33% / 66% / 75% of pot),
+no raises, and all-in above 67% of the stack. For each role (pot type × in position ×
+preflop aggressor) and class, the factor is Σ EV share of the pot ÷ Σ all-in equity against
+the opponent's range on that flop. The sums run over the class's combos on every flop, each
+combo counted by how often it meets the opponent's range.
+**Probe hands:** classes the chart doesn't play are added at weight 0.005. A hand's CFR
+strategy doesn't depend on its own reach, so a probe hand plays its best line against an
+essentially unchanged opponent. Its factor is the realization that class would get if it
+were added to the range, which is what the preflop decision between calling and folding
+needs. Without probes the first trial gave 161 of 169 classes the role average (the
+hand-independent assumption v1 already failed on).
+**Use in the preflop model:** heads-up flops use factor[pot type][in position][aggressor]
+[class]. 4-bet+ pots use the 3-bet factors. Multiway flops use the single-raised factors with
+"in position" meaning last to act. All three are extrapolations and are recorded in the
+chart provenance.
+**Circularity:** the ranges come from a chart solved with the previous model, so one
+stability round is run: recalibrate from the v2 charts and compare the factors and the first-in
+frequencies. The outcome is recorded below (D-049).
+**Not done:** calibration only at 100 bb (shallower stacks reuse it); no rake; a one-size
+tree (more sizes would let both players realize more); 20 flops (sampling error is reported
+per role in the file).

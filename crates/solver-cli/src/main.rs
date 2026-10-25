@@ -3,6 +3,7 @@
 //! Subcommands grow milestone by milestone (docs/PLAN.md). Argument parsing is kept
 //! dependency-free until it becomes non-trivial.
 
+mod calibrate_eqr;
 mod gen_charts;
 mod gen_equity;
 mod goldens;
@@ -24,8 +25,11 @@ commands:
   gen-goldens [--out <file>]   regression goldens (default: data/goldens/river.json)
   gen-charts pushfold-hu [--stacks 2,3,...]
   gen-charts pushfold-multi --players N [--stacks 5,10] [--iterations N] [--samples N]
-  gen-charts cash [--stacks 100] [--iterations N] [--samples N]
+  gen-charts cash [--stacks 100] [--iterations N] [--samples N] [--eqr data/eqr/eqr-v2.json]
                                preflop chart files in data/charts/
+  calibrate-eqr [--charts <cash chart file>] [--flops 20] [--target 1] [--memory-gb 18]
+                               measure equity realization from postflop solves
+                               (default output: data/eqr/eqr-v2.json)
   validate [--quick] [--out <file>]
                                run the validation suite and write the report
                                (default: docs/VALIDATION.md)
@@ -65,6 +69,17 @@ fn main() -> ExitCode {
             gen_equity::run(opt(&args, "--out").unwrap_or("data/equity/preflop-169.json"))
         }
         Some("gen-charts") => gen_charts_cmd(&args),
+        Some("calibrate-eqr") => (|| {
+            calibrate_eqr::run(
+                opt(&args, "--charts").unwrap_or("data/charts/cash-6max-100bb.json"),
+                number(&args, "--flops", 20usize)?,
+                number(&args, "--target", 1.0f64)?,
+                number(&args, "--max-iterations", 400u32)?,
+                number(&args, "--memory-gb", 18.0f64)?,
+                number(&args, "--seed", 2026u64)?,
+                opt(&args, "--out").unwrap_or(calibrate_eqr::OUT),
+            )
+        })(),
         Some("gen-goldens") => goldens::run(opt(&args, "--out").unwrap_or(goldens::PATH)),
         Some("validate") => validate::run(
             args.iter().any(|a| a == "--quick"),
@@ -126,6 +141,7 @@ fn gen_charts_cmd(args: &[String]) -> Result<(), String> {
             number(args, "--iterations", 2_000_000u64)?,
             number(args, "--samples", 2_000_000u64)?,
             seed,
+            opt(args, "--eqr"),
         ),
         _ => Err(format!(
             "gen-charts needs a family: pushfold-hu, pushfold-multi or cash

@@ -530,6 +530,12 @@ impl PostflopGame {
         &self.init[player]
     }
 
+    /// For each hand of `player`: total weight of the opponent's starting range over hands
+    /// that share no card with it.
+    pub fn opponent_weights(&self, player: usize) -> Vec<f64> {
+        self.compatible(player, &self.init[1 - player], CardSet::EMPTY)
+    }
+
     pub fn iterations(&self) -> u32 {
         self.iteration
     }
@@ -874,6 +880,25 @@ impl PostflopGame {
         pool.put(out);
         self.pool = pool;
         v
+    }
+
+    /// Expected payoff (chips, from the start of the spot) of every hand of `player` when both
+    /// play their average strategies: the hand's counterfactual value divided by the weight of
+    /// opponent hands it can face. NaN for hands that can face nothing.
+    pub fn hand_values(&mut self, player: usize) -> Vec<f64> {
+        let (own, opp) = (self.init[player].clone(), self.init[1 - player].clone());
+        let mut pool = std::mem::take(&mut self.pool);
+        let mut out = pool.get(self.hands[player].len());
+        self.walk(0, player, &own, &opp, Mode::Average, &mut out, &mut pool);
+        let compat = self.compatible(player, &opp, CardSet::EMPTY);
+        let values = out
+            .iter()
+            .zip(&compat)
+            .map(|(&v, &c)| if c > 0.0 { v as f64 / c } else { f64::NAN })
+            .collect();
+        pool.put(out);
+        self.pool = pool;
+        values
     }
 
     /// Best-response value (chips) for `player` against the other's average strategy.
@@ -1305,6 +1330,34 @@ mod tests {
             assert_eq!(counted.storage, built.storage);
             assert_eq!(counted.river_boards.len(), built.river_boards.len());
             assert_eq!(counted.bytes, built.bytes);
+        }
+    }
+
+    #[test]
+    fn hand_values_average_to_the_game_value() {
+        let cfg = turn_spot(
+            "Kd Th 7c 2s",
+            "QQ+, AJs+, KQs, T9s, AQo+",
+            "TT+, ATs+, KJs+, QJs, AJo+",
+        );
+        let mut g = solve_with(&cfg, true, 100);
+        let ev = g.expected_values();
+        for (p, &game_value) in ev.iter().enumerate() {
+            let v = g.hand_values(p);
+            let compat = g.compatible(p, &g.init[1 - p].clone(), CardSet::EMPTY);
+            let (mut num, mut den) = (0.0, 0.0);
+            for h in 0..v.len() {
+                if v[h].is_finite() {
+                    let w = g.init[p][h] as f64 * compat[h];
+                    num += w * v[h];
+                    den += w;
+                }
+            }
+            assert!(
+                (num / den - game_value).abs() < 1e-3,
+                "player {p}: {} vs {game_value}",
+                num / den
+            );
         }
     }
 }

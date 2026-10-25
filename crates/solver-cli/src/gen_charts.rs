@@ -453,9 +453,38 @@ pub fn cash_family(
     iterations: u64,
     eval_samples: u64,
     seed: u64,
+    eqr_file: Option<&str>,
 ) -> Result<(), String> {
     let eq = load_pairs(PAIRS_PATH)?;
-    let eqr = EqrModel::v1();
+    // EQR v2 (factors measured from postflop solves, read from a file) or v1 (authored).
+    let (eqr, model_info) = match eqr_file {
+        Some(path) => {
+            let (factors, doc) = crate::calibrate_eqr::load_factors(path)?;
+            let info = json!({
+                "name": "eqr-v2",
+                "source": "measured from OpenRange postflop solves (solver-cli calibrate-eqr)",
+                "file": path,
+                "fileCommit": doc["provenance"]["gitCommit"],
+                "fileDirty": doc["provenance"]["gitDirty"],
+                "flops": doc["flops"].as_array().map(|a| a.len()),
+                "inputCharts": doc["input"],
+                "extrapolations": "4-bet+ pots use the 3-bet factors; multiway flops use single-raised factors with 'in position' = last to act",
+            });
+            (EqrModel::with_class_factors(factors), info)
+        }
+        None => {
+            let m = EqrModel::v1();
+            let info = json!({
+                "name": "eqr-v1",
+                "source": "authored",
+                "headsUp": { "potTypes": ["single-raised", "3-bet", "4-bet+"], "index": "[potType][inPosition][aggressor]", "values": m.heads_up },
+                "multiLast": m.multi_last,
+                "multiOther": m.multi_other,
+                "multiAggressorBonus": m.multi_aggressor,
+            });
+            (m, info)
+        }
+    };
     let config = CashConfig::six_max(100.0);
     for (k, &stack) in stacks.iter().enumerate() {
         let started = Instant::now();
@@ -507,20 +536,19 @@ pub fn cash_family(
         );
         let prov = provenance(
             Source::SolverApprox,
-            &format!("solver-cli gen-charts cash --stack {stack}"),
+            &format!(
+                "solver-cli gen-charts cash --stack {stack}{}",
+                eqr_file.map(|f| format!(" --eqr {f}")).unwrap_or_default()
+            ),
             json!({ "algorithm": "external-sampling MCCFR, linear averaging", "iterations": iterations, "evaluationSamples": eval_samples }),
             "6-max cash preflop, rake-free, blinds 0.5/1. Postflop play is not solved: when a hand \
              reaches the flop each player's pot share is all-in equity × an equity-realization factor \
-             (model eqr-v1, authored inputs, see `model`). Multiway pots also approximate equity from \
+             (see `model`: eqr-v1 authored, or eqr-v2 measured from postflop solves). Multiway pots also approximate equity from \
              heads-up matchups. Tree simplifications are listed in `tree`. CFR with six players has no \
              equilibrium guarantee; bestResponseGainBb estimates the gain from changing single decisions.",
         );
         let mut prov = prov;
-        prov["model"] = json!({
-            "name": "eqr-v1", "source": "authored",
-            "headsUp": { "potTypes": ["single-raised", "3-bet", "4-bet+"], "index": "[potType][inPosition][aggressor]", "values": eqr.heads_up },
-            "multiLast": eqr.multi_last, "multiOther": eqr.multi_other, "multiAggressorBonus": eqr.multi_aggressor,
-        });
+        prov["model"] = model_info.clone();
         let doc = json!({
             "provenance": prov, "family": "cash-6max", "stack": stack, "players": 6,
             "tree": {
