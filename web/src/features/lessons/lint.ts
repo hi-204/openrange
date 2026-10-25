@@ -77,7 +77,8 @@ export function lintLessons(lessons: Lesson[], ctx: LintContext): string[] {
     const headings = [...l.body.matchAll(/^##\s+(.+)$/gm)].map((h) => h[1]!.trim());
     for (const s of REQUIRED_SECTIONS) if (!headings.includes(s)) p(`missing section "## ${s}"`);
     // Inline references.
-    for (const g of l.body.matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g)) if (!ctx.glossary.has(g[1]!.trim().toLowerCase())) p(`glossary term "${g[1]}" is not defined`);
+    // Inside a table the label separator is written `\|`.
+    for (const g of l.body.matchAll(/\[\[([^\]|\\]+)(?:\\?\|[^\]]+)?\]\]/g)) if (!ctx.glossary.has(g[1]!.trim().toLowerCase())) p(`glossary term "${g[1]}" is not defined`);
     for (const c of l.body.matchAll(/\{\{calc\s+([^}]+)\}\}/g)) {
       try {
         evaluate(parseCalc(c[1]!).expr);

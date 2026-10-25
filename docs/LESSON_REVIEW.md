@@ -48,3 +48,19 @@ below).
 | 0.6 Showdown, kickers, split pots | kickers compared from the top; a board can counterfeit kickers (split); trips beat two pair; who shows first; odd chips by house rule | evaluator for the hands; reasoning for procedures |
 | 0.7 Game formats | cash vs tournament differences; think in big blinds (4,000 ÷ 400 = 10 bb) | reasoning + calc |
 | 0.8 Table etiquette | act in turn, binding verbal actions, string bets, protecting hands, angle shooting; most sites forbid real-time assistance | reasoning (common house rules; wording kept general because rules vary by room) |
+
+## Level 1
+
+Chart claims are checked against the generated 100 bb cash charts in
+`web/src/features/lessons/lessonCharts.test.ts` ("charts" below); if the charts are regenerated
+and a claim stops holding, that test fails. Chart shares are shown by the chart widget, never
+typed.
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 1.1 Positions | seat order UTG, HJ, CO, BTN, SB, BB; after the flop the blinds act first and the button last; in/out of position; more players behind means more chances of a strong hand | reasoning |
+| 1.2 The 169 hands | 1326 combos; 13 pairs × 6, 78 suited × 4, 78 offsuit × 12; pair ≈ 5.9%, suited ≈ 23.5%, aces once per 221 hands; AK with an ace removed: 16 → 12; quiz KK with two kings out: 1 | calc + reasoning |
+| 1.3 Hand categories | set or better on the flop with a pair ≈ 11.8% (one minus C(48,3)/C(50,3)), "one flop in eight or nine"; AhKh vs 7c7d 47.9%, AhKd vs 7c7d 45.0% ("a few points"); Ad7h vs AcKs 26.7% | calc + engine; family descriptions are reasoning |
+| 1.4 Raise, don't limp | a limp can't win the blinds at once because the BB may check; worst-case raise to 2.5 bb breaks even at 2.5 ÷ (2.5 + 1.5) = 62.5% folds; EV widget numbers are labelled illustrative assumptions; OpenRange's tree has no limps | calc + reasoning; tree fact from DECISIONS (cash tree) and KNOWN_LIMITS |
+| 1.5 Open-raise ranges | raise share grows UTG < HJ < CO < BTN, BTN more than three times UTG; SB between CO and BTN; each seat keeps the previous range; HJ adds 66–44, CO adds A7s–A4s, 76s, 65s, 98s, BTN adds suited kings/queens and many offsuit hands; A9o folds UTG, raises CO and BTN; BTN in its sanity band, UTG/HJ/CO below; charts approximate | charts |
+| 1.6 Reading the grid | BB vs BTN has mixed cells; T9s mixes call and 3-bet; BTN facing a 3-bet has greyed hands and every one is a first-in fold; the trainer counts any action in the mix as correct | charts; grading rule from `grading.ts` (MIX_THRESHOLD) |

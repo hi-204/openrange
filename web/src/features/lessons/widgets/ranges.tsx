@@ -85,6 +85,15 @@ export function ChartEmbed({ config }: { config: Config }) {
   if (!doc) return <p className="text-sm">…</p>;
   if (!chart) return <p className="text-sm text-amber-700 dark:text-amber-400">{t('widget.chart.missing', { id })}</p>;
   const colors = actionColors(chart.actions, chart.actions.map((a) => /^(Raise|All-in)/.test(a)));
+  // Share of all starting hands taking each action, counting only hands that reach the spot.
+  const shares = chart.actions.map(() => 0);
+  let total = 0;
+  doc.classes.forEach((name, i) => {
+    const w = (name.length === 2 ? 6 : name.endsWith('s') ? 4 : 12) * (chart.reach ? chart.reach[i]! : 1);
+    total += w;
+    chart.strategy[i]!.forEach((f, k) => (shares[k]! += w * f));
+  });
+  if (total > 0) shares.forEach((_, k) => (shares[k]! /= total));
   const outOfBand = doc.sanityBands?.some((b) => !b.inBand);
   return (
     <div className="space-y-2" data-testid="chart-embed">
@@ -92,11 +101,11 @@ export function ChartEmbed({ config }: { config: Config }) {
         <span className="font-medium">{chart.title}</span>
         <ProvenanceBadge p={doc.provenance} />
       </div>
-      <ul className="flex flex-wrap gap-3 text-sm">
+      <ul className="flex flex-wrap gap-3 text-sm" data-testid="chart-shares">
         {chart.actions.map((a, k) => (
           <li key={a} className="flex items-center gap-1">
             <span aria-hidden className="inline-block h-3 w-3 rounded-sm" style={{ background: colors[k] }} />
-            {a}
+            {a} <span className="num text-ink-muted">{pct(shares[k]!, 1)}</span>
           </li>
         ))}
       </ul>

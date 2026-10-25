@@ -84,3 +84,35 @@ tournament: >-
   A format where everyone buys in for the same amount, blinds rise over time, and prizes are paid by finishing place.
 turn: >-
   The fourth shared card, dealt after the flop betting.
+position: >-
+  Where you sit relative to the button, which decides when you act. Acting later is an advantage.
+in position: >-
+  Acting after your opponent on the flop, turn and river, so you see their decision before making yours.
+out of position: >-
+  Acting before your opponent on the flop, turn and river.
+under the gun: >-
+  The first seat to act before the flop, just left of the big blind (UTG).
+combo: >-
+  One specific pair of hole cards, such as A♠K♦. There are 1326 combos in total.
+suited: >-
+  Two hole cards of the same suit, such as K♥Q♥, written KQs. Each suited hand has 4 combos.
+offsuit: >-
+  Two hole cards of different suits, such as K♥Q♣, written KQo. Each offsuit hand has 12 combos.
+pocket pair: >-
+  Two hole cards of the same rank, such as 7♣7♦. Each pocket pair has 6 combos.
+broadway: >-
+  A card from ten to ace. Broadway hands are two such cards, such as KQ or AJ.
+suited connector: >-
+  Two suited cards next to each other in rank, such as 8♥7♥. They make straights and flushes.
+set: >-
+  Three of a kind made with a pocket pair and one matching card on the board.
+dominated: >-
+  Holding a hand that shares a card with a better one, such as A7 against AK, so it rarely wins when both pair.
+limp: >-
+  Calling the big blind before the flop instead of raising, when nobody has raised yet.
+open-raise: >-
+  The first raise before the flop, made when everyone before you has folded.
+fold equity: >-
+  The value a bet gains from the chance that your opponent folds.
+mixed strategy: >-
+  Playing the same hand in more than one way, each a set share of the time. Charts show it as a cell split into colours.
