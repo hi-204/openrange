@@ -82,6 +82,39 @@ test('a Level 4 lesson solves its spot in the browser', async ({ page }) => {
   await expect(page.getByTestId('minisolver-status')).toContainText('Solved to', { timeout: 30_000 });
 });
 
+test('range drill: paint a range, check it, see the chart and the combos off', async ({ page }) => {
+  await open(page, '/#/train/ranges');
+  const drill = page.getByTestId('range-drill');
+  await expect(page.getByTestId('range-task')).toContainText(/Build the/);
+  const grid = drill.getByRole('grid', { name: 'Your range' });
+  for (const h of ['AA', 'KK', 'AKs']) await grid.getByRole('gridcell', { name: new RegExp(`^${h}:`) }).click();
+  await expect(drill).toContainText('Your range: 16 combos');
+  await drill.getByRole('button', { name: 'Check my range' }).click();
+  await expect(page.getByTestId('range-score')).toContainText('combos off');
+  await expect(page.getByTestId('range-result')).toContainText('Exact solver result');
+});
+
+test('Level 5–6 widgets: the toy game matches theory; ICM shows the bubble factor', async ({ page }) => {
+  await open(page, '/#/learn/5.1');
+  const toy = page.getByTestId('widget-toygame');
+  await toy.getByRole('button', { name: /Solve/ }).click();
+  await expect(toy.getByTestId('toy-status')).toContainText('Solved by the engine', { timeout: 30_000 });
+  // Pot-sized bet: a third of the bets are bluffs and the caller calls half, in both columns.
+  await expect(toy.getByTestId('toy-result')).toContainText(/Bluffs among the bets\s*33\.3%\s*33\.3%/);
+  await expect(toy.getByTestId('toy-result')).toContainText(/Caller calls\s*50\.0%\s*50\.0%/);
+  await page.goto('/#/learn/6.4');
+  await expect(page.getByTestId('icm-bubble')).toContainText('Bubble factor 1.5');
+});
+
+test('math drill: board textures are multiple choice with a worked answer', async ({ page }) => {
+  await open(page, '/#/train/math?drill=texture');
+  const problem = page.getByTestId('math-problem');
+  await expect(problem).toContainText('Which describes this flop?');
+  // Choices answer at once.
+  await problem.getByRole('button', { name: /rainbow|two-tone|monotone/ }).first().click();
+  await expect(page.getByTestId('math-answer').getByTestId('coach-why')).toContainText(/suit/);
+});
+
 test('math drill: answer, coaching card with the worked solution', async ({ page }) => {
   await open(page, '/#/train/math?drill=potodds');
   const problem = page.getByTestId('math-problem');

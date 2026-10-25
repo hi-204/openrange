@@ -777,3 +777,31 @@ M6.5. Two causes:
   on the spaced-repetition state the previous one returned, and the first load heads the
   queue. `busy` now covers only computing the grade.
 No grading, data or scheduling logic changed.
+
+### D-074 · Level 5–6 widgets: a toy game on the real solver, ICM from solver-core
+**Context:** the curriculum asks for a toy-game solver, an ICM calculator and a variance
+simulator. A separate toy solver would be new, unvalidated code.
+**Decision:**
+- **Toy game:** OpenRange's postflop solver plays a real-card river (K♥9♦6♣3♠2♥, a set of nines
+  or Q-J against A-K, one all-in size, no raises). The widget shows the engine's frequencies
+  next to the textbook formulas, and a test checks they agree at 15 settings.
+- **Locked caller:** the best response to a fixed call frequency is computed from the game's
+  rules and labelled as such (the engine has no node-locking yet; D-071 still applies to any
+  lesson claim).
+- **ICM:** a new WASM export wraps solver-core's validated Malmuth–Harville function; bubble
+  factors use three ICM evaluations.
+- **Variance:** normal approximation per 100 hands; risk of ruin exp(−2·wr·B/σ²); a seeded
+  simulation for the picture only.
+
+### D-075 · New drills: board textures, hand reading, range building
+**Context:** M8 asks for range-building, board-texture and hand-reading drills.
+**Decision:**
+- **Board textures and hand reading** are math drills with multiple choice. Tests check them
+  independently: straights via the evaluator, combo counts by brute force.
+- **Range building** is its own tab. You paint a range and it is scored in combos off,
+  weighted by combos and chart frequency. The best possible score (cells played at least half
+  the time) is shown next to yours.
+- **Targets:** the exact heads-up push/fold charts are the graded targets. The 6-max cash opens
+  are offered as practice and labelled approximate.
+- **Scoring rule:** a hit ÷ (hit + missed + extra) score was rejected, because its best answer
+  isn't "include what the chart plays at least half the time" (a test showed this).

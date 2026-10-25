@@ -29,7 +29,7 @@ export const WIDGETS: Record<string, Check> = {
   grid: (c) => str(c, 'range'),
   chart: (c) => [...str(c, 'file'), ...str(c, 'chart')],
   advantage: (c) => [...str(c, 'a'), ...str(c, 'b'), ...cards(c, 'board', [3, 4, 5])],
-  equity: (c) => [...(Array.isArray(c.ranges) && c.ranges.length === 2 ? [] : ['"ranges" must be two ranges']), ...cards(c, 'board', [0, 3, 4, 5], false)],
+  equity: (c) => [...(Array.isArray(c.ranges) && (c.ranges.length === 2 || c.ranges.length === 3) ? [] : ['"ranges" must be two or three ranges']), ...cards(c, 'board', [0, 3, 4, 5], false)],
   table: (c) => (c.highlight === undefined || Array.isArray(c.highlight) ? [] : ['"highlight" must be a list of seats']),
   handflow: () => [],
   minisolver: (c) => str(c, 'spot'),

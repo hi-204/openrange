@@ -129,7 +129,17 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
   straight or flush draw (at least four cards complete it), or nothing; on the river, equity
   against the other range. Backdoor draws count as nothing.
 - **The placement quiz shows right or wrong after each answer** (it reuses the lesson quiz).
-- **Levels 5–7 are M8.** Level 0–4 lessons link only to each other and to drills.
+- **The toy game is one small river** (a set or air against one bluff catcher, one size). It
+  shows the theory exactly, but real ranges have many hand strengths.
+- **The locked-caller view is computed from the game's rules**, not by node-locking the
+  solver (the engine has no node-locking yet).
+- **ICM ignores skill, position and future blinds**; bubble factors assume an all-in for the
+  smaller stack with no other money in the pot.
+- **Variance uses a normal approximation** per 100 hands and the infinite-horizon risk-of-ruin
+  formula; the simulated paths are a seeded picture, not a forecast.
+- **Multiway:** lessons use sampled equity only; OpenRange doesn't solve multiway postflop spots.
+- **Range-building drill:** only exact heads-up push/fold charts are graded; cash opens are
+  practice. Painting is one cell at a time (no drag).
 
 ## Not yet verified
 

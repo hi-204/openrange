@@ -2,6 +2,36 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M8 done: course part 2 (Levels 5–7), new widgets and drills
+
+**Works (verified):**
+- **Content:** 22 more lessons (Level 5: 7, Level 6: 8, Level 7: 7), 60 in total, each claim
+  listed in `docs/LESSON_REVIEW.md` and checked by a test or marked as reasoning.
+- **Widgets (D-074):**
+  - toy river game solved by the engine, which matches the textbook formulas at 15 settings,
+    with a convergence table and a locked-caller best response;
+  - ICM calculator with bubble factors (new `icm` WASM export over solver-core's validated
+    ICM);
+  - variance (spread, chance of being behind, risk of ruin, seeded paths);
+  - three-player equity.
+- **Drills (D-075):**
+  - board textures and hand reading (math drills, checked independently);
+  - a Ranges tab to build ranges against exact heads-up push/fold charts.
+  - Two new drill spots: a three-heart river and a short-stack river.
+- **Findings that changed lessons:**
+  - on the dry river, blockers and showdown value are confounded (5.5 uses the flush river);
+  - K♥Q♦ bets three quarters there (5.4's medium example became J♦T♦);
+  - A♦9♣ still calls on the bubble (6.4 uses J♠T♦);
+  - multiway equity doesn't favour suited connectors (7.4 corrected).
+- **Tests:** Vitest 170 (lesson claims, engine-vs-theory, drills), Playwright 47 with new range,
+  widget, texture and a11y checks, `npm run check` passing.
+
+**Not done / known issues:** KNOWN_LIMITS → Lessons. Node-locking and aggregated reports
+arrive with M9.
+
+**Next:** M9 (workbench polish, node-locking and villain presets, aggregated flop reports,
+hand-history import, play mode).
+
 ## 2026-10-25 — M7 done: course part 1 (Levels 0–4)
 
 **Works (verified):**

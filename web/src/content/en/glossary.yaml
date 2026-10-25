@@ -248,3 +248,9 @@ stop-loss: >-
   A rule set before a session to stop playing after losing a set amount.
 session review: >-
   Looking back at hands after a session, with study tools, to find and fix mistakes.
+multiway pot: >-
+  A pot with three or more players still in the hand.
+abstraction: >-
+  A simplified version of the game a solver works on, for example with only a few bet sizes allowed.
+game tree: >-
+  All the decisions and actions a solver considers in a spot, from the first bet to the showdown.

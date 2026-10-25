@@ -5,8 +5,22 @@ Each lesson: 5–10 minutes, one worked hand, a "common mistakes" box, a 3–5 q
 added to the glossary. Any number shown in a lesson is either computed live by a widget or
 comes from a generated chart with its provenance badge.
 
-_Status: Levels 0–4 are written (M7), with 15 placement questions. Levels 5–7 follow in M8.
-Each lesson's checked claims are listed in `docs/LESSON_REVIEW.md`._
+_Status: all 60 lessons are written: Levels 0–4 in M7 (with 15 placement questions), Levels 5–7
+in M8. Each lesson's checked claims are listed in `docs/LESSON_REVIEW.md`._
+
+## Deviations from this plan in M8
+
+- **5.2 MDF:** the sizing explorer plus the toy game (to show when MDF doesn't apply).
+- **5.4 Polarized vs merged:** the river mini-solver instead of a range chart.
+- **5.5 Blockers:** a new river drill spot with three hearts (`river-k9472`), where the effect is
+  clear; on the dry river it is mixed up with showdown value, and the lesson says so.
+- **6.1 and 6.2:** the toy game with a locked caller instead of a workbench node-lock demo;
+  workbench node-locking is M9.
+- **6.4 Bubble:** the ICM calculator's bubble factor and the exact push/fold calculator with
+  payouts (OpenRange's multi-player push/fold charts are chip EV only).
+- **7.1, 7.3, 7.5:** mini-solvers (a new short-stack river spot for 7.3) instead of the
+  workbench; 7.5's tree comparison is in the tests and described in the text.
+- **7.6:** a study routine around drills and the review queue; aggregated reports are M9.
 
 ## Deviations from this plan in M7
 

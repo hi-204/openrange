@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import FACTS_JSON from '../../content/en/facts.json';
 import { equity, evaluateHand, initSync, Solver } from '../../../public/wasm/solver_wasm.js';
+import { toySpot } from './widgets/gamesMath';
 import type { ComboEquity, SolverInfo, SolverNode, SpotJson } from '../../lib/wasm/protocol';
 import { PRESETS, toSpot } from '../solver/spotForm';
 import { DRILL_SPOTS } from '../trainer/postflop/spots';
@@ -327,5 +328,108 @@ describe('Level 5 solver claims', () => {
     const betAny = (keep: (h: number) => boolean) => 1 - freq(sv, r, 0, keep);
     expect(betAny((h) => eqOf[h]! < 0.05)).toBeGreaterThan(betAny((h) => eqOf[h]! >= 0.1 && eqOf[h]! < 0.25));
     sv.free();
+  });
+});
+
+const ANY = '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J2o+, T2o+, 92o+, 82o+, 72o+, 62o+, 52o+, 42o+, 32o';
+const shares = (sv: Solved, n: SolverNode & { kind: 'action' }) => n.actions.map((_, k) => freq(sv, n, k));
+
+describe('Level 7 solver claims', () => {
+  it('7.1, 7.2: on the river the first player checks about half, bets small most, overbets rarely', () => {
+    const sv = solveDrill('river-qj742');
+    const s = shares(sv, sv.node([]));
+    expect(s[0]!).toBeGreaterThan(0.4);
+    expect(s[0]!).toBeLessThan(0.6);
+    expect(s[1]!).toBeGreaterThan(s[2]!);
+    expect(s[2]!).toBeGreaterThan(s[3]!);
+    expect(s[1]!).toBeGreaterThan(s[2]! + s[3]!); // "mostly bets small when it bets"
+    expect(s[3]!).toBeLessThan(0.05);
+    sv.free();
+  });
+
+  for (const id of ['turn-qj74', 'turn-kt63']) {
+    it(`7.2: after a check on ${id}, the pot-sized bet is used more, for strong hands and draws`, () => {
+      const sv = solveDrill(id);
+      const n = sv.node([0]);
+      expect(n.actions).toEqual(['Check', 'Bet 5', 'Bet 10']);
+      const s = shares(sv, n);
+      expect(s[2]!).toBeGreaterThan(2 * s[1]!);
+      const g = sv.info.hands[1]!.map((h) => group(h, boardOf(n)));
+      expect(composition(sv, n, 2, (h) => g[h] === 'strong' || g[h] === 'draw')).toBeGreaterThan(0.6);
+      const strong = (h: number) => g[h] === 'strong';
+      expect(freq(sv, n, 2, strong)).toBeGreaterThan(0.7);
+      sv.free();
+    });
+  }
+
+  it('7.3: with half a pot behind, all-in is common and medium hands bet more than deep', () => {
+    const deep = solveDrill('river-qj742');
+    const short = solveDrill('river-qj742-short');
+    const rs = short.node([]);
+    expect(rs.actions).toEqual(['Check', 'Bet 3.3', 'All-in 5']);
+    expect(freq(short, rs, 2)).toBeGreaterThan(0.3);
+    const medium = (sv: Solved) => {
+      const n = sv.node([]);
+      const g = riverGroups(sv, n, 0);
+      return 1 - freq(sv, n, 0, (h) => g[h] === 'medium');
+    };
+    expect(medium(short) - medium(deep)).toBeGreaterThan(0.1);
+    deep.free();
+    short.free();
+  });
+
+  it('7.5: fewer sizes change the strategy a lot and the EV a little; more options never lower EV', () => {
+    const base = drill('river-qj742').spot;
+    const withSizes = (oop: string) => ({ ...base, sizes: { ...base.sizes, river: { ...base.sizes.river!, oop: { ...base.sizes.river!.oop, bet: oop } } } });
+    const all = solve(base, 0.05, 5000);
+    const only75 = solve(withSizes('75'), 0.05, 5000);
+    const only33 = solve(withSizes('33'), 0.05, 5000);
+    // Equilibrium EVs (each within its exploitability): the superset is at least as good.
+    const slack = (0.05 / 100) * 10;
+    expect(all.evBb[0]).toBeGreaterThan(only75.evBb[0] - slack);
+    expect(all.evBb[0]).toBeGreaterThan(only33.evBb[0] - slack);
+    expect(all.evBb[0] - Math.min(only75.evBb[0], only33.evBb[0])).toBeLessThan(0.02 * 10); // "a small share of the pot"
+    const medium = (sv: Solved) => {
+      const n = sv.node([]);
+      const g = riverGroups(sv, n, 0);
+      return 1 - freq(sv, n, 0, (h) => g[h] === 'medium');
+    };
+    expect(medium(all) - medium(only75)).toBeGreaterThan(0.2); // "far fewer medium hands bet"
+    for (const sv of [all, only75, only33]) sv.free();
+  });
+
+  it('7.7: after ten iterations the toy game is several points off; it settles later', () => {
+    const run = (its: number) => {
+      const s = new Solver(JSON.stringify(toySpot(10, 75, 1)), 1e9, false);
+      s.step(its);
+      const info = JSON.parse(s.info()) as SolverInfo;
+      const f = JSON.parse(s.node('[1]')) as SolverNode & { kind: 'action' };
+      const H = info.hands[1]!.length;
+      let c = 0;
+      let t = 0;
+      info.hands[1]!.forEach((_, i) => {
+        t += f.reach[1]![i]!;
+        c += f.reach[1]![i]! * f.strategy[H + i]!;
+      });
+      s.free();
+      return c / t;
+    };
+    const mdf = 10 / 17.5;
+    expect(Math.abs(run(10) - mdf)).toBeGreaterThan(0.03);
+    expect(Math.abs(run(3000) - mdf)).toBeLessThan(0.002);
+  });
+
+  it('7.4: A-A loses a lot of equity to a second opponent but stays far above a third; 8-7 suited drops to about a third', () => {
+    const mc = (ranges: string[]) =>
+      (JSON.parse(equity(JSON.stringify({ ranges, board: '', dead: '', mode: 'montecarlo', seed: 3, samples: 400000 }))) as { players: { equity: number; stdError: number }[] }).players[0]!;
+    const aa2 = mc(['AsAd', ANY]);
+    const aa3 = mc(['AsAd', ANY, ANY]);
+    expect(aa2.equity - aa3.equity).toBeGreaterThan(0.08);
+    expect(aa3.equity).toBeGreaterThan(0.6);
+    const sc2 = mc(['8h7h', ANY]);
+    const sc3 = mc(['8h7h', ANY, ANY]);
+    expect(sc2.equity).toBeLessThan(0.5);
+    expect(sc2.equity).toBeGreaterThan(0.45); // "a little under half"
+    expect(Math.abs(sc3.equity - 1 / 3)).toBeLessThan(0.02); // "about a fair third"
   });
 });

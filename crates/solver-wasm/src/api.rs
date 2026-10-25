@@ -209,11 +209,18 @@ pub fn outs(request_json: &str) -> Value {
 /// Up to 10 players (a table); stacks must be finite and non-negative, payouts finite.
 pub fn icm(request_json: &str) -> Value {
     let inner = || -> Result<Value, String> {
-        let req: Value = serde_json::from_str(request_json).map_err(|e| format!("bad request: {e}"))?;
+        let req: Value =
+            serde_json::from_str(request_json).map_err(|e| format!("bad request: {e}"))?;
         let nums = |name: &str| -> Result<Vec<f64>, String> {
-            let arr = req[name].as_array().ok_or(format!("\"{name}\" must be a list of numbers"))?;
+            let arr = req[name]
+                .as_array()
+                .ok_or(format!("\"{name}\" must be a list of numbers"))?;
             arr.iter()
-                .map(|v| v.as_f64().filter(|x| x.is_finite()).ok_or(format!("\"{name}\" must be a list of numbers")))
+                .map(|v| {
+                    v.as_f64()
+                        .filter(|x| x.is_finite())
+                        .ok_or(format!("\"{name}\" must be a list of numbers"))
+                })
                 .collect()
         };
         let stacks = nums("stacks")?;
@@ -243,7 +250,10 @@ mod tests {
         assert_eq!(r["ok"], true, "{r}");
         let eq: Vec<f64> = serde_json::from_value(r["equity"].clone()).unwrap();
         // First place with probability 3/4: 0.75 × 70 + 0.25 × 30 = 60.
-        assert!((eq[0] - 60.0).abs() < 1e-9 && (eq[1] - 40.0).abs() < 1e-9, "{eq:?}");
+        assert!(
+            (eq[0] - 60.0).abs() < 1e-9 && (eq[1] - 40.0).abs() < 1e-9,
+            "{eq:?}"
+        );
         let r = icm(r#"{"stacks": [5000, 3000, 1500, 500], "payouts": [50, 30, 20]}"#);
         let eq: Vec<f64> = serde_json::from_value(r["equity"].clone()).unwrap();
         assert!((eq.iter().sum::<f64>() - 100.0).abs() < 1e-9);

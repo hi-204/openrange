@@ -21,8 +21,9 @@ defaults" button per section. Every setting says in one sentence what it does.
 level (the first level where you got fewer than two of three right). Nothing is locked: you
 can open any lesson, and you can retake the quiz.
 
-**Lessons.** Levels 0–4 are available (38 lessons of 5–10 minutes): the rules, preflop
-basics, poker math, preflop in depth and postflop fundamentals. Every lesson has objectives,
+**Lessons.** All eight levels are available (60 lessons of 5–10 minutes): the rules, preflop
+basics, poker math, preflop in depth, postflop fundamentals, GTO concepts, real-game skills
+(exploiting, tournaments and ICM, bankroll, tilt, notes) and solver literacy. Every lesson has objectives,
 a worked hand, common mistakes, a short quiz and links to the matching drill. Underlined words
 open the glossary. Numbers in lessons are computed, never typed; where a lesson describes a
 chart or a solve, it is OpenRange's own data and a test checks the description.
@@ -31,6 +32,12 @@ chart or a solve, it is OpenRange's own data and a test checks the description.
 the numbers update. In chart widgets, click a cell to see how often the hand takes each action
 and the EV of each (with its sampling margin). Mini-solvers solve their spot in your browser
 when you press "Solve this spot"; the flop one takes about half a minute.
+
+**Level 5–6 widgets.** The *toy game* is a small river that OpenRange's solver plays with real
+cards; it shows the solver's frequencies next to the formulas, how they settle as the solve
+converges, and the best response when you lock the caller's frequency. The *ICM calculator*
+turns stacks into prize equity and shows the bubble factor for a call. The *variance* widget
+shows the spread of results, the chance of being behind and the risk of ruin.
 
 ## Trainer (`Train` in the menu)
 
@@ -43,6 +50,15 @@ difficulty ("Close or mixed" picks the hard decisions).
 30 s). Then you play hands against the solution: the opponent plays the solved strategy with
 its real cards, and each of your decisions is graded. Press Enter to continue the hand and
 "Deal a hand" when it ends; the opponent's cards are shown at the end.
+
+**Ranges.** Build a range on the 13×13 grid (click cells, or type a range and fill the grid),
+then check it against a chart. The score is the number of combos you got wrong, next to the
+best possible score (hands the chart mixes always cost something). Heads-up push/fold charts
+are exact; the 6-max cash opens are approximate and shown as practice.
+
+**Math.** Generated problems with worked answers: pot odds, MDF, bluff share, outs, preflop
+equity, combos, board textures (which description fits a flop) and hand reading (which of two
+hands is more likely, counting combos).
 
 **How answers are graded.** By EV loss: how much your choice gives up compared with the best
 play, in big blinds preflop and % of the pot postflop. Categories: Best, Acceptable,

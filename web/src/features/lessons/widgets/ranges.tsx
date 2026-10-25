@@ -221,13 +221,16 @@ export function EquityWidget({ config }: { config: Config }) {
   const init = (Array.isArray(config.ranges) ? config.ranges : ['AhKh', 'QsQd']) as string[];
   const [a, setA] = useState(init[0] ?? '');
   const [b, setB] = useState(init[1] ?? '');
+  // A third player when the lesson asks for one (multiway equity is always sampled).
+  const three = init.length >= 3;
+  const [c, setC] = useState(init[2] ?? '');
   const [board, setBoard] = useState(text(config, 'board', ''));
   const [r, setR] = useState<EquityResult | null>(null);
   useEffect(() => {
     let live = true;
     const h = setTimeout(() => {
       solverClient()
-        .call('equity', { request: { ranges: [a, b], board, dead: '', mode: 'auto', seed: 1 } })
+        .call('equity', { request: { ranges: three ? [a, b, c] : [a, b], board, dead: '', mode: 'auto', seed: 1 } })
         .then((x) => live && setR(x))
         .catch((e: Error) => live && setR({ ok: false, error: e.message }));
     }, 250);
@@ -235,12 +238,13 @@ export function EquityWidget({ config }: { config: Config }) {
       live = false;
       clearTimeout(h);
     };
-  }, [a, b, board]);
+  }, [a, b, c, three, board]);
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={`grid gap-3 ${three ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
         <TextInput label={t('widget.rangeA')} value={a} onChange={setA} />
         <TextInput label={t('widget.rangeB')} value={b} onChange={setB} />
+        {three && <TextInput label={t('widget.rangeC')} value={c} onChange={setC} />}
         <TextInput label={t('widget.boardOptional')} value={board} onChange={setBoard} />
       </div>
       {!r ? (
@@ -249,7 +253,9 @@ export function EquityWidget({ config }: { config: Config }) {
         <p className="text-sm text-amber-700 dark:text-amber-400">{r.error}</p>
       ) : (
         <p className="text-sm" data-testid="equity-result">
-          {t('widget.equity.result', { a: pct(r.players[0]!.equity, 1), b: pct(r.players[1]!.equity, 1) })}{' '}
+          {three && r.players[2]
+            ? t('widget.equity.result3', { a: pct(r.players[0]!.equity, 1), b: pct(r.players[1]!.equity, 1), c: pct(r.players[2]!.equity, 1) })
+            : t('widget.equity.result', { a: pct(r.players[0]!.equity, 1), b: pct(r.players[1]!.equity, 1) })}{' '}
           <span className="text-ink-muted">{r.method === 'exact' ? t('widget.equity.exact') : t('widget.equity.sampled', { se: pct(r.players[0]!.stdError, 2) })}</span>
         </p>
       )}

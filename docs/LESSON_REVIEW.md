@@ -118,3 +118,50 @@ exact equities and the widget's "very strong" threshold (85).
 | 4.7 Protecting checks | strong hands check 15–35% on Q-J-7-4 ("about a quarter") and 30–50% on K-T-6-3 ("about two in five"); IP bets over 80% of its strong hands after a check; QJs both checks and bets | solver |
 | 4.8 Turn and river | turn draws bet more often than pairs; river bets of 7.5 and 15 have under 5% medium hands; medium hands never bet big; IP folds more to bigger bets; medium hands call the small bet over 95% and fold over half to the overbet; price 15 ÷ 40 | solver + calc |
 | 4.9 Sizing | price B ÷ (P + 2B) and MDF P ÷ (P + B) for a third, three quarters and one and a half pots; small bet over 40% medium hands, big bets under 5%; IP defence within 6 points of MDF at each size; strong hands split between check, small and three-quarter bets, overbet under 10% | calc + solver |
+
+## Level 5
+
+The river game (lessons 5.1–5.3, 5.6, 5.7) is solved by OpenRange's real postflop solver on
+K♥9♦6♣3♠2♥ (a set of nines or Q-J against A-K). `gamesMath.test.ts` checks the engine against
+the theory at 15 bet/air settings (bluff share, air that bets, value that bets, call frequency
+within 0.2–0.5 points, bettor EV within 0.01 bb). Other solver claims are in
+`lessonPostflop.test.ts`, chart claims in `lessonCharts.test.ts`.
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 5.1 Equilibrium | definitions; bluffs B ÷ (P + 2B) of bets, calls P ÷ (P + B); pot bet → a third bluffs, half calls; three-quarter pot → 30% bluffs, 57.1% calls; the engine matches | reasoning + calc + test (engine vs theory) |
+| 5.2 MDF | MDF = P ÷ (P + B); half pot 66.7%, pot 50%, twice pot 33.3%; with a quarter air hand per value hand at a pot bet the caller folds every time (engine too); 12 into 6 → 66.7% | calc + test |
+| 5.3 Bluff-to-value | bluff share and value : bluff ratio for a third, half, pot, twice pot (20%/4.0, 25%/3.0, 33.3%/2.0, 40%/1.5); with 2 air per value the engine follows the formula at every slider size; 12 value combos → 6 bluffs at a pot bet | calc + test |
+| 5.4 Polarized vs merged | small river bets merged, big polarized (4.9 tests); J♦T♦ is medium, bets a third every time and never big; K♥Q♦ is strong against this range and bets three quarters 50–80% | test (solver) |
+| 5.5 Blockers | on K♥9♥4♥7♣2♦ high-card hands with a heart bet over twice as often as those without, also at three quarters alone; Q♥J♣ bets more than Q♠J♣; on the dry river, zero-equity weak hands bluff more than weak hands with some showdown value | test (solver) |
+| 5.6 Mixing | mixing at indifference; frequencies far from theory after few iterations and settled after 3,000; the BB squeezes KQo over 90% and mixes T9s; the trainer counts any action in the mix as correct | test (engine, chart) + grading rule |
+| 5.7 Exploitability | definition; the postflop drills widen the grading allowance by the solve's exploitability (`noiseFloorPct`); a caller locked at 40% (below the MDF) makes bluffing all air the best response; 1% of a 20 bb pot = 0.2 bb | test + code + calc |
+
+## Level 6
+
+`lessonLevel6.test.ts` checks the ICM, push/fold and variance claims with the engine (ICM is
+solver-core's Malmuth–Harville implementation, validated in VALIDATION; push/fold is the exact
+heads-up solver).
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 6.1 Exploitative play | below the MDF bluff all air, above it none; the Stats page waits for 30 answers per group | test (best response) + `MIN_SAMPLE` |
+| 6.2 Node-locking | a caller locked above the MDF of a pot bet: no bluffs, value earns more than at equilibrium; the workbench has no node-locking yet (planned) | test + reasoning |
+| 6.3 ICM | two players: 0.75 × 70 + 0.25 × 30 = 60; with 5,000/3,000/1,500/500 and 50/30/20 the leader's prize share is below its chip share and the short stack's above; doubling the 3,000 stack raises its equity by under 1.6× | calc + test |
+| 6.4 Bubble | factor ÷ (factor + 1): factor 2 → 66.7%; 8 bb calling 20 bb at 12/20/8 with 65/35: factor 1.4–1.65, needs 57–63%; push/fold 20 bb into 8 bb: chip EV shove 50–70% and call 40–50%, ICM shove over 90% and call under a third; JTo calls in chip EV and folds with payouts; heads-up payouts change ranges by under 1 point | calc + test |
+| 6.5 Variance | 10,000 hands at 5 bb/100, SD 100: mean 500, spread 1,000, behind 28–33% ("three times in ten"); risk of ruin with 2,000 bb about 1 in 7, with 4,000 bb its square, about 1 in 55; 20,000 hands spread about 1,400 | test (formulas) |
+| 6.6 Game selection | example numbers only, labelled as examples; per-hour arithmetic | calc + reasoning |
+| 6.7 Tilt | Q9o is not in the UTG range; A-A against K-K is over 80% | test (chart, facts) + reasoning |
+| 6.8 Notes | most rooms forbid real-time assistance; OpenRange has no live overlay | reasoning; product fact |
+
+## Level 7
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 7.1 Reading output | on the river spot the first player checks 40–60% and bets small more than big | test (solver) |
+| 7.2 Bet-size theory | river: a third > three quarters > one and a half pots, the last under 5%; on both turn spots after a check, the pot bet is used over twice as often as half pot, over 60% of it strong hands and draws, and strong hands bet the pot over 70% | test (solver) |
+| 7.3 Low SPR | with 5 bb behind, all-in is used over 30% and medium hands bet over 10 points more often than with 90 bb; SPR 45 ÷ 20 | test + calc |
+| 7.4 Multiway | A-A loses over 8 points of equity to a second random hand and stays above 60%; 8♥7♥ is 45–50% heads-up and within 2 points of a third three-way (Monte Carlo, 400,000 samples); OpenRange solves postflop heads-up only | test (sampled equity) + KNOWN_LIMITS; implied-odds point is reasoning |
+| 7.5 Abstraction | with only the three-quarter size, medium hands bet over 20 points less often; the bettor's EV with all sizes is at least that of either single size (within exploitability), and less than 2% of the pot apart; adding options can't lower equilibrium EV | test (solver) + reasoning (theorem) |
+| 7.6 Studying | product features as described (grading, Stats sample size, review queue); reports are planned | reasoning |
+| 7.7 Over-interpretation | after 10 iterations the toy call frequency is over 3 points from the MDF, after 3,000 within 0.2; 44's EVs in the 4-bet chart are within their margins | test |
