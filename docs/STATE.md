@@ -2,6 +2,45 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M9 done: node-locking, workbench polish, flop report, hand review, play mode
+
+**Works (verified):**
+- **Node-locking (D-076):**
+  - The engine fixes a player's strategy at any decision; every pass uses the lock, and
+    exploitability measures the restricted game.
+  - Tests against theory: the best response to a locked caller bluffs all air at the
+    analytic EV (Rust, WASM and VALIDATION).
+  - Workbench: villain-tendency presets with a before/after preview, a locks list with the EV
+    change, and unlock.
+- **Workbench:**
+  - opponent's range at every node;
+  - runout explorer at chance nodes;
+  - range painter;
+  - CSV export of a node.
+- **Flop report (D-077):** `solver-cli report` solves BTN vs BB on 48 seeded flops (no raises;
+  every solve under 1% of the pot, worst 0.81%). Solve → Flop reports groups the c-bet, fold and
+  equity numbers by texture, with provenance. Without raises, c-bets and leads come out far
+  higher than in a full game; the page says to compare flops, not read the levels.
+- **Hand review (D-078):**
+  - PokerStars and GGPoker text import, review-only;
+  - exact heads-up push/fold decisions graded, 6-max cash decisions given the approximate
+    chart as practice, everything else "not graded (no solved reference)" with the reason;
+  - biggest EV losses and a replay per hand.
+- **Play mode (D-079):**
+  - 2–6 players, blinds, antes, rake, the full-raise rule and side pots;
+  - bots play preflop from the charts when the spot is in the tree, rule-based (labelled)
+    otherwise;
+  - optional coaching after each decision and a replay with references.
+- **Tests:** Vitest 201 (incl. a duplicate-key check for the strings file), Rust incl. the lock
+  tests, VALIDATION 112/112 (new node-locking section), Playwright 55 (lock, play, review, report
+  flows and their a11y), visual 6/6 (play-table baseline updated for the real game), `npm run
+  check` passing.
+
+**Not done / known issues:** KNOWN_LIMITS → Advanced features (M9) and Interface.
+
+**Next:** M10 (PWA/offline, accessibility and performance passes, user guide, release build,
+final KNOWN_LIMITS audit).
+
 ## 2026-10-25 — M8 done: course part 2 (Levels 5–7), new widgets and drills
 
 **Works (verified):**

@@ -133,5 +133,40 @@ test('home dashboard and the poker table render', async ({ page }) => {
   await page.getByRole('link', { name: 'Play' }).first().click();
   await expect(page.getByTestId('poker-table')).toBeVisible();
   await expect(page.getByTestId('hero-seat')).toContainText('You');
-  await expect(page.getByTestId('action-history')).toContainText('CO raises 2.5 bb');
+  await expect(page.getByTestId('deal')).toBeVisible();
+});
+
+test('play mode: deal, act, see coaching, finish and replay the hand', async ({ page }) => {
+  await open(page, '/#/play');
+  await page.getByTestId('deal').click();
+  for (let i = 0; i < 30; i++) {
+    if (await page.getByTestId('play-result').isVisible()) break;
+    const actions = page.getByTestId('play-actions');
+    if (await actions.isVisible()) {
+      const passive = actions.getByRole('button', { name: /^(Check|Call)/ });
+      await (await passive.count() ? passive.first() : actions.getByRole('button').first()).click();
+    } else await page.waitForTimeout(300);
+  }
+  await expect(page.getByTestId('play-result')).toContainText('Hand over', { timeout: 20_000 });
+  await expect(page.getByTestId('poker-table')).toContainText(/chart|rule-based/);
+  await page.getByTestId('play-replay').locator('summary').click();
+  await expect(page.getByTestId('replay')).toContainText('Preflop');
+});
+
+test('hand review: load the example, see references and the not-graded reasons', async ({ page }) => {
+  await open(page, '/#/play/review');
+  await page.getByRole('button', { name: 'Load an example' }).click();
+  await expect(page.getByTestId('hand-review-summary')).toContainText('2 hands read');
+  const replay = page.getByTestId('replay');
+  await expect(replay.getByTestId('decision-practice').first()).toContainText('Approximate reference');
+  await expect(replay.getByTestId('decision-none').first()).toContainText('Not graded (no solved reference)');
+});
+
+test('flop report: groups by texture with provenance', async ({ page }) => {
+  await open(page, '/#/solve/reports');
+  const r = page.getByTestId('reports');
+  await expect(r).toContainText('Flop report: BTN opens, BB calls');
+  await expect(r).toContainText('Approximate model');
+  await expect(page.getByTestId('report-groups')).toContainText('By highest card');
+  await expect(page.getByTestId('report-flops').locator('tbody tr')).toHaveCount(48);
 });

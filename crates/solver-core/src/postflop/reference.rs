@@ -301,6 +301,54 @@ pub fn toy_check(bet_fraction: f64, iters: u32) -> Result<ToyResult, String> {
     })
 }
 
+/// Node-locking check on [`toy_polarized`]: IP locked at calling `call` of the time; OOP's best
+/// response and its EV against the textbook values (D-076).
+#[derive(Clone, Debug)]
+pub struct ToyLockResult {
+    pub call: f64,
+    pub mdf: f64,
+    /// Share of OOP's air that bets (1 below the MDF, 0 above it).
+    pub air_bets: f64,
+    pub theory_air_bets: f64,
+    /// OOP's EV per hand pair (chips) vs theory: (3·(P + cB) + 16·max(0, (1−c)P − cB)) / 19.
+    pub ev: f64,
+    pub theory_ev: f64,
+    pub exploitability_pct: f64,
+}
+
+pub fn toy_lock_check(bet_fraction: f64, call: f64, iters: u32) -> Result<ToyLockResult, String> {
+    let cfg = toy_polarized(bet_fraction);
+    let mut g = PostflopGame::new(cfg.clone(), Algorithm::DCFR_DEFAULT)?;
+    let m = g.hands(1).len();
+    let lock: Vec<f32> = [vec![(1.0 - call) as f32; m], vec![call as f32; m]].concat();
+    g.lock(&[1], &lock)?;
+    for _ in 0..iters {
+        g.iterate();
+    }
+    let root = g.river_average(0).ok_or("no root strategy")?;
+    let n = g.hands(0).len();
+    let (mut air, mut air_bet) = (0.0, 0.0);
+    for h in 0..n {
+        if g.hands(0)[h].hi.rank() != 6 {
+            let w = g.initial_weights(0)[h] as f64;
+            air += w;
+            air_bet += w * root[n + h] as f64;
+        }
+    }
+    let p = cfg.tree.pot as f64;
+    let b = p * bet_fraction;
+    let bluff = (1.0 - call) * p - call * b;
+    Ok(ToyLockResult {
+        call,
+        mdf: p / (p + b),
+        air_bets: air_bet / air,
+        theory_air_bets: if bluff > 0.0 { 1.0 } else { 0.0 },
+        ev: g.expected_values()[0],
+        theory_ev: (3.0 * (p + call * b) + 16.0 * bluff.max(0.0)) / 19.0,
+        exploitability_pct: g.exploitability().pct_pot,
+    })
+}
+
 /// A small random river spot (few combos per side, two bet sizes, raises) for cross-checks.
 pub fn random_river_spot(rng: &mut Rng) -> SpotConfig {
     let board = rng.sample_cards(5, 0);

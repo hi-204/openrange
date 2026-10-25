@@ -8,6 +8,7 @@ mod gen_charts;
 mod gen_equity;
 mod goldens;
 mod provenance;
+mod report;
 mod solve;
 mod validate;
 
@@ -30,6 +31,9 @@ commands:
   calibrate-eqr [--charts <cash chart file>] [--flops 60] [--raises 0] [--target 1]
                                measure equity realization from postflop solves
                                (default output: data/eqr/eqr-v2.json)
+  report [--charts <cash chart file>] [--flops 48] [--raises 0] [--target 1]
+                               aggregated flop report: BTN vs BB single-raised pot
+                               (default output: web/public/data/reports/flop-srp-btn-bb.json)
   validate [--quick] [--out <file>]
                                run the validation suite and write the report
                                (default: docs/VALIDATION.md)
@@ -79,6 +83,18 @@ fn main() -> ExitCode {
                 number(&args, "--memory-gb", 24.0f64)?,
                 number(&args, "--seed", 2026u64)?,
                 opt(&args, "--out").unwrap_or(calibrate_eqr::OUT),
+            )
+        })(),
+        Some("report") => (|| {
+            report::run(
+                opt(&args, "--charts").unwrap_or("data/charts/cash-6max-100bb.json"),
+                number(&args, "--flops", 48usize)?,
+                number(&args, "--raises", 0u8)?,
+                number(&args, "--target", 1.0f64)?,
+                number(&args, "--max-iterations", 400u32)?,
+                number(&args, "--memory-gb", 24.0f64)?,
+                number(&args, "--seed", 2026u64)?,
+                opt(&args, "--out").unwrap_or(report::OUT),
             )
         })(),
         Some("gen-goldens") => goldens::run(opt(&args, "--out").unwrap_or(goldens::PATH)),

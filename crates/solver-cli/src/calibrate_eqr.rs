@@ -33,22 +33,22 @@ use std::time::Instant;
 pub const OUT: &str = "data/eqr/eqr-v2.json";
 
 /// One side of a matchup: its role and its range at the flop.
-struct Side {
-    seat: &'static str,
+pub(crate) struct Side {
+    pub(crate) seat: &'static str,
     aggressor: bool,
-    range: Range,
+    pub(crate) range: Range,
     /// Chart weight of each class (0 for probe-only classes), for the role averages.
-    weights: Vec<f64>,
+    pub(crate) weights: Vec<f64>,
 }
 
-struct Matchup {
-    name: &'static str,
+pub(crate) struct Matchup {
+    pub(crate) name: &'static str,
     /// 0 single-raised pot, 1 three-bet pot.
     pot_type: usize,
-    oop: Side,
-    ip: Side,
-    pot: f64,
-    stack: f64,
+    pub(crate) oop: Side,
+    pub(crate) ip: Side,
+    pub(crate) pot: f64,
+    pub(crate) stack: f64,
 }
 
 /// Probability of action `k` for each class in chart `id` of a chart file.
@@ -114,7 +114,7 @@ fn product(a: &[f64], b: &[f64]) -> Vec<f64> {
     a.iter().zip(b).map(|(x, y)| x * y).collect()
 }
 
-fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
+pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
     let stack = doc["stack"].as_f64().ok_or("chart file has no stack")?;
     let open = |seat: &str| column(doc, &format!("first-in-{seat}"), 1);
     let btn_open = open("BTN")?;
@@ -180,7 +180,11 @@ fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
 const RAISE: &str = "100";
 
 /// The small calibration tree: one bet size per street and up to `raises` raises per street.
-fn spot(m: &Matchup, board: &[solver_core::cards::Card], raises: u8) -> Result<SpotConfig, String> {
+pub(crate) fn spot(
+    m: &Matchup,
+    board: &[solver_core::cards::Card],
+    raises: u8,
+) -> Result<SpotConfig, String> {
     let mut cfg = spot_from_json(&json!({
         "board": board.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(" "),
         "pot": m.pot, "stack": m.stack,
@@ -197,7 +201,7 @@ fn spot(m: &Matchup, board: &[solver_core::cards::Card], raises: u8) -> Result<S
 }
 
 /// A seeded sample of distinct flops (distinct up to suit relabelling).
-fn flop_sample(n: usize, seed: u64) -> Vec<Vec<solver_core::cards::Card>> {
+pub(crate) fn flop_sample(n: usize, seed: u64) -> Vec<Vec<solver_core::cards::Card>> {
     let mut rng = Rng::seed(seed);
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();

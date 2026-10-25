@@ -93,14 +93,16 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 
 ## Interface (M6.5)
 
-- **Play mode is a preview.** The Play page shows the table and says play arrives in M9. The
-  Game settings are stored for it and not used elsewhere yet.
+- **Play mode bots are practice opponents.** Before the flop they play from the charts when the
+  spot is in the chart tree (approximate cash charts, exact heads-up push/fold); after the
+  flop, and anywhere off the tree (limps, two callers), they use a simple rule-based strategy
+  that is easy to exploit. Every hand starts with full stacks; no hand histories are saved.
 - **Guided and Expert modes** change defaults and what is open:
   - Guided: hints on, Standard coaching, study mode.
   - Expert: Detailed coaching, quick mode, filters and advanced settings open, compact density.
   They don't yet rewrite labels in simpler or more technical words.
 - **No bet-size slider in drills.** Drill answers must be actions in the solved tree, so drills
-  offer the tree's sizes as buttons; a custom-size slider comes with play mode.
+  offer the tree's sizes as buttons. Play mode has preset sizes and a "raise to" field.
 - **The coach explains from the computed claims only.** Where a feature isn't computed (e.g.
   position effects postflop beyond in/out of position) it says nothing rather than guess.
 - **Visual-regression baselines are for Windows** (`tests/screens/baselines/*-win32.png`).
@@ -160,3 +162,22 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 - **Node browser:** strategies are shown for the acting player only; there is no "opponent
   range at this node" view yet (M9 workbench).
 - Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).
+
+## Advanced features (M9)
+
+- **Node-locking** locks one decision node at a time; there are no tree-wide "this player
+  always…" presets yet. After a lock the solve restarts from scratch, so locking a big flop
+  spot costs a full solve.
+- **Runout explorer** reads each card's next decision one by one; on flop spots this takes a few
+  seconds.
+- **Flop report:** one spot (BTN opens, BB calls, 100 bb), 48 flops, a small tree with one size
+  per street and no raises (so no check-raises), ranges from the approximate cash charts, each
+  flop solved to under 1% of the pot. Without raises the button c-bets close to 100% on many
+  boards and the big blind leads far more than in a full game: compare flops with each other,
+  don't read the levels as real frequencies.
+- **Hand-history import:** PokerStars and GGPoker No-Limit Hold'em text only (no Omaha, no
+  tournaments' ICM context, no other sites). Only preflop decisions in the chart tree get a
+  reference; postflop decisions are shown as not graded. Hands aren't saved between visits.
+- **Hand-history positions** follow the seats clockwise from the button. Seats sitting out are
+  treated as in the hand if the history lists them.
+

@@ -12,3 +12,14 @@ describe('t()', () => {
     expect(t('status.ready')).toContain('{version}');
   });
 });
+
+describe('en.json', () => {
+  it('has no duplicate keys (JSON.parse would silently keep only the last one)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { fileURLToPath } = await import('node:url');
+    const text = readFileSync(fileURLToPath(new URL('./en.json', import.meta.url)), 'utf8');
+    const keys = [...text.matchAll(/^\s*"([^"]+)":/gm)].map((m) => m[1]!);
+    const dup = keys.filter((k, i) => keys.indexOf(k) !== i);
+    expect(dup).toEqual([]);
+  });
+});

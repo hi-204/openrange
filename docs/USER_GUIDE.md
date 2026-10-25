@@ -75,3 +75,49 @@ intervals. Nothing is shown for a group until it has 30 graded answers, and a gr
 called a leak when its interval clearly separates from the rest of your answers. Spots you get
 wrong come back after about 10 minutes; spots you get right come back after 1, then 6 days,
 then longer. Your data stays in this browser: export it to keep a copy.
+
+## Play (`Play` in the menu)
+
+**Play.** Press "Deal a hand" to play against bots, heads-up up to 6-handed (set the table size
+and stack in Settings → Game; every hand starts with full stacks). Use the buttons or type a
+"raise to" amount. Before the flop the bots play from OpenRange's charts when the spot is in
+the chart tree; otherwise, and after the flop, they use a simple rule-based strategy. The
+history marks each bot action "chart" or "rule-based". With "Coaching after my decisions" on,
+each of your decisions gets a reference card. When a hand ends, "Replay this hand" shows every
+decision with its reference.
+
+**Hand review.** Paste PokerStars or GGPoker hand histories (or load a .txt file) after a
+session. You see a summary, the biggest EV losses and a replay of each hand. Each of your
+decisions is either:
+- graded against an exact chart (heads-up push/fold);
+- given an approximate chart as practice (6-max cash at 20/40/60/100 bb);
+- marked "not graded (no solved reference)" with the reason. This includes every decision
+  after the flop.
+
+This is for post-session review only: the hands stay in this browser tab and nothing is
+uploaded or saved.
+
+## Solve (`Solve` in the menu)
+
+**Workbench.** Enter the board, pot, stacks and ranges (type them, or paint them on the grid),
+the bet sizes per street, and press Solve. Run, pause or cancel at any time; the exploitability
+shows how close the solve is.
+
+**Browsing a solve.** Walk through the tree from the node browser. At each decision:
+- see the strategy per hand (bar height: how much of each hand is still in the range);
+- click a hand for its combos, frequencies and EVs;
+- switch to the opponent's range at that node;
+- download the node as CSV.
+
+At a card being dealt, the runout explorer lists the next decision for every card.
+
+**Node-locking.** At any decision, "Lock this node" fixes that player's strategy and re-solves:
+- choose a tendency (folds more, calls more, never raises, bets more, checks more, or always one
+  action);
+- check the before/after frequencies, then lock;
+- the solve becomes the best play against the lock;
+- the page shows the EVs before and after, and you can unlock again.
+
+**Flop reports.** One spot (BTN opens, BB calls, 100 bb) solved on 48 flops and grouped by
+texture: how often the button c-bets, how often the big blind folds to it, and the button's
+equity. It's an approximate study aid; the page lists how it was made.

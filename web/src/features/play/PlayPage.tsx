@@ -1,37 +1,26 @@
-import { href } from '../../app/route';
+import type { Route } from '../../app/route';
 import { t } from '../../lib/i18n';
-import { EmptyState } from '../../lib/ui/components';
-import { PokerTable } from '../table/PokerTable';
+import { SubNav } from '../../lib/ui/SubNav';
+import { HandReview } from '../review/HandReview';
+import { PlayTable } from './PlayTable';
 
-export function PlayPage() {
+const TABS = ['table', 'review'] as const;
+
+export function PlayPage({ route }: { route: Route }) {
+  const tab = (TABS as readonly string[]).includes(route.rest[0] ?? '') ? route.rest[0]! : 'table';
   return (
     <div className="space-y-6">
-      <EmptyState
-        icon="play"
-        title={t('play.soon.title')}
-        action={
-          <a className="btn-primary" href={href('train', ['postflop'])}>
-            {t('play.soon.cta')}
-          </a>
-        }
-      >
-        {t('play.soon.text')}
-      </EmptyState>
-      <PokerTable
-        variant="static"
-        seats={[
-          { name: 'UTG', position: 'UTG', stack: 100, status: 'folded' },
-          { name: 'HJ', position: 'HJ', stack: 100, status: 'folded' },
-          { name: 'CO', position: 'CO', stack: 97.5, status: 'active', bet: 2.5 },
-          { name: t('table.you'), position: 'BTN', stack: 100, status: 'active', hero: true, cards: ['Ah', 'Kd'], toAct: true },
-          { name: 'SB', position: 'SB', stack: 99.5, status: 'active', bet: 0.5 },
-          { name: 'BB', position: 'BB', stack: 99, status: 'active', bet: 1 },
+      <SubNav
+        page="play"
+        label={t('play.tabs')}
+        current={tab}
+        items={[
+          { id: 'table', label: t('play.tab.table') },
+          { id: 'review', label: t('play.tab.review') },
         ]}
-        pot={0}
-        board={[]}
-        summary={t('play.sample')}
-        history={['UTG folds', 'HJ folds', 'CO raises 2.5 bb']}
       />
+      {tab === 'table' && <PlayTable />}
+      {tab === 'review' && <HandReview />}
     </div>
   );
 }

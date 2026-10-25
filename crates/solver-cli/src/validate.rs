@@ -490,6 +490,41 @@ fn river_theory_section() -> Result<Section, String> {
     Ok(s)
 }
 
+fn node_lock_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "Node-locking vs theory (polarized toy game)",
+        "The same toy game with IP's call/fold decision locked at a fixed frequency (D-076). OOP's best response bluffs every air hand when IP calls less than the MDF and never bluffs when it calls more; its EV per hand pair is (3·(P + cB) + 16·max(0, (1−c)P − cB)) / 19 (3 value combos, 16 air combos). Solved with DCFR for 2,000 iterations.",
+    );
+    for (f, c) in [(0.75, 0.3), (0.75, 0.8), (1.0, 0.2)] {
+        let r = reference::toy_lock_check(f, c, 2000)?;
+        let label = format!(
+            "{:.0}% pot, IP locked at {:.0}% calls (MDF {:.0}%)",
+            f * 100.0,
+            c * 100.0,
+            r.mdf * 100.0
+        );
+        s.check(
+            &format!("{label}: OOP air that bets"),
+            format!("{:.0}% (±0.1%)", r.theory_air_bets * 100.0),
+            format!("{:.3}%", r.air_bets * 100.0),
+            (r.air_bets - r.theory_air_bets).abs() < 1e-3,
+        );
+        s.check(
+            &format!("{label}: OOP EV"),
+            format!("{:.2} chips (±0.5)", r.theory_ev),
+            format!("{:.2} chips", r.ev),
+            (r.ev - r.theory_ev).abs() < 0.5,
+        );
+        s.check(
+            &format!("{label}: exploitability of the locked game"),
+            "< 0.01% of pot",
+            format!("{:.4}% of pot", r.exploitability_pct),
+            r.exploitability_pct < 0.01,
+        );
+    }
+    Ok(s)
+}
+
 fn river_reference_section(quick: bool) -> Result<Section, String> {
     let mut s = Section::new(
         "River solver vs independent reference",
@@ -1397,6 +1432,7 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(leduc_section(quick));
     eprintln!("validate: river theory");
     sections.push(river_theory_section()?);
+    sections.push(node_lock_section()?);
     eprintln!("validate: river reference");
     sections.push(river_reference_section(quick)?);
     eprintln!("validate: river invariance");

@@ -15,6 +15,8 @@ const SCREENS: [string, string, string | null][] = [
   ['stats', '/#/stats', 'course-progress'],
   ['solve', '/#/solve/charts', null],
   ['play', '/#/play', 'poker-table'],
+  ['review', '/#/play/review', 'hand-review'],
+  ['reports', '/#/solve/reports', 'report-flops'],
   ['settings', '/#/settings', 'settings'],
 ];
 
