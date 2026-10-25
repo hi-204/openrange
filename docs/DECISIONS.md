@@ -592,3 +592,72 @@ predicate (`checkClaims`) that recomputes it from the raw data.
   code we bundle (`lib/`, `dist/`) doesn't, so argparse never ships in the app.
 **Decision:** add PSF-2.0 to the allowed licenses. The license report lists it like any
 other dependency.
+
+### D-059 · Numbers in lessons are computed, and a lint test enforces it
+**Decision:** lesson prose may not contain a typed percentage, decimal, or `$` outside math.
+Numbers come from:
+- **Arithmetic:** `{{calc 10 / (20 + 10) | pct}}`, evaluated by a small safe evaluator
+  (numbers, + − × ÷, parentheses). `| show` also prints the expression.
+- **Equities:** `{{eq AhAs vs KdKc}}` (optionally `on <board>`), computed exactly by the
+  equity engine in the browser. Tests check that every one is computable.
+- **Strategy:** only through an embedded chart or solver widget, which carries its
+  provenance badge. Never in prose.
+
+Integers (52 cards, 1326 combos, 6 seats…) are allowed. The facts the lessons rely on are
+also checked by tests (e.g. 1326 combos and 6/4/12 combos per class, computed by the engine).
+**Lint (Vitest, every lesson):**
+- Front-matter schema, unique ids, existing prerequisites, 5–10 minutes.
+- The sections "Worked hand", "Common mistakes" and "Check yourself", with a 3–5 question
+  quiz (each question has an explanation).
+- Known widgets with valid settings; chart widgets point at existing charts.
+- Glossary terms exist; drill links are valid.
+- No bare numbers of the kinds above.
+**Why:** principle 1 ("never type strategy numbers from memory") applied to teaching text,
+checked by a machine rather than by review.
+
+### D-060 · Lesson format, widgets and progress
+- **Files:** `web/src/content/en/lessons/level-N/*.md`, bundled with `import.meta.glob`.
+- **Front-matter:** `id, level, title, minutes, prerequisites, drills, glossary`.
+- **Markup** (markdown-it, raw HTML off, D-022): `$…$` / `$$…$$` math (KaTeX); `[[term]]`
+  glossary terms with a hover/focus definition; `{{calc …}}` / `{{eq …}}`; fenced
+  ` ```widget <name> ` + JSON; fenced ` ```quiz ` + JSON.
+- **Widgets in M7:**
+  - Hands and boards: hand ranker, board explorer, outs calculator, combo counter.
+  - Math: pot-odds slider, EV calculator, SPR calculator, sizing explorer (price, MDF and
+    bluff share for a bet size).
+  - Ranges and charts: range grid, chart embed (with provenance), range-vs-range advantage,
+    equity calculator.
+  - Table and play: 6-max table diagram, hand-flow stepper, mini-solver (a preset spot solved
+    in a worker, with the node browser).
+- **Glossary:** `web/src/content/en/glossary.yaml`, also shown as a page.
+- **Progress:** in the same Dexie database as the trainer (schema 2): lesson completion and
+  quiz scores, math-drill attempts, placement result. Included in export/import; schema-1
+  exports still import.
+- **Completion:** a lesson counts as complete when its quiz has been submitted. The best and
+  latest scores are kept.
+
+### D-061 · Placement quiz and daily plan
+- **Placement:** 15 questions, three per level 0–4. The recommended start is the lowest level
+  with fewer than 2 of its 3 right; if every level passes, Level 5 (arrives in M8; until then
+  the plan uses drills and review). It can be retaken, or skipped by choosing a level.
+- **Daily plan** (computed, not stored; about 10–15 minutes):
+  1. The next lesson in course order at or after the start level whose prerequisites are done.
+  2. Review: up to 10 due trainer spots, if any are due.
+  3. One drill matched to the level: math drills for Levels 0–2, the preflop drill for 1 and 3,
+     the postflop drill for 4.
+  Items tick off when done today. No streaks, nagging or countdowns (spec §6.3).
+
+### D-062 · Math drills
+- **Six generators:**
+  - pot odds (price to call);
+  - outs and the rule of 2 and 4 (exact outs against a known hand, the rule's estimate, the
+    exact equity);
+  - preflop equity estimation (pick the closest of four equity bands; exact answer from the
+    engine);
+  - MDF;
+  - river bluff share for a bet size;
+  - combinatorics with card removal (combos of a class given known cards).
+- Each problem shows a step-by-step worked solution computed from the same numbers.
+- **Answers:** percentages within ±1 point, counts exact.
+- Attempts are stored and shown with Wilson intervals. Math drills are not scheduled by SM-2:
+  problems are generated fresh, so there is no fixed card to review.
