@@ -3,6 +3,7 @@
 //! Subcommands grow milestone by milestone (docs/PLAN.md). Argument parsing is kept
 //! dependency-free until it becomes non-trivial.
 
+mod gen_charts;
 mod gen_equity;
 mod goldens;
 mod provenance;
@@ -21,6 +22,10 @@ commands:
   gen-equity [--out <file>]    exact 169x169 preflop equity table
                                (default: data/equity/preflop-169.json)
   gen-goldens [--out <file>]   regression goldens (default: data/goldens/river.json)
+  gen-charts pushfold-hu [--stacks 2,3,...]
+  gen-charts pushfold-multi --players N [--stacks 5,10] [--iterations N] [--samples N]
+  gen-charts cash [--stacks 100] [--iterations N] [--samples N]
+                               preflop chart files in data/charts/
   validate [--quick] [--out <file>]
                                run the validation suite and write the report
                                (default: docs/VALIDATION.md)
@@ -59,6 +64,7 @@ fn main() -> ExitCode {
         Some("gen-equity") => {
             gen_equity::run(opt(&args, "--out").unwrap_or("data/equity/preflop-169.json"))
         }
+        Some("gen-charts") => gen_charts_cmd(&args),
         Some("gen-goldens") => goldens::run(opt(&args, "--out").unwrap_or(goldens::PATH)),
         Some("validate") => validate::run(
             args.iter().any(|a| a == "--quick"),
@@ -76,5 +82,55 @@ fn main() -> ExitCode {
             eprintln!("solver-cli: {e}");
             ExitCode::FAILURE
         }
+    }
+}
+
+fn list(args: &[String], name: &str, default: &[f64]) -> Result<Vec<f64>, String> {
+    match opt(args, name) {
+        None => Ok(default.to_vec()),
+        Some(v) => v
+            .split(',')
+            .map(|x| {
+                x.trim()
+                    .parse::<f64>()
+                    .map_err(|_| format!("{name}: '{x}' is not a number"))
+            })
+            .collect(),
+    }
+}
+
+fn gen_charts_cmd(args: &[String]) -> Result<(), String> {
+    let seed = number(args, "--seed", 2026u64)?;
+    match args.get(1).map(String::as_str) {
+        Some("pushfold-hu") => {
+            let default: Vec<f64> = (2..=25).map(f64::from).collect();
+            gen_charts::pushfold_hu(
+                "data/charts/pushfold-hu.json",
+                &list(args, "--stacks", &default)?,
+            )
+        }
+        Some("pushfold-multi") => {
+            let players = number(args, "--players", 6usize)?;
+            gen_charts::pushfold_multi(
+                &format!("data/charts/pushfold-{players}max.json"),
+                players,
+                &list(args, "--stacks", &[5.0, 10.0, 15.0, 20.0])?,
+                number(args, "--iterations", 2_000_000u64)?,
+                number(args, "--samples", 2_000_000u64)?,
+                seed,
+            )
+        }
+        Some("cash") => gen_charts::cash_family(
+            "data/charts",
+            &list(args, "--stacks", &[100.0])?,
+            number(args, "--iterations", 2_000_000u64)?,
+            number(args, "--samples", 2_000_000u64)?,
+            seed,
+        ),
+        _ => Err(format!(
+            "gen-charts needs a family: pushfold-hu, pushfold-multi or cash
+
+{USAGE}"
+        )),
     }
 }

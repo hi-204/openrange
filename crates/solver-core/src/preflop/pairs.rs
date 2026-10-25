@@ -97,6 +97,36 @@ impl PairEquity {
     }
 }
 
+/// Load `data/equity/preflop-pairs.json` (parsed JSON), checking that its class numbering
+/// matches this build.
+#[cfg(feature = "json")]
+pub fn pair_equity_from_json(v: &serde_json::Value) -> Result<PairEquity, String> {
+    let classes = pair_classes();
+    let reps = v["reps"].as_array().ok_or("pairs file: no reps")?;
+    if reps.len() != classes.reps.len() {
+        return Err("pairs file: wrong number of classes".into());
+    }
+    for (r, &(a, b)) in reps.iter().zip(&classes.reps) {
+        if r[0].as_u64() != Some(a as u64) || r[1].as_u64() != Some(b as u64) {
+            return Err(
+                "pairs file: class numbering differs from this build; regenerate it".into(),
+            );
+        }
+    }
+    let nums = |k: &str| -> Result<Vec<u32>, String> {
+        v[k].as_array()
+            .ok_or(format!("pairs file: no {k}"))?
+            .iter()
+            .map(|x| {
+                x.as_u64()
+                    .map(|x| x as u32)
+                    .ok_or_else(|| "pairs file: bad number".to_string())
+            })
+            .collect()
+    };
+    PairEquity::from_counts(&classes, &nums("wins")?, &nums("ties")?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
