@@ -310,7 +310,7 @@ tree config + ranges + quantized strategies/EVs for stored nodes. **Lesson**: Ma
 YAML front-matter (`id, level, title, minutes, prerequisites, drills, glossary`), fenced
 ` ```widget <name> {json} ` blocks for interactive components, `$…$` / `$$…$$` math.
 
-## 7. Grading *(planned, M6)*
+## 7. Trainer and grading (`web/src/features/trainer/`, D-051–D-056)
 
 - EV loss = EV(best action) − EV(chosen action) for this exact hand at this node, in bb
   (preflop) and % pot (postflop). Mixed strategies are handled naturally: at equilibrium all
@@ -325,6 +325,20 @@ YAML front-matter (`id, level, title, minutes, prerequisites, drills, glossary`)
   offered, blockers, SPR, texture class, range/nut advantage, MDF). Each feature sentence
   has a predicate; tests generate many spots and assert no sentence contradicts the numbers.
 - Stats show Wilson intervals and say "not enough data yet" below a minimum sample size.
+- **Modules:**
+  - `grading.ts`: categories, noise and mixing rules.
+  - `explain/`: claims, predicates, rendering.
+  - `srs.ts`: SM-2.
+  - `stats.ts`: intervals and leaks.
+  - `store.ts`: the `TrainerStore` interface, with Dexie and memory implementations.
+  - `preflop/`: dealing from chart files.
+  - `postflop/`: dealing, walking a solved tree, mapping real cards to isomorphic
+    representatives.
+  - UI pages.
+- Preflop equity features (equity against a range, fold frequency, both with card removal)
+  come from the exact combo-pair table through `preflopMatchup` in solver-wasm. Postflop
+  features (equity against the range at a node, blockers, range and nut advantage) come from
+  the equity engine with the node's reach-weighted ranges.
 
 ## 8. Testing
 

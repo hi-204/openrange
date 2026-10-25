@@ -482,3 +482,84 @@ the final charts (all three were below their bands in every v2 round).
   separately, which KNOWN_LIMITS says.
 - Cash charts stay excluded from EV-graded trainer drills (as in D-047) until all four 100 bb
   bands pass. The trainer may show them as reference with the warning.
+
+### D-051 · What the trainer grades
+**Decision:**
+- **Graded, preflop:**
+  - Heads-up push/fold (`solver_exact`, chip EV).
+  - 3–6-handed push/fold (`solver_approx`), with the noise allowance of D-052.
+- **Graded, postflop:** "drill this spot". The browser solves a spot to its target
+  exploitability, and every grade states that exploitability.
+- **Not graded:** cash charts (D-050). They can be drilled as *practice*: the answer and the
+  reference are shown with the out-of-band warning, but nothing enters stats or scheduling.
+- Hands are dealt in proportion to how often the player reaches the decision with them
+  (chart `reach`, solver reach), so nobody is quizzed on hands they would never hold there.
+- Preflop charts are per hand class, so the dealt combo is graded by its class
+  (KNOWN_LIMITS).
+- **Postflop presets:** ranges must be suit-symmetric (written as classes). The drill maps
+  real cards onto the solver's suit-isomorphic representative cards, which is only valid for
+  such ranges. It checks this and refuses otherwise.
+
+### D-052 · Grading rules
+**EV loss** = EV(best action) − EV(chosen action) for the hand, taken from the reference's EVs.
+It is measured in bb preflop and in % of the pot at the decision postflop.
+- **Sampled references** (EVs with standard errors) are graded on
+  max(0, loss − 2·√(SE_best² + SE_chosen²)). A difference the sampling can't resolve is never
+  called a mistake. Both numbers are shown.
+- **Postflop:** the Best threshold is at least the solve's exploitability (% of pot).
+- **Mixed strategies:** if the reference plays the chosen action at least 10% of the time,
+  the answer is **Best**. If that action isn't the most frequent one, it is labelled
+  "lower-frequency". At equilibrium every action in the mix has the same EV. If the shown
+  EVs differ by more than the Inaccuracy threshold anyway, the answer notes that the solution
+  isn't fully converged there.
+- **Categories** (defaults from ARCHITECTURE §7, adjustable in the trainer settings):
+  | | Best | Acceptable | Inaccuracy | Mistake | Blunder |
+  |---|---|---|---|---|---|
+  | preflop (bb) | ≤ 0.02 | ≤ 0.10 | ≤ 0.30 | ≤ 1.0 | > 1.0 |
+  | postflop (% of pot) | ≤ 1 | ≤ 3 | ≤ 8 | ≤ 20 | > 20 |
+
+### D-053 · Explanations are claims with predicates
+**Decision:** an explanation is a list of typed *claims* computed from the decision's numbers.
+Text is rendered from a claim's fields only, through i18n templates. Each claim kind has a
+predicate (`checkClaims`) that recomputes it from the raw data.
+- **Tests:**
+  - Seeded random synthetic decisions.
+  - Every class at every stack of the exact heads-up charts.
+  - Real nodes of a solved river spot.
+- **Exact identities double as validation:**
+  - Heads-up all-in call, chip EV: EV(call) − EV(fold) = equity · pot after calling − amount
+    to call.
+  - Heads-up shove: EV = P(fold)·(+1 bb) + P(call)·(2S·equity − S) per combo.
+  - River call vs fold: EV(call) − EV(fold) = equity · (pot + call) − call.
+  The pot-odds sentence must agree with the EVs wherever these identities hold.
+- **Where they don't hold** (turn, multiway): the pot-odds check is labelled "raw equity
+  only". If it disagrees with the solver, the text says that future betting is the reason
+  and never contradicts the EV ranking.
+
+### D-054 · Spaced repetition details (refines D-019)
+- **Family** = drill + reference + decision + stack band; e.g. "heads-up push/fold · SB shove ·
+  8–14 bb", or a postflop preset + street + "first to act"/"facing a bet".
+- **SM-2 per family.** Answer quality: Best 5, Acceptable 4, Inaccuracy 3, Mistake 2,
+  Blunder 1. Intervals in days: 1, 6, then × ease factor. Quality < 3 resets the family to
+  "due in 10 minutes".
+- Answers given before a family is due only count if they are lapses, so drilling one family
+  many times in a session can't inflate its interval.
+- **Picking the next spot:** an overdue family first (most overdue), otherwise a new family,
+  otherwise the family due soonest. Always within the user's filters.
+
+### D-055 · Statistics and leaks
+- **Grouping:** by drill, position, scenario, street and hand class. Preflop (bb) and postflop
+  (% of pot) are never mixed.
+- **Per group:** n, mean EV loss with a 95% normal interval (sample SD, n ≥ 2), and the share of
+  Mistakes + Blunders with a 95% Wilson interval.
+- Below 30 graded answers a group shows "not enough data yet" and nothing else.
+- **A leak** is reported only when the group's mean-EV-loss interval lies entirely above the
+  interval of all the user's other answers in that unit.
+- Practice (ungraded) answers are excluded.
+
+### D-056 · Trainer storage
+**Decision:**
+- Dexie (IndexedDB, already a pinned dependency) holds answers, scheduling state and trainer
+  settings, on this device only.
+- The Review page can export everything as JSON, import it, and reset it.
+- Unit tests use the same `TrainerStore` interface with an in-memory implementation.
