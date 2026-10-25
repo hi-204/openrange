@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_solver_free: (a: number, b: number) => void;
+export const countOuts: (a: number, b: number) => [number, number];
 export const countStartingCombos: () => number;
 export const equity: (a: number, b: number) => [number, number];
 export const estimateMemory: (a: number, b: number) => [number, number, number, number];

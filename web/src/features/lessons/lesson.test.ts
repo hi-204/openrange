@@ -61,6 +61,11 @@ describe('lesson rendering', () => {
     expect(segs.find((s) => s.kind === 'quiz')).toMatchObject({ kind: 'quiz' });
   });
 
+  it('reads an empty glossary file (only comments) as no terms', () => {
+    expect(parseGlossary('# nothing yet\n').size).toBe(0);
+    expect(() => parseGlossary('- a list\n')).toThrow(/map terms/);
+  });
+
   it('never passes raw HTML through', () => {
     const segs = renderLesson('<script>alert(1)</script> and <b>bold</b>', glossary);
     const html = segs[0]!.kind === 'html' ? segs[0]!.html : '';

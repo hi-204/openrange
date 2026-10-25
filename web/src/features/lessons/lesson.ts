@@ -158,6 +158,13 @@ export function renderLesson(body: string, glossary: Glossary): Segment[] {
 
 /** Load the glossary file (term → definition, terms lower-cased). */
 export function parseGlossary(source: string): Glossary {
-  const raw = parseYaml(source) as Record<string, string>;
+  // An empty file (or one with only comments) parses to null.
+  const raw = (parseYaml(source) ?? {}) as Record<string, string>;
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error('the glossary must map terms to definitions');
   return new Map(Object.entries(raw).map(([k, v]) => [k.toLowerCase(), String(v).trim()]));
+}
+
+/** Inline Markdown (quiz questions and answers): math, glossary terms and computed numbers. */
+export function renderInline(text: string, glossary: Glossary): string {
+  return markdown(glossary).renderInline(text);
 }

@@ -31,6 +31,24 @@ describe('trainer store', () => {
     expect((await b.families()).get('f')!.ease).toBe(2.5);
   });
 
+  it('carries course progress and still imports schema-1 files', async () => {
+    const a = new MemoryStore();
+    await a.putLesson({ id: '2.3', completedAt: 5, lastScore: 3, bestScore: 4, questions: 4, attempts: 2 });
+    await a.addMath({ at: 6, drill: 'potodds', correct: true, given: '25', answer: '25%' });
+    await a.putPlacement({ at: 7, perLevel: [{ level: 0, correct: 3, total: 3 }], startLevel: 1, chosen: false });
+    const dump = JSON.parse(JSON.stringify(await exportAll(a)));
+    expect(dump.schema).toBe('openrange.trainer/2');
+    const b = new MemoryStore();
+    await importAll(b, dump);
+    expect((await b.lessons()).get('2.3')!.bestScore).toBe(4);
+    expect(await b.math()).toHaveLength(1);
+    expect((await b.placement())!.startLevel).toBe(1);
+    const old = { schema: 'openrange.trainer/1', exportedAt: '', answers: [answer], families: [], settings: { thresholds: null } };
+    const c = new MemoryStore();
+    expect(await importAll(c, old)).toBe(1);
+    expect(await c.lessons()).toEqual(new Map());
+  });
+
   it('refuses files that are not trainer exports without touching data', async () => {
     const s = new MemoryStore();
     await s.addAnswer(answer);

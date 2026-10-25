@@ -154,9 +154,89 @@ pub fn evaluate(cards_text: &str) -> Value {
     })
 }
 
+/// Outs against a known hand: `{"hero": "AhKh", "villain": "QsQd", "board": "Qh7h2c"}` (flop
+/// or turn). For every card that can come next: does the hero end up ahead, tied or behind?
+/// `behindNow` compares the hands on the current board.
+pub fn outs(request_json: &str) -> Value {
+    let inner = || -> Result<Value, String> {
+        let req: Value =
+            serde_json::from_str(request_json).map_err(|e| format!("bad request: {e}"))?;
+        let hero = cards_field(&req, "hero")?;
+        let villain = cards_field(&req, "villain")?;
+        let board = cards_field(&req, "board")?;
+        if hero.len() != 2 || villain.len() != 2 || !(3..=4).contains(&board.len()) {
+            return Err("give two cards each and a flop or turn board".into());
+        }
+        let all: Vec<_> = hero.iter().chain(&villain).chain(&board).copied().collect();
+        let used = CardSet::from_cards(&all);
+        if used.len() as usize != all.len() {
+            return Err("a card appears twice".into());
+        }
+        let ev = Evaluator::get();
+        let strength = |hand: &[solver_core::cards::Card],
+                        extra: Option<solver_core::cards::Card>| {
+            let mut cards: Vec<_> = hand.iter().chain(&board).copied().collect();
+            cards.extend(extra);
+            ev.eval(&cards)
+        };
+        let (mut ahead, mut tied, mut behind) = (Vec::new(), Vec::new(), Vec::new());
+        for i in 0..52u8 {
+            let c = solver_core::cards::Card::from_index(i);
+            if used.contains(c) {
+                continue;
+            }
+            let (h, v) = (strength(&hero, Some(c)), strength(&villain, Some(c)));
+            let bucket = if h > v {
+                &mut ahead
+            } else if h == v {
+                &mut tied
+            } else {
+                &mut behind
+            };
+            bucket.push(c.to_string());
+        }
+        Ok(json!({
+            "ok": true,
+            "behindNow": strength(&hero, None) < strength(&villain, None),
+            "tiedNow": strength(&hero, None) == strength(&villain, None),
+            "ahead": ahead, "tied": tied, "behind": behind,
+        }))
+    };
+    inner().unwrap_or_else(err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn outs_against_a_known_hand() {
+        // Nut flush draw against a set on Qh 7h 2c: 9 hearts are left, but 2h pairs the board
+        // and gives QsQd a full house, so 8 hearts (and nothing else) put AhKh ahead.
+        let r = outs(r#"{"hero": "AhKh", "villain": "QsQd", "board": "Qh7h2c"}"#);
+        assert_eq!(r["ok"], true, "{r}");
+        assert_eq!(r["behindNow"], true);
+        let ahead: Vec<String> = serde_json::from_value(r["ahead"].clone()).unwrap();
+        let mut hearts: Vec<&str> = ahead
+            .iter()
+            .map(String::as_str)
+            .filter(|c| c.ends_with('h'))
+            .collect();
+        hearts.sort();
+        assert_eq!(hearts, vec!["3h", "4h", "5h", "6h", "8h", "9h", "Jh", "Th"]);
+        assert!(
+            ahead.iter().all(|c| c.ends_with('h')),
+            "only hearts help: {ahead:?}"
+        );
+        let n = ahead.len()
+            + r["tied"].as_array().unwrap().len()
+            + r["behind"].as_array().unwrap().len();
+        assert_eq!(n, 45);
+        assert_eq!(
+            outs(r#"{"hero": "AhKh", "villain": "AhQd", "board": "Qh7h2c"}"#)["ok"],
+            false
+        );
+    }
 
     #[test]
     fn evaluate_finds_category_strength_and_best_five() {

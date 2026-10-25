@@ -113,6 +113,12 @@ export type PushFoldResult = {
   caller: PushFoldSide;
 };
 
+/** Evaluation of 5–7 cards: higher strength wins, equal strength ties. */
+export type HandValue = { ok: true; strength: number; category: string; categoryIndex: number; best: string[] } | { ok: false; error: string };
+
+/** Next-card outcomes against a known hand (flop or turn). */
+export type OutsResult = { ok: true; behindNow: boolean; tiedNow: boolean; ahead: string[]; tied: string[]; behind: string[] } | { ok: false; error: string };
+
 /** Request payloads by type, and what each one resolves to. */
 export type Calls = {
   hello: { args: Record<string, never>; result: HelloResult };
@@ -124,6 +130,8 @@ export type Calls = {
   solverPause: { args: Record<string, never>; result: Record<string, never> };
   solverNode: { args: { path: number[] }; result: SolverNode };
   pushFold: { args: { spot: PushFoldSpotJson }; result: PushFoldResult };
+  evaluateHand: { args: { cards: string }; result: HandValue };
+  countOuts: { args: { hero: string; villain: string; board: string }; result: OutsResult };
   preflopMatchup: { args: { hero: string; villain: number[] }; result: { combos: { combo: string; share: number; equity: number | null }[] } };
 };
 

@@ -36,6 +36,11 @@ export class Solver {
 }
 
 /**
+ * Outs against a known hand on a flop or turn: which next cards put the hero ahead or tie.
+ */
+export function countOuts(request_json: string): string;
+
+/**
  * M0 smoke test: number of two-card combos, computed in Rust.
  */
 export function countStartingCombos(): number;
@@ -92,6 +97,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_solver_free: (a: number, b: number) => void;
+    readonly countOuts: (a: number, b: number) => [number, number];
     readonly countStartingCombos: () => number;
     readonly equity: (a: number, b: number) => [number, number];
     readonly estimateMemory: (a: number, b: number) => [number, number, number, number];

@@ -128,3 +128,9 @@ pub fn preflop_matchup(json: &str) -> Result<String, JsError> {
 pub fn evaluate_hand(cards: &str) -> String {
     api::evaluate(cards).to_string()
 }
+
+/// Outs against a known hand on a flop or turn: which next cards put the hero ahead or tie.
+#[wasm_bindgen(js_name = countOuts)]
+pub fn count_outs(request_json: &str) -> String {
+    api::outs(request_json).to_string()
+}
