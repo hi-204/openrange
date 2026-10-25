@@ -90,6 +90,14 @@ async function handle(wasm: SolverWasm, req: WorkerRequest): Promise<unknown> {
     case 'solverPause':
       paused = true;
       return {};
+    case 'pushFold':
+      // Exact combo-pair equities (~1 MB), fetched from this site once per worker.
+      if (!wasm.pairsLoaded()) {
+        const res = await fetch(`${import.meta.env.BASE_URL}data/equity/preflop-pairs.json`);
+        if (!res.ok) throw new Error(`couldn't load preflop equities (${res.status})`);
+        wasm.loadPairs(await res.text());
+      }
+      return JSON.parse(wasm.pushFold(JSON.stringify(req.spot)));
     case 'solverNode':
       if (!session) throw new Error('no spot loaded');
       return JSON.parse(session.node(JSON.stringify(req.path)));

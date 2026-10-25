@@ -175,6 +175,40 @@ export function estimateMemory(spot_json) {
 }
 
 /**
+ * Load the exact combo-pair equities (`data/equity/preflop-pairs.json` text) once.
+ * @param {string} json
+ * @returns {string}
+ */
+export function loadPairs(json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.loadPairs(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * @returns {boolean}
+ */
+export function pairsLoaded() {
+    const ret = wasm.pairsLoaded();
+    return ret !== 0;
+}
+
+/**
  * Parse a range string. Returns JSON: `{ok, canonical, combos, weights[1326]}` or
  * `{ok: false, error}`.
  * @param {string} text
@@ -192,6 +226,33 @@ export function parseRange(text) {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Exact heads-up push/fold: `{stacks, pusher, caller, ante, payouts}` (empty payouts = chip
+ * EV). Needs `loadPairs` first.
+ * @param {string} spot_json
+ * @returns {string}
+ */
+export function pushFold(spot_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(spot_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.pushFold(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 

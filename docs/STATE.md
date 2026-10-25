@@ -2,6 +2,27 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M5 in progress: preflop
+
+**Works (verified):**
+- Exact combo-pair preflop equities (47,008 suit classes, integer counts) and ICM.
+- Exact heads-up push/fold (chip EV and ICM): the closed-form toy game matches theory within
+  3.2e-5; every stack is solved to ≤ 1e-6 bb; combos that mix are indifferent within 5.9e-4 bb.
+  Charts for 2–25 bb committed (`data/charts/pushfold-hu.json`).
+- Sampled-CFR engine: with 2 players its strategy, judged by the exact solver, is exploitable
+  by 3.7e-4 bb per hand; its best-response estimate matches exact best responses within 2%.
+- 3–6-handed push/fold charts at 5/10/15/20 bb committed; estimated best-response gains are
+  at the noise floor (|gain| ≤ ~0.02 bb).
+- Web: Charts page (provenance badge with full details, approximate/out-of-band warnings,
+  per-hand EV, greyed-out unreached hands, compare view) and a Push/fold calculator that solves
+  any table with ICM in the browser in about a second. The browser solver reproduces the
+  committed exact chart to its stored precision. Validation: 100 checks + separate sanity bands.
+
+**Not done:** the 6-max cash charts (EQR v1) miss the CO and BTN sanity bands; they are held
+back from the repository pending the owner's decision on calibrating EQR v2 (D-047).
+
+**Next:** the EQR decision, then M6 (trainer).
+
 ## 2026-10-24 — Test-honesty pass (between M4 and M5)
 
 - Every test change since M3 is recorded in D-039; every tolerance was re-measured and set

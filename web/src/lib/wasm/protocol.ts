@@ -99,6 +99,18 @@ export type SolverNode = NodeBase &
     | { kind: 'showdown' }
   );
 
+export type PushFoldSpotJson = { stacks: number[]; pusher: number; caller: number; ante: number; payouts: number[] };
+export type PushFoldSide = { actions: string[]; strategy: number[][]; ev: (number | null)[][] };
+export type PushFoldResult = {
+  units: 'bb' | 'prize';
+  iterations: number;
+  exploitability: number;
+  value: [number, number];
+  classes: string[];
+  pusher: PushFoldSide;
+  caller: PushFoldSide;
+};
+
 /** Request payloads by type, and what each one resolves to. */
 export type Calls = {
   hello: { args: Record<string, never>; result: HelloResult };
@@ -109,6 +121,7 @@ export type Calls = {
   solverRun: { args: { maxIterations: number; targetPct: number }; result: RunResult };
   solverPause: { args: Record<string, never>; result: Record<string, never> };
   solverNode: { args: { path: number[] }; result: SolverNode };
+  pushFold: { args: { spot: PushFoldSpotJson }; result: PushFoldResult };
 };
 
 export type CallType = keyof Calls;

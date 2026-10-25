@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { SolverPage } from '../features/solver/SolverPage';
+import { ChartsPage } from '../features/charts/ChartsPage';
 import { EquityPage } from '../features/tools/EquityPage';
+import { PushFoldPage } from '../features/tools/PushFoldPage';
 import { t, type MessageKey } from '../lib/i18n';
 import { HomePage } from './HomePage';
 
@@ -9,6 +11,8 @@ import { HomePage } from './HomePage';
 const ROUTES: { path: string; label: MessageKey; page: () => React.JSX.Element }[] = [
   { path: '', label: 'nav.home', page: HomePage },
   { path: 'equity', label: 'nav.equity', page: EquityPage },
+  { path: 'charts', label: 'nav.charts', page: ChartsPage },
+  { path: 'pushfold', label: 'nav.pushfold', page: PushFoldPage },
   { path: 'solver', label: 'nav.solver', page: SolverPage },
 ];
 

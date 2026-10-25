@@ -345,3 +345,50 @@ tie counts out of 1,712,304 boards. **Why:** exact (no rounding), compact (~1 MB
 to rebuild all-in equity for every ordered combo pair, which push/fold and the cash-game
 model need with exact card removal.
 
+### D-043 · Exact heads-up push/fold over combos
+**Decision:** Heads-up push/fold is a two-decision game solved with DCFR over all 1326 × 1326
+combo pairs (exact card removal, exact all-in equities from D-042), to an exploitability of
+at most 1e-6 bb (chip EV) or a millionth of the largest payoff (ICM). Charts average the
+combo strategies of each class. **Why:** it is small enough to solve exactly in seconds,
+natively and in the browser, so there is no reason to approximate it.
+
+### D-044 · One sampled-CFR engine for every other preflop tree
+**Decision:** 3–6-handed push/fold and the 6-max cash model share one engine:
+external-sampling MCCFR with information sets (decision node, hand class), linear averaging,
+real cards and boards per iteration, and the exact heads-up all-in equity at two-way
+showdowns (same expectation as a sampled board, far less noise). **Validation:** run with two
+players it reproduces the exact heads-up solution closely enough that, judged by the exact
+solver, its strategy is exploitable by 3.7e-4 bb per hand.
+
+### D-045 · Best-response estimate for sampled solutions
+**Decision:** Each seat's "best-response gain" is estimated by an evaluation pass on the
+average strategies: per (decision, class), action values are sampled with the seat exploring
+every action; the best action is chosen on one half of the samples and its gain measured on
+the other (cross-validation), and each decision is weighted by the seat's own probability of
+reaching it. **Why:** choosing and measuring on the same samples biased the estimate upwards
+by the noise summed over thousands of decisions (it read ~2 bb per hand on a converged cash
+solve); unweighted by own reach it counted improvements at decisions the seat never reaches.
+The fixed estimator matches exact best responses within 2% on heads-up push/fold. It
+measures single-decision deviations, so for trees where a seat acts several times it can
+understate the full best-response gain; reports say so.
+
+### D-046 · Cash model v1: EQR inputs authored, tree simplified, rake-free
+**Decision:** The 100 bb (and 20/40/60 bb) 6-max charts use the EQR v1 factors in
+`EqrModel::v1()` (authored, labelled `source: authored` inside the `solver_approx` chart),
+hand-independent; multiway flops approximate each player's equity from heads-up matchups;
+the tree has no limps, at most one cold caller of an open (blinds may always call), no cold
+4-bets or cold calls of 3-bets, and only the previous raiser continues against 4-bets and
+5-bets. **Outcome (recorded per the spec's sanity-band rule):** see D-047.
+
+### D-047 · Cash v1 misses the late-position sanity bands; charts flagged, not tuned
+**Context:** At 100 bb the generated first-in frequencies are inside the bands for UTG and HJ
+but below them for CO and well below for BTN (≈32% against 40–50%).
+**Investigation:** the big blind defends ≈81% of hands against a button open, far wider than
+is plausible, which makes steals unprofitable. The cause is the hand-independent EQR: weak
+offsuit hands out of position are credited with the same realization (0.84) as strong ones.
+A sensitivity run with out-of-position realization ×0.9 moves the button to ≈40%.
+**Decision:** do not tune EQR inputs until the bands are hit (that would be fitting authored
+numbers to remembered outputs, which principle 1 forbids). The charts ship labelled
+approximate with a prominent "outside the sanity checks" warning in the UI, and are excluded
+from trainer grading until a calibrated model exists. **Next:** EQR v2 calibrated from
+OpenRange's own postflop solves (owner's decision pending on scope/timing).

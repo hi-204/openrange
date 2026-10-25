@@ -181,18 +181,25 @@ bit-identical on Windows, Linux and WebAssembly. Regression goldens
 (`data/goldens/river.json`) store fingerprints; `cargo test` and `npm test` (WASM) both
 re-solve them and must match bit for bit.
 
-### 1.9 Preflop *(planned, M5)*
-- **Push/fold**: per-combo (1326) decisions with exact all-in equities; heads-up solved by
-  full CFR to near-zero exploitability (chip EV and ICM via Malmuth–Harville). 3–6 players:
-  CFR with sampled multiway equities, labeled approximate with measured per-player BR gain.
-- **Tier B EQR tree**: preflop action tree for 6-max 100 bb (and 20/40/60 bb); when action
-  closes and a flop is seen, terminal value = pot × equity × EQR(position, initiative, pot
-  type, hand class) − investment. EQR v1 parameters are *authored model inputs* (documented,
-  labeled); EQR v2 calibrates them from our own postflop solves. Sensitivity report shows how
-  charts move when EQR parameters change.
+### 1.9 Preflop (`solver-core/src/preflop/`)
+- **Combo-pair equities** (`pairs.rs`): the 47,008 suit classes of non-overlapping combo
+  pairs, numbered deterministically; integer win/tie counts over all 1,712,304 boards are
+  stored in `data/equity/preflop-pairs.json` (D-042) and expanded to all ordered pairs.
+- **Exact heads-up push/fold** (`pushfold.rs`): shove-or-fold vs call-or-fold over all
+  1326 × 1326 combos, DCFR, exact best responses; chip EV or ICM payoffs from the stacks after
+  the hand (D-043). Also runs in the browser (`solver-wasm/src/pushfold.rs`).
+- **Preflop trees** (`tree.rs`): push/fold for 2–6 players; a 6-max cash tree (opens,
+  3-bets, squeezes, 4-bets, 5-bet jams) with documented simplifications.
+- **Sampled CFR engine** (`mccfr.rs`): external-sampling MCCFR per (node, class), real deals,
+  exact heads-up all-in equity at two-way showdowns, EQR model at flops; an evaluation pass
+  gives per-action EVs with standard errors, each class's own reach, and a cross-validated,
+  own-reach-weighted best-response gain (D-044, D-045).
+- **EQR model** (`EqrModel`): v1 authored, hand-independent (D-046); it misses the late
+  position sanity bands (D-047). v2 is to be calibrated from our own postflop solves.
 
-### 1.10 ICM *(planned, M5)*
-Malmuth–Harville finishing probabilities, exact for ≤ 9 players by recursion with memoization.
+### 1.10 ICM (`preflop/icm.rs`)
+Malmuth–Harville by recursion over subsets of unplaced players (2ⁿ states); busted players
+take the lowest places, sharing them equally if several bust at once.
 
 ## 2. solver-cli
 

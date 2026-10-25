@@ -3,6 +3,7 @@
 //! Poker logic lives in solver-core; this crate only translates and picks methods.
 
 mod api;
+mod pushfold;
 mod solver;
 
 use wasm_bindgen::prelude::*;
@@ -88,4 +89,26 @@ impl Solver {
             .map(|v| v.to_string())
             .map_err(|e| JsError::new(&e))
     }
+}
+
+/// Load the exact combo-pair equities (`data/equity/preflop-pairs.json` text) once.
+#[wasm_bindgen(js_name = loadPairs)]
+pub fn load_pairs(json: &str) -> Result<String, JsError> {
+    pushfold::load_pairs(json)
+        .map(|v| v.to_string())
+        .map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = pairsLoaded)]
+pub fn pairs_loaded() -> bool {
+    pushfold::pairs_loaded()
+}
+
+/// Exact heads-up push/fold: `{stacks, pusher, caller, ante, payouts}` (empty payouts = chip
+/// EV). Needs `loadPairs` first.
+#[wasm_bindgen(js_name = pushFold)]
+pub fn push_fold(spot_json: &str) -> Result<String, JsError> {
+    pushfold::solve_spot(spot_json)
+        .map(|v| v.to_string())
+        .map_err(|e| JsError::new(&e))
 }

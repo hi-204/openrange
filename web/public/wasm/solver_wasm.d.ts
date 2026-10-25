@@ -52,10 +52,23 @@ export function equity(request_json: string): string;
 export function estimateMemory(spot_json: string): string;
 
 /**
+ * Load the exact combo-pair equities (`data/equity/preflop-pairs.json` text) once.
+ */
+export function loadPairs(json: string): string;
+
+export function pairsLoaded(): boolean;
+
+/**
  * Parse a range string. Returns JSON: `{ok, canonical, combos, weights[1326]}` or
  * `{ok: false, error}`.
  */
 export function parseRange(text: string): string;
+
+/**
+ * Exact heads-up push/fold: `{stacks, pusher, caller, ante, payouts}` (empty payouts = chip
+ * EV). Needs `loadPairs` first.
+ */
+export function pushFold(spot_json: string): string;
 
 /**
  * solver-core version string.
@@ -70,7 +83,10 @@ export interface InitOutput {
     readonly countStartingCombos: () => number;
     readonly equity: (a: number, b: number) => [number, number];
     readonly estimateMemory: (a: number, b: number) => [number, number, number, number];
+    readonly loadPairs: (a: number, b: number) => [number, number, number, number];
+    readonly pairsLoaded: () => number;
     readonly parseRange: (a: number, b: number) => [number, number];
+    readonly pushFold: (a: number, b: number) => [number, number, number, number];
     readonly solver_exploitability: (a: number) => [number, number];
     readonly solver_fingerprint: (a: number) => [number, number];
     readonly solver_info: (a: number) => [number, number];

@@ -5,7 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/sync-data.mjs",
     "dev": "vite",
+    "prebuild": "node ../scripts/sync-data.mjs",
     "build": "tsc -p . && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p .",

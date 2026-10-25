@@ -47,6 +47,8 @@ cargo run --release -p solver-cli -- gen-equity             # regenerates data/e
 cargo run --release -p solver-cli -- validate               # regenerates docs/VALIDATION.md
 cargo run --release -p solver-cli -- gen-goldens            # only for intentional solver changes (D-032)
 cargo run --release -p solver-cli -- solve spot.json        # solve one spot from the command line
+cargo run --release -p solver-cli -- gen-charts pushfold-hu   # also pushfold-multi --players N, cash (~20 min total)
+node scripts/sync-data.mjs                                   # copy data/ into web/public/data (runs before dev/build)
 npm --workspace web run test:e2e                            # Playwright smoke tests
 ```
 

@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-24 (M4): river, turn and flop solving work and are validated; flop solving is slow._
+_Status 2026-10-24 (M5, in progress): postflop solving and push/fold are validated; the cash-game preflop charts miss sanity checks and are not yet published (D-047)._
 
 ## By design
 
@@ -31,6 +31,24 @@ _Status 2026-10-24 (M4): river, turn and flop solving work and are validated; fl
   long in the browser.
 - **Preflop equity table** (`data/equity/preflop-169.json`): exact, values rounded to
   6 decimals.
+
+## Preflop
+
+- **Heads-up push/fold** is exact for its model: blinds 0.5/1, optional antes, only the two
+  players' decisions are solved (everyone else folds). With payouts it uses ICM
+  (Malmuth–Harville); a player who busts takes the lowest remaining prize, shared equally if
+  two bust in the same hand (real tie-breaks use starting stacks).
+- **3–6-handed push/fold** is approximate: equal stacks only, chip EV only, strategies per hand
+  class (not per combo), solved by sampling; CFR with 3+ players has no equilibrium
+  guarantee. The reported best-response gain is a sampled estimate of single-decision
+  deviations.
+- **6-max cash charts (EQR v1) are not published as reference:** late positions open less
+  than is plausible (BTN ≈32% at 100 bb vs a 40–50% sanity band) because realization doesn't
+  depend on the hand (D-047). The tree has no limps, at most one cold caller, no cold 4-bets
+  or cold calls of 3-bets, and is rake-free. Multiway flops approximate equity from heads-up
+  matchups.
+- **Charts are per class.** Within a class, suits can matter slightly (card removal); the
+  exact heads-up charts average their combos.
 
 ## Not yet verified
 

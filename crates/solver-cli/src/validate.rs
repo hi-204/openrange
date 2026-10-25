@@ -13,10 +13,19 @@ use solver_core::cfr::tabular::{
 use solver_core::equity::{exact_range_vs_range, hand_vs_hand, monte_carlo};
 use solver_core::eval::{Evaluator, count_seven_card_categories};
 use solver_core::games::{kuhn::Kuhn, leduc::Leduc};
+use solver_core::hands::{HandClass, NUM_CLASSES};
 use solver_core::iso::{permute_card, permute_combo};
 use solver_core::postflop::abstraction::fit_to_budget;
 use solver_core::postflop::json::spot_from_json;
 use solver_core::postflop::{Options, PostflopGame, SpotConfig, estimate_memory_with, reference};
+use solver_core::preflop::icm::icm_equity;
+use solver_core::preflop::mccfr::Engine;
+use solver_core::preflop::pairs::{PairEquity, pair_equity_from_json};
+use solver_core::preflop::pushfold::{
+    Payoffs, PushFoldSpot, ShoveGame, ShoveSolver, hu_spot, report_for as shove_report_for,
+    solve as solve_shove,
+};
+use solver_core::preflop::tree::{PNode, push_fold};
 use solver_core::range::Range;
 use solver_core::rng::Rng;
 use std::fmt::Write as _;
@@ -27,9 +36,17 @@ struct Check {
     expected: String,
     measured: String,
     pass: bool,
-    /// Report-only rows show a measured value with nothing to pass or fail; they are counted
-    /// separately from real checks.
-    report: bool,
+    kind: Kind,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    /// Pass/fail correctness check.
+    Check,
+    /// A measured value with nothing to pass or fail.
+    Report,
+    /// Plausibility band for a model output (not a correctness check; D-047).
+    Sanity,
 }
 
 struct Section {
@@ -66,7 +83,29 @@ impl Section {
             expected,
             measured,
             pass,
-            report: false,
+            kind: Kind::Check,
+        });
+    }
+
+    /// A plausibility band: shown and summarised separately from correctness checks.
+    fn sanity(
+        &mut self,
+        name: &str,
+        expected: impl Into<String>,
+        measured: impl Into<String>,
+        inside: bool,
+    ) {
+        let (expected, measured) = (expected.into(), measured.into());
+        eprintln!(
+            "  [{}] {name}: {measured}",
+            if inside { "in band" } else { "OUT OF BAND" }
+        );
+        self.checks.push(Check {
+            name: name.into(),
+            expected,
+            measured,
+            pass: inside,
+            kind: Kind::Sanity,
         });
     }
 
@@ -79,7 +118,7 @@ impl Section {
             expected: "(reported, not checked)".into(),
             measured,
             pass: true,
-            report: true,
+            kind: Kind::Report,
         });
     }
 }
@@ -894,6 +933,343 @@ fn convergence(cfg: &SpotConfig, checkpoints: &[u32]) -> Result<Vec<f64>, String
     Ok(out)
 }
 
+// ---- preflop (M5) ------------------------------------------------------------------------
+
+fn load_pairs_for_validation() -> Result<PairEquity, String> {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../data/equity/preflop-pairs.json"
+    );
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+    pair_equity_from_json(&serde_json::from_str(&text).map_err(|e| e.to_string())?)
+}
+
+fn per_combo(class_freq: &[f64]) -> Vec<f64> {
+    let mut out = vec![0.0; 1326];
+    for c in HandClass::all() {
+        for combo in c.combos() {
+            out[combo.index()] = class_freq[c.index()];
+        }
+    }
+    out
+}
+
+fn preflop_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "Preflop: push/fold, ICM and the sampled engine",
+        "Heads-up push/fold is solved exactly over all 1326 combos per player (DCFR, exact \
+         card removal, exact all-in equities from data/equity/preflop-pairs.json). A toy version \
+         with a closed-form answer checks the solver; indifference checks that hands which mix \
+         have equal EVs. The sampled-CFR engine used for 3+ players and for the cash model is \
+         checked against the exact heads-up solver, and its best-response estimate against exact \
+         best responses. ICM is checked on hand-computable cases.",
+    );
+    // Toy: the pusher's hand always wins (weight p) or always loses; one caller hand.
+    let (st, p) = (10.0, 0.3);
+    let toy = ShoveGame {
+        pusher: vec![p, 1.0 - p],
+        caller: vec![1.0],
+        compat: vec![1.0, 1.0],
+        outcome: vec![(1.0, 0.0), (0.0, 0.0)],
+        payoffs: Payoffs {
+            fold: [-0.5, 0.5],
+            steal: [1.0, -1.0],
+            win: [st, -st],
+            tie: [0.0, 0.0],
+            lose: [-st, st],
+        },
+    };
+    let (solver, report) = solve_shove(toy, 1e-9, 20_000, 100);
+    let q = (st - 1.0) / (2.0 * st);
+    let (xt, yt) = (p * q / ((1.0 - p) * (1.0 - q)), 1.5 / (1.0 + st));
+    let (x, y) = (solver.average(0), solver.average(1));
+    s.check(
+        "toy push/fold: losing hand's shove frequency",
+        format!("p·q/((1−p)(1−q)) = {xt:.6} (±3e-4; measured 3.2e-5)"),
+        format!("{:.6}", x[1]),
+        (x[1] - xt).abs() < 3e-4,
+    );
+    s.check(
+        "toy push/fold: call frequency",
+        format!("1.5/(1+S) = {yt:.6} (±3e-4; measured 1.2e-5)"),
+        format!("{:.6}", y[0]),
+        (y[0] - yt).abs() < 3e-4,
+    );
+    s.check(
+        "toy push/fold: winning hand always shoves",
+        "> 0.9999",
+        format!("{:.6}", x[0]),
+        x[0] > 0.9999,
+    );
+    s.check(
+        "toy push/fold: exploitability",
+        "< 1e-4 bb (measured 3.3e-5)",
+        format!("{:.2e} bb", report.exploitability),
+        report.exploitability < 1e-4,
+    );
+
+    let eq = load_pairs_for_validation()?;
+    for stack in [5.0, 10.0, 20.0] {
+        let (solver, report) = solve_shove(
+            hu_spot(&PushFoldSpot::heads_up(stack), &eq)?,
+            1e-6,
+            20_000,
+            50,
+        );
+        let (x, y) = (solver.average(0), solver.average(1));
+        let v = solver.values(&x, &y);
+        let mut worst = 0.0f64;
+        for i in 0..1326 {
+            if x[i] > 0.02 && x[i] < 0.98 {
+                worst = worst.max(((v.shove[i] - v.fold[i]) / v.pusher_mass[i]).abs());
+            }
+            if y[i] > 0.02 && y[i] < 0.98 && v.caller_mass[i] > 0.0 {
+                worst = worst.max(((v.call[i] - v.pass[i]) / v.caller_mass[i]).abs());
+            }
+        }
+        s.check(
+            &format!("heads-up push/fold {stack} bb: exploitability"),
+            "≤ 1e-6 bb (solve target)",
+            format!(
+                "{:.2e} bb after {} iterations",
+                report.exploitability,
+                solver.iterations()
+            ),
+            report.exploitability <= 1e-6,
+        );
+        s.check(
+            &format!("heads-up push/fold {stack} bb: chip EV is zero-sum"),
+            "|SB value + BB value| < 1e-12",
+            format!("{:.1e}", (report.value[0] + report.value[1]).abs()),
+            (report.value[0] + report.value[1]).abs() < 1e-12,
+        );
+        s.check(
+            &format!("heads-up push/fold {stack} bb: indifference of mixing combos"),
+            "|EV(shove/call) − EV(fold)| < 3e-3 bb (worst measured 5.9e-4)",
+            format!("{worst:.1e} bb"),
+            worst < 3e-3,
+        );
+    }
+
+    // Sampled engine (2 players) judged by the exact solver.
+    let tree = push_fold(2, 10.0, 0.0)?;
+    let mut e = Engine::new(&tree, Some(&eq), None, 11)?;
+    e.iterate(2_000_000);
+    let PNode::Action { children, .. } = &tree.nodes[0] else {
+        return Err("tree".into());
+    };
+    let bb = children[1];
+    let freq = |e: &Engine, node: usize| -> Vec<f64> {
+        let mut sigma = [0.0; 2];
+        (0..NUM_CLASSES)
+            .map(|c| {
+                e.strategy(node, c, true, &mut sigma);
+                sigma[1]
+            })
+            .collect()
+    };
+    let exact_game = ShoveSolver::new(
+        hu_spot(&PushFoldSpot::heads_up(10.0), &eq)?,
+        Algorithm::DCFR_DEFAULT,
+    );
+    let r = shove_report_for(
+        &exact_game,
+        &per_combo(&freq(&e, 0)),
+        &per_combo(&freq(&e, bb)),
+    );
+    s.check(
+        "sampled CFR (2 players, 10 bb, 2M iterations) judged by the exact solver",
+        "exploitability < 3e-3 bb (measured 3.7e-4)",
+        format!("{:.2e} bb", r.exploitability),
+        r.exploitability < 3e-3,
+    );
+    let mut rough = Engine::new(&tree, Some(&eq), None, 3)?;
+    rough.iterate(20_000);
+    let sampled = rough.evaluate(4_000_000, 17).best_response_gain;
+    let r = shove_report_for(
+        &exact_game,
+        &per_combo(&freq(&rough, 0)),
+        &per_combo(&freq(&rough, bb)),
+    );
+    let exact = [
+        r.best_response[0] - r.value[0],
+        r.best_response[1] - r.value[1],
+    ];
+    let rel = (0..2)
+        .map(|p| ((sampled[p] - exact[p]) / exact[p]).abs())
+        .fold(0.0, f64::max);
+    s.check(
+        "sampled best-response estimate vs exact best response (under-converged HU strategy)",
+        "relative error < 10% (measured 1.8%)",
+        format!(
+            "sampled {:.4}/{:.4} vs exact {:.4}/{:.4} bb",
+            sampled[0], sampled[1], exact[0], exact[1]
+        ),
+        rel < 0.1,
+    );
+
+    // ICM.
+    let ev = icm_equity(&[3000.0, 1000.0], &[70.0, 30.0]);
+    s.check(
+        "ICM, 2 players: linear in chips",
+        "60 / 40 = 30 + 40 × chip share",
+        format!("{:.6} / {:.6}", ev[0], ev[1]),
+        (ev[0] - 60.0).abs() < 1e-12 && (ev[1] - 40.0).abs() < 1e-12,
+    );
+    let ev = icm_equity(&[50.0, 30.0, 20.0], &[60.0, 40.0]);
+    let a = 0.5 * 60.0 + (0.3 * 50.0 / 70.0 + 0.2 * 50.0 / 80.0) * 40.0;
+    s.check(
+        "ICM, 3 players 50/30/20, payouts 60/40: first player",
+        format!("{a:.9} (by hand)"),
+        format!("{:.9}", ev[0]),
+        (ev[0] - a).abs() < 1e-12,
+    );
+    let ev = icm_equity(&[5000.0, 3000.0, 1500.0, 500.0], &[50.0, 30.0, 20.0]);
+    let total: f64 = ev.iter().sum();
+    s.check(
+        "ICM: prizes are conserved",
+        "sum = 100 (±1e-9)",
+        format!("{total:.12}"),
+        (total - 100.0).abs() < 1e-9,
+    );
+    Ok(s)
+}
+
+/// Checks on the committed chart files (data/charts), which take ~30 minutes to regenerate.
+fn charts_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "Preflop chart files (data/charts)",
+        "Read from the committed files (regenerate with `solver-cli gen-charts`). Heads-up \
+         push/fold must be solved to its target; sampled families report each seat's estimated \
+         best-response gain (cross-validated, weighted by the seat's own reach, so it is near 0 \
+         or slightly negative at convergence). Sanity bands are plausibility checks on the cash \
+         model, listed separately from correctness checks.",
+    );
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data/charts");
+    let read = |name: &str| -> Result<serde_json::Value, String> {
+        let p = format!("{dir}/{name}");
+        let text = std::fs::read_to_string(&p)
+            .map_err(|e| format!("{p}: {e} (run solver-cli gen-charts)"))?;
+        serde_json::from_str(&text).map_err(|e| e.to_string())
+    };
+    let hu = read("pushfold-hu.json")?;
+    let charts = hu["charts"].as_array().ok_or("pushfold-hu: no charts")?;
+    let worst = charts
+        .iter()
+        .filter_map(|c| c["solve"]["exploitabilityBb"].as_f64())
+        .fold(0.0, f64::max);
+    s.check(
+        &format!(
+            "pushfold-hu.json: every one of {} charts solved to target",
+            charts.len()
+        ),
+        "exploitability ≤ 1e-6 bb",
+        format!("worst {worst:.2e} bb"),
+        worst <= 1e-6 && hu["provenance"]["gitDirty"] == false,
+    );
+    for n in 3..=6 {
+        let doc = read(&format!("pushfold-{n}max.json"))?;
+        let gains: Vec<f64> = doc["solves"]
+            .as_array()
+            .ok_or("no solves")?
+            .iter()
+            .flat_map(|x| {
+                x["bestResponseGainBb"]
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default()
+            })
+            .filter_map(|x| x.as_f64())
+            .collect();
+        let max = gains.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        s.check(
+            &format!(
+                "pushfold-{n}max.json: largest estimated best-response gain (any seat, any stack)"
+            ),
+            "< 0.05 bb per hand",
+            format!("{max:.4} bb"),
+            max < 0.05,
+        );
+    }
+    for stack in [20, 40, 60, 100] {
+        let Ok(doc) = read(&format!("cash-6max-{stack}bb.json")) else {
+            s.report(
+                &format!("cash-6max-{stack}bb.json"),
+                "not committed (held back pending the EQR decision, D-047)",
+            );
+            continue;
+        };
+        let gains: Vec<f64> = doc["bestResponseGainBb"]
+            .as_array()
+            .ok_or("no gains")?
+            .iter()
+            .filter_map(|x| x.as_f64())
+            .collect();
+        let max = gains.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        s.check(
+            &format!("cash-6max-{stack}bb.json: largest estimated best-response gain (any seat)"),
+            "< 0.05 bb per hand",
+            format!("{max:.4} bb"),
+            max < 0.05,
+        );
+        let first_in: Vec<String> = doc["firstIn"]
+            .as_array()
+            .ok_or("no firstIn")?
+            .iter()
+            .map(|x| {
+                format!(
+                    "{} {:.1}%",
+                    x["seat"].as_str().unwrap_or("?"),
+                    x["share"].as_f64().unwrap_or(f64::NAN) * 100.0
+                )
+            })
+            .collect();
+        s.report(
+            &format!("cash {stack} bb: first-in (open) frequency"),
+            first_in.join(", "),
+        );
+        for b in doc["sanityBands"].as_array().cloned().unwrap_or_default() {
+            let (lo, hi, m) = (
+                b["low"].as_f64().unwrap_or(0.0),
+                b["high"].as_f64().unwrap_or(0.0),
+                b["measured"].as_f64().unwrap_or(f64::NAN),
+            );
+            s.sanity(
+                &format!(
+                    "cash {stack} bb: {} opens",
+                    b["seat"].as_str().unwrap_or("?")
+                ),
+                format!("{:.0}–{:.0}% (plausibility band)", lo * 100.0, hi * 100.0),
+                format!("{:.1}%", m * 100.0),
+                m >= lo && m <= hi,
+            );
+        }
+        for sens in doc["sensitivity"].as_array().cloned().unwrap_or_default() {
+            let row: Vec<String> = sens["firstIn"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+                .iter()
+                .map(|x| {
+                    format!(
+                        "{} {:.1}%",
+                        x["seat"].as_str().unwrap_or("?"),
+                        x["share"].as_f64().unwrap_or(f64::NAN) * 100.0
+                    )
+                })
+                .collect();
+            s.report(
+                &format!(
+                    "cash {stack} bb: first-in with out-of-position realization ×{}",
+                    sens["oopScale"]
+                ),
+                row.join(", "),
+            );
+        }
+    }
+    Ok(s)
+}
+
 /// Table cells may contain `|` (e.g. "|z| < 4"), which Markdown would read as a column break.
 fn cell(x: &str) -> String {
     x.replace('|', r"\|")
@@ -923,19 +1299,34 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(flop_reference_section(quick)?);
     eprintln!("validate: turn and flop");
     sections.push(multi_street_section()?);
+    eprintln!("validate: preflop");
+    sections.push(preflop_section()?);
+    eprintln!("validate: chart files");
+    sections.push(charts_section()?);
 
     let failed: usize = sections
         .iter()
-        .map(|s| s.checks.iter().filter(|c| !c.pass && !c.report).count())
+        .map(|s| {
+            s.checks
+                .iter()
+                .filter(|c| !c.pass && c.kind == Kind::Check)
+                .count()
+        })
         .sum();
     let total: usize = sections
         .iter()
-        .map(|s| s.checks.iter().filter(|c| !c.report).count())
+        .map(|s| s.checks.iter().filter(|c| c.kind == Kind::Check).count())
         .sum();
     let reported: usize = sections
         .iter()
-        .map(|s| s.checks.iter().filter(|c| c.report).count())
+        .map(|s| s.checks.iter().filter(|c| c.kind == Kind::Report).count())
         .sum();
+    let bands: Vec<&Check> = sections
+        .iter()
+        .flat_map(|s| s.checks.iter())
+        .filter(|c| c.kind == Kind::Sanity)
+        .collect();
+    let bands_in = bands.iter().filter(|c| c.pass).count();
 
     let mut md = String::new();
     let _ = writeln!(md, "# OpenRange — Validation report\n");
@@ -968,10 +1359,18 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
         "Tolerances were set at about 5–10× the value measured when they were chosen (shown in \
          the Expected column); see D-040 in docs/DECISIONS.md.\n"
     );
+    if !bands.is_empty() {
+        let _ = writeln!(
+            md,
+            "Sanity bands (plausibility of model outputs, not correctness checks): {bands_in} of {} \
+             in band. Bands that are missed are investigated and recorded in docs/DECISIONS.md \
+             (D-047).\n",
+            bands.len()
+        );
+    }
     let _ = writeln!(
         md,
-        "Not covered here: speed (see docs/KNOWN_LIMITS.md) and the preflop and trainer \
-         layers, which arrive in later milestones.\n"
+        "Not covered here: speed (see docs/KNOWN_LIMITS.md) and the trainer, which arrives in M6.\n"
     );
     for s in &sections {
         let _ = writeln!(
@@ -980,12 +1379,12 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
             s.title, s.intro
         );
         for c in &s.checks {
-            let result = if c.report {
-                "reported"
-            } else if c.pass {
-                "pass"
-            } else {
-                "**FAIL**"
+            let result = match (c.kind, c.pass) {
+                (Kind::Report, _) => "reported",
+                (Kind::Sanity, true) => "in band",
+                (Kind::Sanity, false) => "**out of band**",
+                (Kind::Check, true) => "pass",
+                (Kind::Check, false) => "**FAIL**",
             };
             let _ = writeln!(
                 md,
