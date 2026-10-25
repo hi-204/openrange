@@ -7,6 +7,7 @@
 export class Solver {
     free(): void;
     [Symbol.dispose](): void;
+    clearLocks(): void;
     /**
      * `{iterations, chips, bb, pctPot, evBb: [oop, ip]}`
      */
@@ -21,6 +22,11 @@ export class Solver {
      */
     info(): string;
     /**
+     * Lock the acting player's strategy at the node reached by `pathJson` to
+     * `strategyJson` (`[action][hand]`); takes effect from the next iteration.
+     */
+    lock(path_json: string, strategy_json: string): string;
+    /**
      * `allowAbstraction`: if the spot doesn't fit the budget, simplify the tree (and report
      * how in `info().abstraction`) instead of refusing.
      */
@@ -30,9 +36,14 @@ export class Solver {
      */
     node(path_json: string): string;
     /**
+     * Forget regrets and averages (locks stay), to re-solve from scratch.
+     */
+    reset(): void;
+    /**
      * Run `n` more iterations; returns the total.
      */
     step(n: number): number;
+    unlock(path_json: string): string;
 }
 
 /**
@@ -113,12 +124,16 @@ export interface InitOutput {
     readonly parseRange: (a: number, b: number) => [number, number];
     readonly preflopMatchup: (a: number, b: number) => [number, number, number, number];
     readonly pushFold: (a: number, b: number) => [number, number, number, number];
+    readonly solver_clearLocks: (a: number) => void;
     readonly solver_exploitability: (a: number) => [number, number];
     readonly solver_fingerprint: (a: number) => [number, number];
     readonly solver_info: (a: number) => [number, number];
+    readonly solver_lock: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
     readonly solver_new: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly solver_node: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly solver_reset: (a: number) => void;
     readonly solver_step: (a: number, b: number) => number;
+    readonly solver_unlock: (a: number, b: number, c: number) => [number, number, number, number];
     readonly version: () => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

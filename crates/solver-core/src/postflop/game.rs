@@ -139,6 +139,11 @@ pub struct PostflopGame {
     /// Σ_h w₀(h)·(compatible opponent weight): normalizes values into per-hand-pair EVs.
     pair_weight: f64,
     pool: Pool,
+    /// Node locks (D-076): expanded action node → fixed strategy `[action][hand]` of the acting
+    /// player, used in every pass (training, averages, best responses) instead of regret
+    /// matching. The locked player can't deviate there, so exploitability measures the
+    /// restricted game and still goes to zero.
+    locks: HashMap<u32, Vec<f32>>,
 }
 
 /// Estimated memory for a spot in bytes (storage + strength tables + nodes + overhead),
@@ -509,6 +514,7 @@ impl PostflopGame {
             iteration: 0,
             pair_weight: 0.0,
             pool: Pool::default(),
+            locks: HashMap::new(),
         };
         let compat = game.compatible(0, &game.init[1], CardSet::EMPTY);
         game.pair_weight = game.init[0]
@@ -524,6 +530,89 @@ impl PostflopGame {
 
     pub fn hands(&self, player: usize) -> &[Combo] {
         &self.hands[player]
+    }
+
+    /// The expanded node reached by `path` (as in [`Self::node`]).
+    fn expanded_at(&self, path: &[usize]) -> Result<usize, String> {
+        let mut e = 0usize;
+        for (depth, &step) in path.iter().enumerate() {
+            let n = self.nodes[e].children.len();
+            if matches!(self.nodes[e].kind, EKind::Fold { .. } | EKind::Showdown) || step >= n {
+                return Err(format!("step {depth}: no child {step}"));
+            }
+            e = self.nodes[e].children[step] as usize;
+        }
+        Ok(e)
+    }
+
+    /// Lock the acting player's strategy at the action node reached by `path`:
+    /// `strategy[a * hands + h]`. Each hand's probabilities must be non-negative and are
+    /// normalized to sum to 1. Takes effect from the next iteration; call [`Self::reset`] to
+    /// re-solve from scratch.
+    pub fn lock(&mut self, path: &[usize], strategy: &[f32]) -> Result<(), String> {
+        let e = self.expanded_at(path)?;
+        let EKind::Action { player, n_actions } = self.nodes[e].kind else {
+            return Err("only decision nodes can be locked".into());
+        };
+        let (n_a, n) = (n_actions as usize, self.hands[player as usize].len());
+        if strategy.len() != n_a * n {
+            return Err(format!(
+                "expected {} numbers ({n_a} actions × {n} hands), got {}",
+                n_a * n,
+                strategy.len()
+            ));
+        }
+        let mut s = strategy.to_vec();
+        for h in 0..n {
+            if (0..n_a).any(|a| !s[a * n + h].is_finite() || s[a * n + h] < 0.0) {
+                return Err(format!(
+                    "hand {h}: probabilities must be finite and not negative"
+                ));
+            }
+            let total: f32 = (0..n_a).map(|a| s[a * n + h]).sum();
+            if total <= 0.0 {
+                return Err(format!("hand {h}: probabilities sum to zero"));
+            }
+            for a in 0..n_a {
+                s[a * n + h] /= total;
+            }
+        }
+        self.locks.insert(e as u32, s);
+        Ok(())
+    }
+
+    pub fn unlock(&mut self, path: &[usize]) -> Result<bool, String> {
+        let e = self.expanded_at(path)?;
+        Ok(self.locks.remove(&(e as u32)).is_some())
+    }
+
+    pub fn clear_locks(&mut self) {
+        self.locks.clear();
+    }
+
+    pub fn is_locked(&self, path: &[usize]) -> bool {
+        self.expanded_at(path)
+            .is_ok_and(|e| self.locks.contains_key(&(e as u32)))
+    }
+
+    pub fn lock_count(&self) -> usize {
+        self.locks.len()
+    }
+
+    /// Forget all regrets and averages (locks stay), so the next iterations solve from scratch.
+    pub fn reset(&mut self) {
+        self.regrets.fill(0.0);
+        self.strategy_sum.fill(0.0);
+        self.iteration = 0;
+    }
+
+    /// The strategy the acting player uses at expanded node `e`: the lock if there is one,
+    /// otherwise the average.
+    fn strategy_into(&self, e: usize, n_a: usize, n: usize, out: &mut [f32]) {
+        match self.locks.get(&(e as u32)) {
+            Some(l) => out.copy_from_slice(l),
+            None => self.average_into(self.nodes[e].offset, n_a, n, out),
+        }
     }
 
     pub fn initial_weights(&self, player: usize) -> &[f32] {
@@ -651,8 +740,12 @@ impl PostflopGame {
                 let n_p = self.hands[player].len();
                 let offset = self.nodes[e].offset;
                 let mut sigma = pool.get(n_a * n_p);
-                // Training uses the current (regret-matched) strategies; evaluation uses averages.
-                if matches!(mode, Mode::Train(_)) {
+                // A locked node always plays its lock. Otherwise training uses the current
+                // (regret-matched) strategies and evaluation uses averages.
+                let locked = self.locks.contains_key(&(e as u32));
+                if locked {
+                    sigma.copy_from_slice(&self.locks[&(e as u32)]);
+                } else if matches!(mode, Mode::Train(_)) {
                     regret_match(
                         &self.regrets[offset..offset + n_a * n_p],
                         n_a,
@@ -681,6 +774,15 @@ impl PostflopGame {
                         );
                     }
                     match mode {
+                        // The locked player can't deviate at a locked node, and its regrets
+                        // and averages there aren't used, so they aren't updated.
+                        Mode::BestResponse | Mode::Train(_) if locked => {
+                            for h in 0..n_t {
+                                out[h] = (0..n_a)
+                                    .map(|a| sigma[a * n_t + h] * child_vals[a * n_t + h])
+                                    .sum();
+                            }
+                        }
                         Mode::BestResponse => {
                             for h in 0..n_t {
                                 out[h] = (0..n_a)
@@ -934,7 +1036,7 @@ impl PostflopGame {
                     }
                     let n = self.hands[player].len();
                     let mut sigma = vec![0f32; n_a * n];
-                    self.average_into(self.nodes[e].offset, n_a, n, &mut sigma);
+                    self.strategy_into(e, n_a, n, &mut sigma);
                     for h in 0..n {
                         reach[player][h] *= sigma[step * n + h];
                     }
@@ -969,7 +1071,7 @@ impl PostflopGame {
                 let (player, n_a) = (player as usize, n_actions as usize);
                 let n = self.hands[player].len();
                 let mut strategy = vec![0f32; n_a * n];
-                self.average_into(self.nodes[e].offset, n_a, n, &mut strategy);
+                self.strategy_into(e, n_a, n, &mut strategy);
                 // Per-action EV for each hand: child value with both on average strategies,
                 // divided by the compatible opponent weight that reaches this node.
                 let opp = reach[1 - player].clone();
@@ -1025,6 +1127,7 @@ impl PostflopGame {
             pot,
             committed,
             reach,
+            locked: self.locks.contains_key(&(e as u32)),
         })
     }
 
@@ -1037,7 +1140,7 @@ impl PostflopGame {
         };
         let n = self.hands[player as usize].len();
         let mut out = vec![0f32; n_actions as usize * n];
-        self.average_into(self.nodes[e].offset, n_actions as usize, n, &mut out);
+        self.strategy_into(e, n_actions as usize, n, &mut out);
         Some(out)
     }
 
@@ -1088,6 +1191,8 @@ pub struct NodeView {
     pub committed: [i64; 2],
     /// Each player's reach (range weight) for every hand at this node.
     pub reach: [Vec<f32>; 2],
+    /// The acting player's strategy here is locked.
+    pub locked: bool,
 }
 
 #[cfg(test)]

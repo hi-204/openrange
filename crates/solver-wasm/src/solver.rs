@@ -113,6 +113,33 @@ impl Session {
         })
     }
 
+    /// Lock the acting player's strategy at the node reached by `path_json` to
+    /// `strategy_json` (`[action][hand]`, rows normalized), D-076.
+    pub fn lock(&mut self, path_json: &str, strategy_json: &str) -> Result<Value, String> {
+        let path: Vec<usize> =
+            serde_json::from_str(path_json).map_err(|e| format!("bad path: {e}"))?;
+        let strategy: Vec<f32> =
+            serde_json::from_str(strategy_json).map_err(|e| format!("bad strategy: {e}"))?;
+        self.game.lock(&path, &strategy)?;
+        Ok(json!({ "locks": self.game.lock_count() }))
+    }
+
+    pub fn unlock(&mut self, path_json: &str) -> Result<Value, String> {
+        let path: Vec<usize> =
+            serde_json::from_str(path_json).map_err(|e| format!("bad path: {e}"))?;
+        let removed = self.game.unlock(&path)?;
+        Ok(json!({ "removed": removed, "locks": self.game.lock_count() }))
+    }
+
+    pub fn clear_locks(&mut self) {
+        self.game.clear_locks();
+    }
+
+    /// Forget regrets and averages so the next iterations solve from scratch (locks stay).
+    pub fn reset(&mut self) {
+        self.game.reset();
+    }
+
     pub fn node(&mut self, path_json: &str) -> Result<Value, String> {
         let path: Vec<usize> =
             serde_json::from_str(path_json).map_err(|e| format!("bad path: {e}"))?;
@@ -122,6 +149,7 @@ impl Session {
             "board": board, "pot": v.pot as f64 / 100.0, "street": format!("{:?}", v.street),
             "committed": [v.committed[0] as f64 / 100.0, v.committed[1] as f64 / 100.0],
             "reach": [v.reach[0].clone(), v.reach[1].clone()],
+            "locked": v.locked,
         });
         let mut out = base;
         match v.kind {
@@ -181,6 +209,31 @@ mod tests {
     const SPOT: &str = r#"{"board":"Ks Th 7d 4c 2s","pot":10,"stack":50,
         "ranges":{"oop":"TT+, AJs+, KQs","ip":"99+, ATs+, KJs+"},
         "sizes":{"default":{"oop":{"bet":"50","raise":"100"},"ip":{"bet":"50","raise":"100"}}}}"#;
+
+    #[test]
+    fn session_locks_a_node_and_resets() {
+        let mut s = Session::new(SPOT, 1e9, false).unwrap();
+        let info = s.info();
+        let n_oop = info["hands"][0].as_array().unwrap().len();
+        let root = s.node("[]").unwrap();
+        let n_a = root["actions"].as_array().unwrap().len();
+        // Lock OOP's first decision to always check.
+        let mut lock = vec![0f32; n_a * n_oop];
+        lock[..n_oop].fill(1.0);
+        let r = s
+            .lock("[]", &serde_json::to_string(&lock).unwrap())
+            .unwrap();
+        assert_eq!(r["locks"], 1);
+        s.reset();
+        s.step(100);
+        let root = s.node("[]").unwrap();
+        assert_eq!(root["locked"], true);
+        let strat: Vec<f64> = serde_json::from_value(root["strategy"].clone()).unwrap();
+        assert!(strat[..n_oop].iter().all(|&x| (x - 1.0).abs() < 1e-6));
+        assert!(s.lock("[]", "[1, 2]").is_err());
+        assert_eq!(s.unlock("[]").unwrap()["removed"], true);
+        assert_eq!(s.node("[]").unwrap()["locked"], false);
+    }
 
     #[test]
     fn session_solves_and_reports() {

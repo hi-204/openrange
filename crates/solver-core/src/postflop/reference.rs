@@ -495,6 +495,99 @@ pub fn random_turn_spot(rng: &mut Rng) -> SpotConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::postflop::ViewKind;
+
+    /// Shares of OOP's air that bets at the root and of IP's range that calls the bet.
+    fn toy_frequencies(g: &mut PostflopGame) -> (f64, f64) {
+        let root = g.river_average(0).unwrap();
+        let n = g.hands(0).len();
+        let (mut air, mut air_bet) = (0.0, 0.0);
+        for h in 0..n {
+            if g.hands(0)[h].hi.rank() != 6 {
+                let w = g.initial_weights(0)[h] as f64;
+                air += w;
+                air_bet += w * root[n + h] as f64;
+            }
+        }
+        let NodeKind::Action { children, .. } = g.tree.nodes[0].kind.clone() else {
+            unreachable!()
+        };
+        let ip = g.river_average(children[1]).unwrap();
+        let m = g.hands(1).len();
+        let call = (0..m).map(|h| ip[m + h] as f64).sum::<f64>() / m as f64;
+        (air_bet / air, call)
+    }
+
+    #[test]
+    fn node_lock_on_the_caller_gives_the_textbook_best_response() {
+        // IP locked at calling 30% of the time, below the MDF of a 3/4-pot bet (57%): OOP's best
+        // response bluffs every air hand. Its EV per hand pair is (3·(P + cB) + 16·((1−c)P − cB)) / 19
+        // with 3 value combos (88) and 16 air combos (76).
+        let cfg = toy_polarized(0.75);
+        let mut g = PostflopGame::new(cfg, Algorithm::DCFR_DEFAULT).unwrap();
+        let m = g.hands(1).len();
+        let lock: Vec<f32> = [vec![0.7f32; m], vec![0.3f32; m]].concat();
+        g.lock(&[1], &lock).unwrap();
+        assert!(g.is_locked(&[1]) && !g.is_locked(&[0]) && g.lock_count() == 1);
+        for _ in 0..2000 {
+            g.iterate();
+        }
+        let (air_bets, call) = toy_frequencies(&mut g);
+        assert!(air_bets > 0.999, "air bets {air_bets}");
+        assert!((call - 0.3).abs() < 1e-6, "the lock is respected: {call}");
+        let (p, b, c) = (1000.0, 750.0, 0.3);
+        let want = (3.0 * (p + c * b) + 16.0 * ((1.0 - c) * p - c * b)) / 19.0;
+        let ev = g.expected_values()[0];
+        assert!((ev - want).abs() < 0.5, "EV {ev} vs {want}");
+        assert!(g.exploitability().pct_pot < 0.01, "restricted game solved");
+        assert!(g.node(&[1]).unwrap().locked);
+    }
+
+    #[test]
+    fn node_lock_on_the_bettor_makes_the_caller_call_everything() {
+        // OOP locked at betting every hand: bluffs are 16/19 of bets, far above 3/7, so calling
+        // beats folding with every bluff catcher.
+        let cfg = toy_polarized(0.75);
+        let mut g = PostflopGame::new(cfg, Algorithm::DCFR_DEFAULT).unwrap();
+        let n = g.hands(0).len();
+        g.lock(&[], &[vec![0f32; n], vec![1f32; n]].concat())
+            .unwrap();
+        for _ in 0..1000 {
+            g.iterate();
+        }
+        let (air_bets, call) = toy_frequencies(&mut g);
+        assert!((air_bets - 1.0).abs() < 1e-6);
+        assert!(call > 0.999, "call {call}");
+        // Unlock, reset and re-solve: back to the equilibrium (call = MDF).
+        assert!(g.unlock(&[]).unwrap());
+        g.reset();
+        for _ in 0..3000 {
+            g.iterate();
+        }
+        let (_, call) = toy_frequencies(&mut g);
+        assert!((call - 1000.0 / 1750.0).abs() < 1e-3, "call {call}");
+    }
+
+    #[test]
+    fn node_lock_rejects_bad_input() {
+        let mut g = PostflopGame::new(toy_polarized(0.75), Algorithm::DCFR_DEFAULT).unwrap();
+        let m = g.hands(1).len();
+        assert!(g.lock(&[1], &[0.5]).is_err(), "wrong length");
+        assert!(g.lock(&[1], &vec![-1.0; 2 * m]).is_err(), "negative");
+        assert!(g.lock(&[1], &vec![0.0; 2 * m]).is_err(), "zero sum");
+        assert!(
+            g.lock(&[1, 0], &vec![0.5; 2 * m]).is_err(),
+            "a terminal node"
+        );
+        assert!(g.lock(&[9], &vec![0.5; 2 * m]).is_err(), "no such child");
+        // Probabilities are normalized.
+        g.lock(&[1], &vec![2.0; 2 * m]).unwrap();
+        let ip = g.node(&[1]).unwrap();
+        let ViewKind::Action { strategy, .. } = ip.kind else {
+            unreachable!()
+        };
+        assert!(strategy.iter().all(|&x| (x - 0.5).abs() < 1e-6));
+    }
 
     #[test]
     fn polarized_toy_game_matches_mdf_and_bluff_share_theory() {

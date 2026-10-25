@@ -5,6 +5,9 @@ import type { SolverInfo, SolverNode } from '../../lib/wasm/protocol';
 import { useState } from 'react';
 import { actionColors } from './colors';
 import { ExplainHand } from './ExplainHand';
+import { LockPanel } from './LockPanel';
+import { nodeCsv } from './workbench';
+import { RunoutTable } from './WorkbenchParts';
 import { StrategyGrid } from './StrategyGrid';
 
 export type Step = { index: number; label: string };
@@ -19,10 +22,24 @@ type Props = {
   /** Solve accuracy and starting reach, for "Explain this hand". */
   exploitabilityPct?: number;
   rootReach?: number[][];
+  /** Node-locking (workbench only). */
+  locking?: { busy: boolean; onLock: (strategy: number[], label: string) => void; onUnlock: () => void };
+  /** Fetch another node (for the runout explorer). */
+  explore?: (path: number[]) => Promise<SolverNode>;
 };
 
-export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploitabilityPct, rootReach }: Props) {
+function download(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploitabilityPct, rootReach, locking, explore }: Props) {
   const [explain, setExplain] = useState<number | null>(null);
+  const [view, setView] = useState<'strategy' | 'opponent'>('strategy');
   const go = (step: Step) => {
     setCell(null);
     setExplain(null);
@@ -65,6 +82,14 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploita
           ))}
         </ul>
         {node.mirrors.some((m) => m.length > 0) && <p className="text-xs text-ink-muted">{t('solver.isoNote')}</p>}
+        {explore && (
+          <details>
+            <summary className="cursor-pointer text-sm font-medium">{t('runouts.summary')}</summary>
+            <div className="mt-2">
+              <RunoutTable info={info} node={node} path={path.map((p) => p.index)} explore={explore} onPick={(k) => go({ index: k, label: node.cards[k]! })} />
+            </div>
+          </details>
+        )}
       </section>
     );
   }
@@ -96,6 +121,11 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploita
           pot: node.pot.toFixed(2),
           board: node.board.join(' '),
         })}
+        {node.locked && (
+          <span className="ml-2 rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs font-semibold text-accent" data-testid="locked-badge">
+            {t('lock.badge')}
+          </span>
+        )}
       </p>
       <ul className="flex flex-wrap gap-2" aria-label={t('solver.actions')}>
         {node.actions.map((label, a) => (
@@ -107,6 +137,24 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploita
           </li>
         ))}
       </ul>
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('solver.view')}>
+        <button type="button" className="btn-quiet !min-h-9 text-sm" aria-pressed={view === 'strategy'} onClick={() => setView('strategy')}>
+          {t('solver.viewStrategy', { who })}
+        </button>
+        <button type="button" className="btn-quiet !min-h-9 text-sm" aria-pressed={view === 'opponent'} onClick={() => setView('opponent')} data-testid="view-opponent">
+          {t('solver.viewOpponent', { who: who === 'OOP' ? 'IP' : 'OOP' })}
+        </button>
+        <button type="button" className="btn-quiet !min-h-9 text-sm" onClick={() => download(`openrange-node-${path.map((p) => p.index).join('-') || 'root'}.csv`, nodeCsv(node, hands))} data-testid="csv">
+          {t('solver.csv')}
+        </button>
+      </div>
+      {view === 'opponent' && (
+        <div className="max-w-md space-y-1" data-testid="opponent-range">
+          <p className="text-sm">{t('solver.opponentRange', { who: who === 'OOP' ? 'IP' : 'OOP', combos: node.reach[1 - node.player]!.reduce((s, w) => s + w, 0).toFixed(1) })}</p>
+          <StrategyGrid hands={info.hands[1 - node.player]!} reach={node.reach[1 - node.player]!} strategy={info.hands[1 - node.player]!.map(() => 1)} actions={[t('widget.grid.in')]} colors={['#56B4E9']} selected={null} onSelect={() => undefined} />
+        </div>
+      )}
+      {locking && <LockPanel key={`${path.map((p) => p.index).join('.')}|${node.player}|${node.actions.join(',')}|${node.locked ? 1 : 0}`} node={node} hands={n} busy={locking.busy} onLock={locking.onLock} onUnlock={locking.onUnlock} />}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,28rem)_1fr]">
         <StrategyGrid hands={hands} reach={reach} strategy={node.strategy} actions={node.actions} colors={colors} selected={cell} onSelect={setCell} />
         <div className="text-sm">

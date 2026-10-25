@@ -1,9 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSettings } from '../../lib/settings/useSettings';
 import { t, type MessageKey } from '../../lib/i18n';
 import { CancelledError, SolverClient, solverClient, type Progress } from '../../lib/wasm/client';
 import type { RunResult, SolverInfo, SolverNode } from '../../lib/wasm/protocol';
 import { NodeBrowser, type Step } from './NodeBrowser';
+import { RangePainter } from './WorkbenchParts';
 import { activeStreets, PRESETS, STREETS, toSpot, type Form, type StreetForm, type StreetName } from './spotForm';
 
 type Status =
@@ -54,6 +55,9 @@ export function SolverPage() {
   const [node, setNode] = useState<SolverNode | null>(null);
   const [rootReach, setRootReach] = useState<number[][] | undefined>(undefined);
   const [cell, setCell] = useState<number | null>(null);
+  // Node locks (D-076): their paths and labels, and the EVs before the first lock.
+  const [locks, setLocks] = useState<{ path: Step[]; label: string }[]>([]);
+  const [baseline, setBaseline] = useState<[number, number] | null>(null);
   const client = useRef<SolverClient | null>(null);
   const simplifyId = useId();
   const set = (k: keyof Form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -104,6 +108,8 @@ export function SolverPage() {
     setPath([]);
     setCell(null);
     setInfo(null);
+    setLocks([]);
+    setBaseline(null);
     setStatus({ kind: 'starting' });
     void guarded(async () => {
       const i = await c.call('solverStart', {
@@ -112,6 +118,34 @@ export function SolverPage() {
         allowAbstraction: form.simplify,
       });
       setInfo(i);
+      await run(c);
+    });
+  }
+
+  const key = (p: Step[]) => p.map((s) => s.index).join('.');
+  const explore = useCallback((p: number[]) => client.current!.call('solverNode', { path: p }), []);
+  /** Lock the current node, then re-solve from scratch so the averages reflect the lock. */
+  function lockHere(strategy: number[], label: string) {
+    const c = client.current;
+    if (!c || status.kind !== 'stopped') return;
+    const at = path;
+    if (!locks.length) setBaseline(status.result.evBb);
+    void guarded(async () => {
+      await c.call('solverLock', { path: at.map((s) => s.index), strategy });
+      setLocks((l) => [...l.filter((x) => key(x.path) !== key(at)), { path: at, label }]);
+      await c.call('solverReset', {});
+      await run(c);
+    });
+  }
+  function unlockAt(at: Step[]) {
+    const c = client.current;
+    if (!c) return;
+    void guarded(async () => {
+      await c.call('solverUnlock', { path: at.map((s) => s.index) });
+      const left = locks.filter((x) => key(x.path) !== key(at));
+      setLocks(left);
+      if (!left.length) setBaseline(null);
+      await c.call('solverReset', {});
       await run(c);
     });
   }
@@ -166,6 +200,19 @@ export function SolverPage() {
         <Field label={t('solver.allIn')} value={form.allIn} onChange={set('allIn')} />
         <Field label={t('solver.oopRange')} value={form.oop} onChange={set('oop')} wide />
         <Field label={t('solver.ipRange')} value={form.ip} onChange={set('ip')} wide />
+        <details className="sm:col-span-2">
+          <summary className="cursor-pointer text-sm font-medium">{t('painter.summary')}</summary>
+          <div className="mt-2 grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="mb-1 text-sm font-medium">{t('solver.oopRange')}</p>
+              <RangePainter value={form.oop} onChange={set('oop')} label={t('solver.oopRange')} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium">{t('solver.ipRange')}</p>
+              <RangePainter value={form.ip} onChange={set('ip')} label={t('solver.ipRange')} />
+            </div>
+          </div>
+        </details>
         {STREETS.filter((s) => streets.includes(s)).map((s) => (
           <StreetFields
             key={s}
@@ -277,8 +324,44 @@ export function SolverPage() {
         )}
       </section>
 
+      {locks.length > 0 && (
+        <section className="card space-y-2 text-sm" data-testid="locks">
+          <h2 className="font-semibold">{t('lock.listTitle', { n: locks.length })}</h2>
+          <p className="text-ink-muted">{t('lock.listNote')}</p>
+          {baseline && status.kind === 'stopped' && (
+            <p data-testid="lock-ev">
+              {t('lock.evChange', { oop: status.result.evBb[0].toFixed(2), ip: status.result.evBb[1].toFixed(2), oop0: baseline[0].toFixed(2), ip0: baseline[1].toFixed(2) })}
+            </p>
+          )}
+          <ul className="space-y-1">
+            {locks.map((l) => (
+              <li key={key(l.path)} className="flex flex-wrap items-center gap-2">
+                <button type="button" className="underline" onClick={() => setPath(l.path)}>
+                  {l.path.length ? l.path.map((s) => s.label).join(' › ') : t('solver.root')}
+                </button>
+                <span className="text-ink-muted">{l.label}</span>
+                <button type="button" className="btn-quiet !min-h-9 !px-2 text-xs" disabled={running} onClick={() => unlockAt(l.path)}>
+                  {t('lock.unlock')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {browsable && info && node && (
-        <NodeBrowser info={info} node={node} path={path} setPath={setPath} cell={cell} setCell={setCell} exploitabilityPct={status.kind === 'stopped' ? status.result.pctPot : undefined} rootReach={rootReach} />
+        <NodeBrowser
+          info={info}
+          node={node}
+          path={path}
+          setPath={setPath}
+          cell={cell}
+          setCell={setCell}
+          exploitabilityPct={status.kind === 'stopped' ? status.result.pctPot : undefined}
+          rootReach={rootReach}
+          locking={{ busy: running, onLock: lockHere, onUnlock: () => unlockAt(path) }}
+          explore={explore}
+        />
       )}
     </div>
   );

@@ -113,6 +113,16 @@ async function handle(wasm: SolverWasm, req: WorkerRequest): Promise<unknown> {
     case 'solverNode':
       if (!session) throw new Error('no spot loaded');
       return JSON.parse(session.node(JSON.stringify(req.path)));
+    case 'solverLock':
+      if (!session) throw new Error('no spot loaded');
+      return JSON.parse(session.lock(JSON.stringify(req.path), JSON.stringify(req.strategy)));
+    case 'solverUnlock':
+      if (!session) throw new Error('no spot loaded');
+      return JSON.parse(session.unlock(JSON.stringify(req.path)));
+    case 'solverReset':
+      if (!session) throw new Error('no spot loaded');
+      session.reset();
+      return {};
   }
 }
 

@@ -82,6 +82,32 @@ impl Solver {
         format!("{:016x}", self.0.game.fingerprint())
     }
 
+    /// Lock the acting player's strategy at the node reached by `pathJson` to
+    /// `strategyJson` (`[action][hand]`); takes effect from the next iteration.
+    pub fn lock(&mut self, path_json: &str, strategy_json: &str) -> Result<String, JsError> {
+        self.0
+            .lock(path_json, strategy_json)
+            .map(|v| v.to_string())
+            .map_err(|e| JsError::new(&e))
+    }
+
+    pub fn unlock(&mut self, path_json: &str) -> Result<String, JsError> {
+        self.0
+            .unlock(path_json)
+            .map(|v| v.to_string())
+            .map_err(|e| JsError::new(&e))
+    }
+
+    #[wasm_bindgen(js_name = clearLocks)]
+    pub fn clear_locks(&mut self) {
+        self.0.clear_locks();
+    }
+
+    /// Forget regrets and averages (locks stay), to re-solve from scratch.
+    pub fn reset(&mut self) {
+        self.0.reset();
+    }
+
     /// Node reached by `pathJson` (array of action/card indices).
     pub fn node(&mut self, path_json: &str) -> Result<String, JsError> {
         self.0

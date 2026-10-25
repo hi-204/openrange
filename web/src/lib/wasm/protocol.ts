@@ -84,6 +84,8 @@ export type NodeBase = {
   street: string;
   committed: [number, number];
   reach: [number[], number[]];
+  /** The acting player's strategy at this node is locked (D-076). */
+  locked?: boolean;
 };
 
 export type SolverNode = NodeBase &
@@ -134,6 +136,9 @@ export type Calls = {
   solverRun: { args: { maxIterations: number; targetPct: number }; result: RunResult };
   solverPause: { args: Record<string, never>; result: Record<string, never> };
   solverNode: { args: { path: number[] }; result: SolverNode };
+  solverLock: { args: { path: number[]; strategy: number[] }; result: { locks: number } };
+  solverUnlock: { args: { path: number[] }; result: { removed: boolean; locks: number } };
+  solverReset: { args: Record<string, never>; result: Record<string, never> };
   pushFold: { args: { spot: PushFoldSpotJson }; result: PushFoldResult };
   evaluateHand: { args: { cards: string }; result: HandValue };
   countOuts: { args: { hero: string; villain: string; board: string }; result: OutsResult };

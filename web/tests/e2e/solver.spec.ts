@@ -61,3 +61,27 @@ test('solver: simplifies a spot that does not fit and says so', async ({ page })
   await expect(page.getByTestId('abstraction-warning')).toContainText('river', { timeout: 30_000 });
   await expect(page.getByTestId('solver-badge')).toContainText('simplified tree', { timeout: 30_000 });
 });
+
+test('node-locking: lock the caller to fold more, re-solve, read the EV change and unlock', async ({ page }) => {
+  await open(page, '/#/solver');
+  await page.getByLabel('Max iterations').fill('400');
+  await page.getByLabel('Target exploitability (% of pot)').fill('0');
+  await page.getByRole('button', { name: 'Solve' }).click();
+  const browser = page.getByTestId('node-browser');
+  await expect(browser).toContainText('OOP to act', { timeout: 30_000 });
+  // Follow the small bet: IP faces it.
+  await browser.getByRole('button', { name: /^Bet 3\.3/ }).click();
+  await expect(browser).toContainText('IP to act');
+  // The opponent's range view and the CSV button exist at a decision node.
+  await browser.getByTestId('view-opponent').click();
+  await expect(browser.getByTestId('opponent-range')).toContainText("OOP's range at this node");
+  const panel = browser.getByTestId('lock-panel');
+  await panel.locator('summary').click();
+  await panel.getByLabel('Tendency').selectOption({ label: 'Folds more' });
+  await panel.getByTestId('lock-apply').click();
+  await expect(page.getByTestId('locks')).toContainText('Locked nodes: 1', { timeout: 30_000 });
+  await expect(page.getByTestId('lock-ev')).toContainText('before locking');
+  await expect(browser.getByTestId('locked-badge')).toBeVisible();
+  await page.getByTestId('locks').getByRole('button', { name: 'Unlock' }).click();
+  await expect(page.getByTestId('locks')).toHaveCount(0, { timeout: 30_000 });
+});

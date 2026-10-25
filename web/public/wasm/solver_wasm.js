@@ -14,6 +14,9 @@ export class Solver {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_solver_free(ptr, 0);
     }
+    clearLocks() {
+        wasm.solver_clearLocks(this.__wbg_ptr);
+    }
     /**
      * `{iterations, chips, bb, pctPot, evBb: [oop, ip]}`
      * @returns {string}
@@ -64,6 +67,35 @@ export class Solver {
         }
     }
     /**
+     * Lock the acting player's strategy at the node reached by `pathJson` to
+     * `strategyJson` (`[action][hand]`); takes effect from the next iteration.
+     * @param {string} path_json
+     * @param {string} strategy_json
+     * @returns {string}
+     */
+    lock(path_json, strategy_json) {
+        let deferred4_0;
+        let deferred4_1;
+        try {
+            const ptr0 = passStringToWasm0(path_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ptr1 = passStringToWasm0(strategy_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len1 = WASM_VECTOR_LEN;
+            const ret = wasm.solver_lock(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+            var ptr3 = ret[0];
+            var len3 = ret[1];
+            if (ret[3]) {
+                ptr3 = 0; len3 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred4_0 = ptr3;
+            deferred4_1 = len3;
+            return getStringFromWasm0(ptr3, len3);
+        } finally {
+            wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+        }
+    }
+    /**
      * `allowAbstraction`: if the spot doesn't fit the budget, simplify the tree (and report
      * how in `info().abstraction`) instead of refusing.
      * @param {string} spot_json
@@ -107,6 +139,12 @@ export class Solver {
         }
     }
     /**
+     * Forget regrets and averages (locks stay), to re-solve from scratch.
+     */
+    reset() {
+        wasm.solver_reset(this.__wbg_ptr);
+    }
+    /**
      * Run `n` more iterations; returns the total.
      * @param {number} n
      * @returns {number}
@@ -114,6 +152,30 @@ export class Solver {
     step(n) {
         const ret = wasm.solver_step(this.__wbg_ptr, n);
         return ret >>> 0;
+    }
+    /**
+     * @param {string} path_json
+     * @returns {string}
+     */
+    unlock(path_json) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(path_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.solver_unlock(this.__wbg_ptr, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
     }
 }
 if (Symbol.dispose) Solver.prototype[Symbol.dispose] = Solver.prototype.free;

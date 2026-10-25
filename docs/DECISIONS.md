@@ -805,3 +805,28 @@ simulator. A separate toy solver would be new, unvalidated code.
   are offered as practice and labelled approximate.
 - **Scoring rule:** a hit ÷ (hit + missed + extra) score was rejected, because its best answer
   isn't "include what the chart plays at least half the time" (a test showed this).
+
+### D-076 · Node-locking
+**Context:** M9 asks for node-locking: fix a player's strategy at a node (or via a villain
+tendency) and re-solve to see the best exploit.
+**Decision:**
+- **Engine.** A lock is a fixed `[action][hand]` strategy for one card-expanded decision node.
+  - Every pass uses it: training, averages and best responses. Regrets and averages there are
+    never updated.
+  - The locked player can't deviate there, so exploitability measures the restricted game and
+    still converges to zero.
+  - Suit-isomorphic boards share the node, so they share the lock.
+  - Locking then calling `reset()` re-solves from scratch, so averages don't mix pre- and
+    post-lock play.
+- **Tests.**
+  - A caller locked below the MDF makes the bettor bluff all its air, at the analytic EV.
+  - A bettor locked to bet everything makes the caller call everything.
+  - Unlock + reset returns to the equilibrium.
+  - The same check runs end to end through the WASM API.
+  - The goldens are unchanged: no lock, no change.
+- **UI: villain tendencies.** Presets shift the solved strategy hand by hand (folds more, calls
+  more, never raises, bets more, checks more, always one action), so the lock keeps the
+  solved hand selection.
+- **UI: results.** The page lists the locks, shows the EVs before and after, and explains that
+  the solve is now a best response.
+- Locks apply to one node at a time; there is no tree-wide "everywhere" preset yet.
