@@ -1193,10 +1193,7 @@ fn charts_section() -> Result<Section, String> {
     }
     for stack in [20, 40, 60, 100] {
         let Ok(doc) = read(&format!("cash-6max-{stack}bb.json")) else {
-            s.report(
-                &format!("cash-6max-{stack}bb.json"),
-                "not committed (held back pending the EQR decision, D-047)",
-            );
+            s.report(&format!("cash-6max-{stack}bb.json"), "not committed");
             continue;
         };
         let gains: Vec<f64> = doc["bestResponseGainBb"]
@@ -1224,6 +1221,15 @@ fn charts_section() -> Result<Section, String> {
                 )
             })
             .collect();
+        s.report(
+            &format!("cash-6max-{stack}bb.json: EQR model"),
+            format!(
+                "{} (commit {}, dirty {})",
+                doc["provenance"]["model"]["name"].as_str().unwrap_or("?"),
+                doc["provenance"]["gitCommit"].as_str().unwrap_or("?"),
+                doc["provenance"]["gitDirty"]
+            ),
+        );
         s.report(
             &format!("cash {stack} bb: first-in (open) frequency"),
             first_in.join(", "),
@@ -1270,6 +1276,108 @@ fn charts_section() -> Result<Section, String> {
     Ok(s)
 }
 
+fn eqr_section() -> Result<Section, String> {
+    let mut s = Section::new(
+        "EQR v2 calibration (data/eqr/eqr-v2.json)",
+        "Equity-realization factors measured from OpenRange's own postflop solves (D-048); read \
+         from the committed file (regenerate with `solver-cli calibrate-eqr`). Factors are \
+         model outputs with sampling error, so only the solve quality is checked; the factors \
+         themselves are reported.",
+    );
+    let p = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data/eqr/eqr-v2.json");
+    let Ok(text) = std::fs::read_to_string(p) else {
+        s.report("eqr-v2.json", "not committed");
+        return Ok(s);
+    };
+    let doc: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let target = doc["provenance"]["solver"]["targetPctPot"]
+        .as_f64()
+        .ok_or("eqr-v2: no target")?;
+    let max_it = doc["provenance"]["solver"]["maxIterations"]
+        .as_u64()
+        .unwrap_or(0);
+    let solves = doc["solves"].as_array().ok_or("eqr-v2: no solves")?;
+    let worst = solves
+        .iter()
+        .filter_map(|x| x["exploitabilityPctPot"].as_f64())
+        .fold(0.0, f64::max);
+    let capped = solves
+        .iter()
+        .filter(|x| x["iterations"].as_u64() >= Some(max_it))
+        .count();
+    s.check(
+        &format!(
+            "every one of {} calibration solves reached its target",
+            solves.len()
+        ),
+        format!("exploitability ≤ {target}% of pot"),
+        format!("worst {worst:.3}% ({capped} stopped at the iteration cap)"),
+        worst <= target,
+    );
+    let pot = doc["checks"]["worstPotConservation"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    s.check(
+        "the two players' EVs add up to the pot (no rake), every solve",
+        "relative error < 1e-6",
+        format!("{pot:.1e}"),
+        pot < 1e-6,
+    );
+    s.check(
+        "generated from a clean commit",
+        "gitDirty = false",
+        format!(
+            "commit {}, dirty {}",
+            doc["provenance"]["gitCommit"].as_str().unwrap_or("?"),
+            doc["provenance"]["gitDirty"]
+        ),
+        doc["provenance"]["gitDirty"] == false,
+    );
+    let classes: Vec<&str> = doc["classes"]
+        .as_array()
+        .ok_or("eqr-v2: no classes")?
+        .iter()
+        .filter_map(|x| x.as_str())
+        .collect();
+    let idx = |name: &str| classes.iter().position(|&c| c == name);
+    for role in doc["roles"].as_array().ok_or("eqr-v2: no roles")? {
+        let name = format!(
+            "{} pot, {}, {}",
+            role["potType"].as_str().unwrap_or("?"),
+            if role["inPosition"] == true {
+                "in position"
+            } else {
+                "out of position"
+            },
+            if role["aggressor"] == true {
+                "preflop aggressor"
+            } else {
+                "caller"
+            }
+        );
+        let f = role["factors"].as_array().ok_or("no factors")?;
+        let e = role["stdErrors"].as_array().ok_or("no errors")?;
+        let show: Vec<String> = ["AA", "AKs", "T9s", "22", "K7o", "72o"]
+            .iter()
+            .filter_map(|&c| {
+                let i = idx(c)?;
+                Some(format!("{c} {:.2}±{:.2}", f[i].as_f64()?, e[i].as_f64()?))
+            })
+            .collect();
+        s.report(
+            &format!("{name}: range-average factor; examples"),
+            format!(
+                "{:.3} ± {:.3}; {} (fallbacks: {})",
+                role["meanFactor"].as_f64().unwrap_or(f64::NAN),
+                role["meanFactorStdError"].as_f64().unwrap_or(f64::NAN),
+                show.join(", "),
+                role["fallbackClasses"].as_array().map_or(0, |a| a.len())
+            ),
+        );
+    }
+    Ok(s)
+}
+
 /// Table cells may contain `|` (e.g. "|z| < 4"), which Markdown would read as a column break.
 fn cell(x: &str) -> String {
     x.replace('|', r"\|")
@@ -1301,6 +1409,8 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(multi_street_section()?);
     eprintln!("validate: preflop");
     sections.push(preflop_section()?);
+    eprintln!("validate: eqr v2");
+    sections.push(eqr_section()?);
     eprintln!("validate: chart files");
     sections.push(charts_section()?);
 

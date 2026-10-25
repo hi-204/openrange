@@ -485,6 +485,29 @@ pub fn cash_family(
             (m, info)
         }
     };
+    // Provenance describes the code as it is when the run starts (a long run must not pick up
+    // edits made while it was solving).
+    let provs: Vec<Value> = stacks
+        .iter()
+        .map(|&stack| {
+            let prov = provenance(
+                Source::SolverApprox,
+                &format!(
+                    "solver-cli gen-charts cash --stack {stack}{}",
+                    eqr_file.map(|f| format!(" --eqr {f}")).unwrap_or_default()
+                ),
+                json!({ "algorithm": "external-sampling MCCFR, linear averaging", "iterations": iterations, "evaluationSamples": eval_samples }),
+                "6-max cash preflop, rake-free, blinds 0.5/1. Postflop play is not solved: when a hand \
+                 reaches the flop each player's pot share is all-in equity × an equity-realization factor \
+                 (see `model`: eqr-v1 authored, or eqr-v2 measured from postflop solves). Multiway pots also approximate equity from \
+                 heads-up matchups. Tree simplifications are listed in `tree`. CFR with six players has no \
+                 equilibrium guarantee; bestResponseGainBb estimates the gain from changing single decisions.",
+            );
+            let mut prov = prov;
+            prov["model"] = model_info.clone();
+            prov
+        })
+        .collect();
     let config = CashConfig::six_max(100.0);
     for (k, &stack) in stacks.iter().enumerate() {
         let started = Instant::now();
@@ -534,21 +557,7 @@ pub fn cash_family(
                 .collect::<Vec<_>>(),
             started.elapsed().as_secs_f64()
         );
-        let prov = provenance(
-            Source::SolverApprox,
-            &format!(
-                "solver-cli gen-charts cash --stack {stack}{}",
-                eqr_file.map(|f| format!(" --eqr {f}")).unwrap_or_default()
-            ),
-            json!({ "algorithm": "external-sampling MCCFR, linear averaging", "iterations": iterations, "evaluationSamples": eval_samples }),
-            "6-max cash preflop, rake-free, blinds 0.5/1. Postflop play is not solved: when a hand \
-             reaches the flop each player's pot share is all-in equity × an equity-realization factor \
-             (see `model`: eqr-v1 authored, or eqr-v2 measured from postflop solves). Multiway pots also approximate equity from \
-             heads-up matchups. Tree simplifications are listed in `tree`. CFR with six players has no \
-             equilibrium guarantee; bestResponseGainBb estimates the gain from changing single decisions.",
-        );
-        let mut prov = prov;
-        prov["model"] = model_info.clone();
+        let prov = provs[k].clone();
         let doc = json!({
             "provenance": prov, "family": "cash-6max", "stack": stack, "players": 6,
             "tree": {

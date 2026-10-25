@@ -297,6 +297,20 @@ pub fn run(
     out: &str,
 ) -> Result<(), String> {
     let started = Instant::now();
+    // Provenance describes the code as it is when the run starts (a long run must not pick up
+    // edits made while it was solving).
+    let solver =
+        json!({ "algorithm": "dcfr", "targetPctPot": target, "maxIterations": max_iterations });
+    let mut prov = provenance(
+        Source::SolverApprox,
+        &format!("solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --seed {seed}"),
+        solver,
+        "Equity-realization factors measured from postflop solves (one bet size per street, no \
+         raises) of ranges taken from the input chart file, on a seeded sample of flops. \
+         Approximate: the calibration tree is simplified, the flop sample is finite, and the input \
+         ranges come from an approximate model.",
+    );
+    prov["seed"] = json!(seed);
     let text = std::fs::read_to_string(charts_path).map_err(|e| format!("{charts_path}: {e}"))?;
     let doc: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
     let matchups = matchups(&doc)?;
@@ -407,18 +421,6 @@ pub fn run(
             }
         }
     }
-    let solver =
-        json!({ "algorithm": "dcfr", "targetPctPot": target, "maxIterations": max_iterations });
-    let mut prov = provenance(
-        Source::SolverApprox,
-        &format!("solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --seed {seed}"),
-        solver,
-        "Equity-realization factors measured from postflop solves (one bet size per street, no \
-         raises) of ranges taken from the input chart file, on a seeded sample of flops. \
-         Approximate: the calibration tree is simplified, the flop sample is finite, and the input \
-         ranges come from an approximate model.",
-    );
-    prov["seed"] = json!(seed);
     let doc_out = json!({
         "provenance": prov,
         "input": { "charts": charts_path, "chartsCommit": doc["provenance"]["gitCommit"], "chartsModel": doc["provenance"]["model"]["name"] },
@@ -517,7 +519,10 @@ mod tests {
         // Ratios 0.5 and 1.0 with equal weight: ratio of sums 0.75, leave-one-out values 1.0
         // and 0.5, so the jackknife error is sqrt(1/2 · 2 · 0.25²) = 0.25.
         let (f, se) = jackknife(&[flop(1.0, 2.0), flop(2.0, 2.0)], part);
-        assert!((f - 0.75).abs() < 1e-12 && (se - 0.25).abs() < 1e-12, "{f} {se}");
+        assert!(
+            (f - 0.75).abs() < 1e-12 && (se - 0.25).abs() < 1e-12,
+            "{f} {se}"
+        );
         // No equity anywhere: no factor.
         assert!(jackknife(&[flop(0.0, 0.0)], part).0.is_nan());
     }
