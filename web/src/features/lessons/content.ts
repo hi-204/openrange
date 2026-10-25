@@ -1,6 +1,6 @@
 // The bundled course content (D-060): lessons, glossary and placement questions.
 
-import { parseGlossary, parseLesson, type Facts, type Glossary, type Lesson, type QuizQuestion } from './lesson';
+import { parseGlossary, parseLesson, type Facts, type Glossary, type Lesson, type QuizQuestion } from './lessonMeta';
 import { parse as parseYaml } from 'yaml';
 import glossarySource from '../../content/en/glossary.yaml?raw';
 import placementSource from '../../content/en/placement.yaml?raw';

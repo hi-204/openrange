@@ -2,6 +2,43 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M6.5 done: design and UX pass
+
+**Works (verified):**
+- **Look and navigation:**
+  - Design tokens (warm dark-first theme, iris accent), Inter bundled locally, tabular numbers.
+  - Left rail on desktop and a bottom bar on phones (Home · Learn · Train · Play · Solve ·
+    Stats · Settings); old links redirect.
+- **Onboarding and modes:** first-run onboarding (skippable) sets Guided or Expert mode; the
+  mode can be switched from the top bar.
+- **Table:** a reusable `<PokerTable>` with our own SVG cards (two- and four-colour, three
+  backs), chips, bets, pot, board with street labels, action history and a spot summary. It is
+  used in the preflop and postflop drills and on the Play preview.
+- **Coaching card after every answer in every drill** (D-065): verdict, why, key idea, next
+  time, learn more, and "Show the math" with the 13×13 grid. Also available as
+  "Explain this hand" in the workbench. Tests:
+  - every heads-up decision, 3000 synthetic ones and 120 played river hands;
+  - the recommended action is best in the data;
+  - 0% actions are never praised;
+  - mixed actions are never called mistakes, and "slightly more common" only for close mixes;
+  - quoted numbers match the computed ones.
+- **Drill flow:** hints, quick mode, an optional timer (ungraded on expiry), and a session
+  summary with "drill my weak spots"; a math drill page.
+- **Settings:** searchable, with presets, per-section reset, help text and advanced
+  sections, plus a live memory estimate. They persist and are included in the backup.
+- **Lesson reader:** table of contents, reading progress, objectives and recap, callouts,
+  instant quiz feedback, practice links, and build-time equities (D-066). Sample lesson
+  2.3 Pot odds; `docs/LESSON_REVIEW.md`.
+- **Quality checks:**
+  - axe accessibility checks pass on every main screen in both themes;
+  - 8 visual baselines;
+  - Playwright 38 e2e tests, Vitest 87 tests, `npm run check` passing;
+  - 78 screenshots in `docs/screenshots/`.
+
+**Not done / known issues:** KNOWN_LIMITS → Interface. Play mode is M9.
+
+**Next:** M7 content (Levels 0–4, placement questions), which was paused for this pass.
+
 ## 2026-10-25 — M6 done: trainer
 
 **Works (verified):**

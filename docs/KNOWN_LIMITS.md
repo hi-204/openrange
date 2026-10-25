@@ -91,6 +91,22 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 - **Trainer data stays in this browser.** Clearing site data deletes it. Use Export on the
   Review tab to keep a copy.
 
+## Interface (M6.5)
+
+- **Play mode is a preview.** The Play page shows the table and says play arrives in M9. The
+  Game settings are stored for it and not used elsewhere yet.
+- **Guided and Expert modes** change defaults and what is open:
+  - Guided: hints on, Standard coaching, study mode.
+  - Expert: Detailed coaching, quick mode, filters and advanced settings open, compact density.
+  They don't yet rewrite labels in simpler or more technical words.
+- **No bet-size slider in drills.** Drill answers must be actions in the solved tree, so drills
+  offer the tree's sizes as buttons; a custom-size slider comes with play mode.
+- **The coach explains from the computed claims only.** Where a feature isn't computed (e.g.
+  position effects postflop beyond in/out of position) it says nothing rather than guess.
+- **Visual-regression baselines are for Windows** (`tests/screens/baselines/*-win32.png`).
+  On another platform, create them first with `--update-snapshots`.
+- **Sound effects are simple synthesized tones** (off by default).
+
 ## Not yet verified
 
 - **River solver:** heads-up only; one bet-size list per player per street (no separate

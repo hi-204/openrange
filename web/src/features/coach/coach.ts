@@ -10,6 +10,9 @@ import { MIX_THRESHOLD, type Category, type Unit } from '../trainer/grading';
 
 export type Detail = 'simple' | 'standard' | 'detailed';
 
+/** Two actions in a mix are "close" (one only slightly more common) within this gap. */
+export const CLOSE_MIX = 0.3;
+
 /** Below this frequency an action is "never played" and is never praised. */
 export const PRAISE_MIN_FREQUENCY = 0.005;
 
@@ -90,7 +93,10 @@ export function buildCoach(claims: Claim[], ctx: CoachContext): CoachCard {
     if (v.category === 'best') {
       if (v.lowerFrequency) {
         tone = 'fine';
-        verdict = variant('coach.verdict.mixed', 2, seed, { chosen: v.chosen, top: v.topAction });
+        // "Slightly more common" only when the two frequencies really are close.
+        const topP = mix?.frequencies.find((f) => f.action === v.topAction)?.p ?? 1;
+        const params = { chosen: v.chosen, top: v.topAction, pc: pct(v.chosenFrequency, 0), pt: pct(topP, 0) };
+        verdict = topP - v.chosenFrequency < CLOSE_MIX ? variant('coach.verdict.mixed', 2, seed, params) : variant('coach.verdict.mixedMain', 2, seed, params);
       } else if (played && (v.best.includes(v.chosen) || v.chosenFrequency >= MIX_THRESHOLD)) {
         tone = 'best';
         verdict = variant('coach.verdict.best', 3, seed, { chosen: v.chosen });
@@ -140,7 +146,8 @@ export function buildCoach(claims: Claim[], ctx: CoachContext): CoachCard {
     if (played.length >= 2) why.unshift(t('coach.why.mix', { a: played[0]!.action, pa: pct(played[0]!.p, 0), b: played[1]!.action, pb: pct(played[1]!.p, 0) }));
     topic = { key: 'mixed', lesson: '5.6' };
   }
-  if (ctx.drill === 'preflop' && ctx.playersBehind !== undefined && ctx.playersBehind > 0) why.push(t('coach.why.behind', { seat: ctx.position, n: ctx.playersBehind }));
+  if (ctx.drill === 'preflop' && ctx.playersBehind !== undefined && ctx.playersBehind > 0)
+    why.push(t(ctx.playersBehind === 1 ? 'coach.why.behindOne' : 'coach.why.behind', { seat: ctx.position, n: ctx.playersBehind }));
   if (ctx.drill === 'preflop') why.push(t(`coach.why.hand.${handKind(ctx.hand)}` as MessageKey, { hand: ctx.hand }));
   if (adv) why.push(t(`coach.why.advantage.${adv.lead}` as MessageKey, { equity: pct(adv.heroEquity, 0) }));
   if (mdf && !odds) why.push(t('coach.why.mdf', { mdf: pct(mdf.mdf, 0), defend: pct(mdf.defend, 0) }));

@@ -1,22 +1,25 @@
-import { useEffect, useState } from 'react';
-import { GlossaryPage } from '../features/lessons/GlossaryPage';
-import { LearnPage } from '../features/lessons/LearnPage';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Onboarding } from '../features/onboarding/Onboarding';
-import { PlayPage } from '../features/play/PlayPage';
-import { SettingsPage } from '../features/settings/SettingsPage';
-import { SolvePage } from '../features/solve/SolvePage';
-import { StatsPage } from '../features/stats/StatsPage';
-import { TrainerPage } from '../features/trainer/TrainerPage';
 import { t, type MessageKey } from '../lib/i18n';
 import { useSettings } from '../lib/settings/useSettings';
 import { Icon, type IconName } from '../lib/ui/Icon';
-import { SegmentedControl, Toaster } from '../lib/ui/components';
+import { SegmentedControl, Skeleton, Toaster } from '../lib/ui/components';
 import { HomePage } from './HomePage';
 import { parseRoute, redirect, type Route } from './route';
 
+// Pages load when first opened (the course pages carry KaTeX and markdown-it), so the first
+// screen stays small.
+const LearnPage = lazy(() => import('../features/lessons/LearnPage').then((m) => ({ default: m.LearnPage })));
+const PlayPage = lazy(() => import('../features/play/PlayPage').then((m) => ({ default: m.PlayPage })));
+const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const SolvePage = lazy(() => import('../features/solve/SolvePage').then((m) => ({ default: m.SolvePage })));
+const StatsPage = lazy(() => import('../features/stats/StatsPage').then((m) => ({ default: m.StatsPage })));
+const TrainerPage = lazy(() => import('../features/trainer/TrainerPage').then((m) => ({ default: m.TrainerPage })));
+const GlossaryPage = lazy(() => import('../features/lessons/GlossaryPage').then((m) => ({ default: m.GlossaryPage })));
+
 // Tiny hash router: no dependency needed, and hash URLs work from any static host and
 // offline. A route is its first path segment; pages get the rest and the query.
-type Page = { path: string; label: MessageKey; icon: IconName; page: (p: { route: Route }) => React.JSX.Element; mobile: boolean; hidden?: boolean };
+type Page = { path: string; label: MessageKey; icon: IconName; page: React.ComponentType<{ route: Route }>; mobile: boolean; hidden?: boolean };
 const PAGES: Page[] = [
   { path: '', label: 'nav.home', icon: 'home', page: HomePage, mobile: true },
   { path: 'learn', label: 'nav.learn', icon: 'learn', page: LearnPage, mobile: true },
@@ -116,7 +119,9 @@ export function App() {
         </header>
 
         <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 md:px-8 md:pb-10" data-mode={settings.mode}>
-          <Page key={current.path} route={route} />
+          <Suspense fallback={<Skeleton className="h-96" />}>
+            <Page key={current.path} route={route} />
+          </Suspense>
         </main>
       </div>
 

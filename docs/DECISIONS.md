@@ -697,3 +697,32 @@ checked by a machine rather than by review.
     formatted;
   - an action in the mix is never called a mistake;
   - spots without a reference say "not graded" with the reason.
+
+### D-066 · Lesson equities are computed at build time
+**Decision:**
+- `scripts/gen-lesson-facts.mjs` runs before `dev` and `build`. It computes every `{{eq}}`
+  exactly with the engine and writes `web/src/content/en/facts.json`, which is committed.
+- The reader shows those values directly, with no work in the browser.
+- A test recomputes them and fails if the file is stale.
+- The live in-browser computation stays only as a fallback for a lesson edited without
+  rerunning the script.
+**Why:** M6.5 asks for numbers computed from the engine at build time. It also makes lessons
+render instantly.
+
+### D-067 · What the M6.5 settings control today
+- **Take effect now:** display, training (hints, quick mode, timer, review intensity, grading
+  thresholds), coaching (detail level, math shown by default), and the solver defaults for the
+  workbench and drills (algorithm, iteration cap, target, memory limit, simplification).
+- **Stored for later:** the Game section (table size, stack, game type, rake, ante) is the
+  default for play mode (M9). Drills always use their reference's own structure.
+- **Fixed:** the thread count stays at 1 in the browser (D-010).
+- **Modes:** Guided vs Expert currently change defaults and how much is open (filters,
+  advanced settings, coaching detail, hints, quick mode, density). They don't yet switch
+  terminology; see KNOWN_LIMITS.
+
+### D-068 · Vitest per-test time limit 30 s
+**Context:** in the full parallel run, the WASM push/fold test failed once with Vitest's
+default 5 s limit. It takes about 1–2 s alone; it was competing with the coach tests, which
+solve spots. This is the second time (see D-057).
+**Decision:** one suite-wide limit of 30 s (`web/vite.config.ts`) instead of patching tests
+one at a time. Tests that need more still set their own, longer limit. No assertion changed.

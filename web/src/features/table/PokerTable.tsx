@@ -1,7 +1,9 @@
 // The poker table (docs/DESIGN.md §5), used by drills, lessons, play, replay and the workbench.
 // 2–9 seats on an ellipse (tall rounded shape on phones), hero at the bottom centre.
 
+import { useEffect } from 'react';
 import { t, type MessageKey } from '../../lib/i18n';
+import { play } from '../../lib/ui/sound';
 import { useSettings } from '../../lib/settings/useSettings';
 import { useMediaQuery } from '../../lib/ui/components';
 import { CardRow } from './Card';
@@ -52,6 +54,10 @@ export function PokerTable({ seats, pot, sidePots = [], board, summary, history 
   };
   const buttonSeat = button ?? seats.findIndex((s) => s.position === 'BTN' || (n === 2 && s.position === 'SB'));
   const street = STREET_OF(board.length);
+  const heroCards = seats[heroIndex]?.cards?.join('') ?? '';
+  useEffect(() => {
+    if (variant === 'interactive' && heroCards) play('deal');
+  }, [variant, heroCards, board.length]);
 
   return (
     <figure className="space-y-3" data-testid="poker-table" data-variant={variant}>
@@ -62,7 +68,8 @@ export function PokerTable({ seats, pot, sidePots = [], board, summary, history 
           </span>
         </figcaption>
       )}
-      <div className={`relative mx-auto w-full ${tall ? 'aspect-[3/4] max-w-sm' : 'aspect-[16/9] max-w-3xl'}`}>
+      {/* Bottom margin: the hero's seat hangs below the rail. */}
+      <div className={`relative mx-auto mb-14 w-full ${tall ? 'aspect-[3/4] max-w-sm' : 'aspect-[16/9] max-w-3xl'}`}>
         {/* Rail and felt */}
         <div
           aria-hidden
@@ -84,7 +91,7 @@ export function PokerTable({ seats, pot, sidePots = [], board, summary, history 
         </div>
 
         {/* Pot and board */}
-        <div className="absolute inset-x-0 top-[34%] flex flex-col items-center gap-1.5">
+        <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5">
           {(pot > 0 || sidePots.length > 0) && (
             <div className="flex items-center gap-2" data-testid="pot">
               <span className="num rounded-full bg-black/45 px-2.5 py-0.5 text-xs font-semibold text-white">
@@ -108,7 +115,7 @@ export function PokerTable({ seats, pot, sidePots = [], board, summary, history 
         {/* Bets in front of the seats */}
         {seats.map((s, i) =>
           s.bet ? (
-            <div key={`bet-${i}`} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${place(i, 0.62).left}%`, top: `${place(i, 0.62).top}%` }}>
+            <div key={`bet-${i}`} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${place(i, i === heroIndex ? 0.46 : 0.6).left}%`, top: `${place(i, i === heroIndex ? 0.46 : 0.6).top}%` }}>
               <ChipStack amount={s.bet} />
             </div>
           ) : null,
@@ -116,7 +123,7 @@ export function PokerTable({ seats, pot, sidePots = [], board, summary, history 
 
         {/* Dealer button */}
         {buttonSeat >= 0 && (
-          <div aria-label={t('table.button')} className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-400 bg-white text-[0.65rem] font-bold text-slate-900 shadow-1" style={{ left: `${place(buttonSeat, 0.78).left + 6}%`, top: `${place(buttonSeat, 0.78).top - 4}%` }}>
+          <div aria-label={t('table.button')} className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-400 bg-white text-[0.65rem] font-bold text-slate-900 shadow-1" style={{ left: `${place(buttonSeat, 0.5).left + (buttonSeat === heroIndex ? 9 : 6)}%`, top: `${place(buttonSeat, 0.5).top}%` }}>
             D
           </div>
         )}

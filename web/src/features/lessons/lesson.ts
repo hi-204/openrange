@@ -4,25 +4,10 @@
 
 import katex from 'katex';
 import markdownit, { type MarkdownIt, type StateBlock, type StateInline, type Token } from 'markdown-it';
-import { parse as parseYaml } from 'yaml';
 import { renderCalc } from './calc';
+import { eqKey, parseEq, slug, type Facts, type Glossary, type QuizQuestion } from './lessonMeta';
 
-export type LessonMeta = {
-  id: string;
-  level: number;
-  title: string;
-  minutes: number;
-  prerequisites: string[];
-  drills: string[];
-  glossary: string[];
-  /** "What you'll learn" (2–4 items) and "Recap" (2–4 items). */
-  objectives: string[];
-  recap: string[];
-};
-
-export type Lesson = { meta: LessonMeta; body: string; path: string };
-
-export type QuizQuestion = { q: string; choices: string[]; answer: number; explain: string };
+export * from './lessonMeta';
 
 export type Segment =
   | { kind: 'html'; html: string }
@@ -33,47 +18,7 @@ export type Segment =
 export const CALLOUTS = ['key', 'mistake', 'try', 'example'] as const;
 export type CalloutVariant = (typeof CALLOUTS)[number];
 
-export type Glossary = Map<string, string>;
-
-export function parseLesson(source: string, path: string): Lesson {
-  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/.exec(source);
-  if (!m) throw new Error(`${path}: missing front-matter`);
-  const fm = parseYaml(m[1]!) as Record<string, unknown>;
-  const list = (k: string) => (Array.isArray(fm[k]) ? (fm[k] as unknown[]).map(String) : []);
-  const meta: LessonMeta = {
-    id: String(fm.id ?? ''),
-    level: Number(fm.level),
-    title: String(fm.title ?? ''),
-    minutes: Number(fm.minutes),
-    prerequisites: list('prerequisites'),
-    drills: list('drills'),
-    glossary: list('glossary'),
-    objectives: list('objectives'),
-    recap: list('recap'),
-  };
-  return { meta, body: m[2]!, path };
-}
-
 const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
-export const slug = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-
-/** The lesson's "## " sections, for the table of contents. */
-export function sections(body: string): { id: string; title: string }[] {
-  return [...body.matchAll(/^##\s+(.+)$/gm)].map((m) => ({ id: slug(m[1]!.trim()), title: m[1]!.trim() }));
-}
-
-/** "AhAs vs KdKc on Jh7h2c" → parts; ranges may contain commas and spaces. */
-export function parseEq(body: string): { a: string; b: string; board: string } {
-  const [main, board = ''] = body.split(/\s+on\s+/);
-  const [a, b] = (main ?? '').split(/\s+vs\s+/);
-  if (!a?.trim() || !b?.trim()) throw new Error(`eq "${body}": write it as "<hand> vs <hand> [on <board>]"`);
-  return { a: a.trim(), b: b.trim(), board: board.trim() };
-}
 
 function mathInline(state: StateInline, silent: boolean): boolean {
   const src = state.src;
@@ -128,10 +73,6 @@ function directive(state: StateInline, silent: boolean): boolean {
 }
 
 let glossaryId = 0;
-
-/** Equities computed at build time (scripts/gen-lesson-facts.mjs → facts.json), by eq key. */
-export type Facts = Record<string, number>;
-export const eqKey = (e: { a: string; b: string; board: string }) => `${e.a} vs ${e.b}${e.board ? ` on ${e.board}` : ''}`;
 
 export function markdown(glossary: Glossary, facts: Facts = {}): MarkdownIt {
   const md = markdownit({ html: false, linkify: false, typographer: false });
@@ -193,20 +134,8 @@ export function renderLesson(body: string, glossary: Glossary, facts: Facts = {}
   return out;
 }
 
-/** Load the glossary file (term → definition, terms lower-cased). */
-export function parseGlossary(source: string): Glossary {
-  // An empty file (or one with only comments) parses to null.
-  const raw = (parseYaml(source) ?? {}) as Record<string, string>;
-  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error('the glossary must map terms to definitions');
-  return new Map(Object.entries(raw).map(([k, v]) => [k.toLowerCase(), String(v).trim()]));
-}
-
 /** Inline Markdown (quiz questions and answers): math, glossary terms and computed numbers. */
 export function renderInline(text: string, glossary: Glossary, facts: Facts = {}): string {
   return markdown(glossary, facts).renderInline(text);
 }
 
-/** Every `{{eq …}}` in a lesson body (for the build-time facts and their freshness test). */
-export function eqDirectives(body: string): { a: string; b: string; board: string }[] {
-  return [...body.matchAll(/\{\{eq\s+([^}]+)\}\}/g)].map((m) => parseEq(m[1]!));
-}

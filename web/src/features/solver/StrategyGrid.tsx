@@ -54,7 +54,7 @@ export function StrategyGrid({ hands, reach, strategy, actions, colors, selected
             aria-selected={selected === i}
             title={label}
             onClick={() => onSelect(i)}
-            className={`relative aspect-square overflow-hidden bg-surface text-[0.6rem] leading-none sm:text-xs ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
+            className={`relative aspect-square overflow-hidden bg-surface text-[0.6rem] leading-none sm:text-xs ${selected === i ? 'z-10 outline-[3px] outline-offset-[-1px] outline-accent' : ''}`}
           >
             {c.weight > 0 && (
               // Bar height shows how much of the hand is still in the range at this node.

@@ -1,6 +1,6 @@
 // Placement scoring and the daily plan (D-061). Pure functions over progress data.
 
-import type { Lesson } from './lesson';
+import type { Lesson } from './lessonMeta';
 import type { LessonProgress, PlacementResult } from '../trainer/store';
 
 /** Recommended start: the lowest level with fewer than 2 of its 3 right (Level 5 if all pass). */

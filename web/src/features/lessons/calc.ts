@@ -78,7 +78,8 @@ const FORMATS = new Set<CalcFormat>(['pct', 'pct1', 'int', 'dec1', 'dec2', 'bb',
 
 /** Parse the inside of `{{calc …}}`: "expr | format [| show]". */
 export function parseCalc(body: string): { expr: string; format: CalcFormat; show: boolean } {
-  const parts = body.split('|').map((p) => p.trim());
+  // Inside a Markdown table the pipe must be written as \|.
+  const parts = body.replace(/\\\|/g, '|').split('|').map((p) => p.trim());
   const expr = parts[0] ?? '';
   const fmt = (parts[1] ?? 'dec2') as CalcFormat;
   if (!FORMATS.has(fmt)) throw new Error(`calc "${body}": unknown format "${fmt}"`);

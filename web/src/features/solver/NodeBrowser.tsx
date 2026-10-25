@@ -2,7 +2,9 @@ import { pct } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { cellName, cellOf } from '../../lib/poker/hands';
 import type { SolverInfo, SolverNode } from '../../lib/wasm/protocol';
+import { useState } from 'react';
 import { actionColors } from './colors';
+import { ExplainHand } from './ExplainHand';
 import { StrategyGrid } from './StrategyGrid';
 
 export type Step = { index: number; label: string };
@@ -14,11 +16,16 @@ type Props = {
   setPath: (p: Step[]) => void;
   cell: number | null;
   setCell: (c: number | null) => void;
+  /** Solve accuracy and starting reach, for "Explain this hand". */
+  exploitabilityPct?: number;
+  rootReach?: number[][];
 };
 
-export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props) {
+export function NodeBrowser({ info, node, path, setPath, cell, setCell, exploitabilityPct, rootReach }: Props) {
+  const [explain, setExplain] = useState<number | null>(null);
   const go = (step: Step) => {
     setCell(null);
+    setExplain(null);
     setPath([...path, step]);
   };
   const crumbs = (
@@ -113,6 +120,7 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
               <thead>
                 <tr>
                   <th className="py-1">{t('solver.combo')}</th>
+                  {exploitabilityPct !== undefined && <th className="py-1"><span className="sr-only">{t('solver.explain')}</span></th>}
                   <th className="py-1">{t('solver.weight')}</th>
                   {node.actions.map((a, k) => (
                     <th key={k} className="py-1">
@@ -125,6 +133,13 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
                 {combos.map(({ h, i }) => (
                   <tr key={h} className="border-t border-slate-100 dark:border-slate-800">
                     <td className="py-1 font-mono">{h}</td>
+                    {exploitabilityPct !== undefined && (
+                      <td className="py-1">
+                        <button type="button" className="btn-quiet !min-h-9 !px-2 text-xs" aria-pressed={explain === i} onClick={() => setExplain(explain === i ? null : i)} data-testid="explain-button">
+                          {t('solver.explain')}
+                        </button>
+                      </td>
+                    )}
                     <td className="py-1 font-mono">{pct(reach[i]!, 0)}</td>
                     {node.actions.map((_, a) => {
                       const ev = node.evBb[a * n + i];
@@ -139,6 +154,11 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
                 ))}
               </tbody>
             </table>
+          )}
+          {explain !== null && exploitabilityPct !== undefined && cell !== null && combos.some((c) => c.i === explain) && (
+            <div className="mt-4">
+              <ExplainHand info={info} node={node} hand={explain} exploitabilityPct={exploitabilityPct} rootReach={rootReach} />
+            </div>
           )}
           <p className="mt-3 text-xs text-ink-muted">{t('solver.evNote')}</p>
         </div>

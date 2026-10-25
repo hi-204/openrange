@@ -37,7 +37,7 @@ export function ClassGrid({ classes, strategy, actions, colors, reach, selected,
             aria-selected={selected === i}
             title={text}
             onClick={() => onSelect(i)}
-            className={`relative aspect-square overflow-hidden text-[0.6rem] leading-none sm:text-xs ${unreached ? 'bg-surface-2 text-ink-muted' : 'bg-surface'} ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
+            className={`relative aspect-square overflow-hidden text-[0.6rem] leading-none sm:text-xs ${unreached ? 'bg-surface-2 text-ink-muted' : 'bg-surface'} ${selected === i ? 'z-10 outline-[3px] outline-offset-[-1px] outline-accent' : ''}`}
             data-combos={cellCombos(i)}
           >
             {!unreached && (

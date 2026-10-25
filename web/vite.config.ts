@@ -40,5 +40,8 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     environment: 'node',
+    // Several tests solve spots or enumerate boards; in a parallel run they compete for the
+    // CPU. 5 s (the default) was too tight (D-068).
+    testTimeout: 30_000,
   },
 });

@@ -7,7 +7,7 @@ by expected value, and a course from the rules to solver study.
 > to any poker site. Hand-history import is for reviewing sessions *after* you play. Using
 > real-time assistance during play is against the rules of virtually every poker site.
 
-**Status:** milestone M6 — equity calculator, validated postflop solver, push/fold and cash charts, ICM push/fold calculator, and a trainer that grades preflop and postflop drills by EV loss. See
+**Status:** milestone M6.5 — validated solver, push/fold and cash charts, a trainer with a poker table and a coaching card after every answer, searchable settings, and the lesson reader (first lessons arriving in M7). See
 [docs/STATE.md](docs/STATE.md) for what works today and
 [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md) for what doesn't.
 
@@ -28,7 +28,10 @@ npm install
 npm run dev
 ```
 
-Then open <http://localhost:5173>. Stop the server with `Ctrl+C`.
+Then open <http://localhost:5173>. Stop the server with `Ctrl+C`. The first time, a short
+welcome screen asks how much poker you know; you can skip it.
+
+To look at the app without running it, open the screenshots in `docs/screenshots/`.
 
 Rust is **not** needed to run the app: the compiled solver (WebAssembly) is included in
 `web/public/wasm/`.
@@ -43,6 +46,9 @@ Rust is **not** needed to run the app: the compiled solver (WebAssembly) is incl
 | `npm run build` | Production build into `web/dist/` |
 | `npm run build:wasm` | Rebuild the solver WebAssembly (needs Rust, see below) |
 | `npm run licenses` | Regenerate `docs/THIRD_PARTY_LICENSES.md` |
+| `npm run facts` | Recompute the equities quoted in lessons (also runs before `dev`/`build`) |
+| `npm run screenshots` | Capture every main screen into `docs/screenshots/` (1440/1024/390 px, dark and light) |
+| `npm --workspace web run test:visual` | Compare a few screens with the visual baselines |
 
 ## Rebuilding the solver (optional, needs Rust)
 

@@ -894,5 +894,9 @@
   "learn.placement.toCourse": "Go to the course",
   "learn.placement.soonTitle": "The placement quiz arrives with the lessons",
   "learn.placement.soon": "It needs the Level 0–4 lessons it points to (milestone M7). Start anywhere in the course meanwhile.",
-  "table.folded": "folded"
+  "table.folded": "folded",
+  "solver.explain": "Explain",
+  "coach.verdict.mixedMain.1": "Fine: the solver plays this hand two ways, and {chosen} is one of them ({pc}). Its main play is {top} ({pt}).",
+  "coach.verdict.mixedMain.2": "Good: {chosen} is part of the solver's mix here ({pc}); {top} is the main play ({pt}).",
+  "coach.why.behindOne": "From the {seat}, 1 player still acts after you and can wake up with a strong hand."
 }

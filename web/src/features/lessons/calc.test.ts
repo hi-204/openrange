@@ -21,5 +21,7 @@ describe('lesson calc', () => {
     expect(renderCalc('5 / (15 + 5) | pct | show')).toBe('5 ÷ (15 + 5) = 25%');
     expect(renderCalc('52 * 51 / 2 | int')).toBe('1,326');
     expect(() => renderCalc('1 | furlongs')).toThrow(/unknown format/);
+    // Inside Markdown tables the pipe is escaped.
+    expect(renderCalc('1 / (1 + 1 + 2) \\| pct')).toBe('25%');
   });
 });

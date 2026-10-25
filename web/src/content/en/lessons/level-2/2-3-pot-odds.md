@@ -51,10 +51,10 @@ A few prices worth remembering, all computed the same way:
 
 | Bet | Price |
 |---|---|
-| a third of the pot | {{calc 1 / (1 + 1 + 3) | pct}} |
-| half the pot | {{calc 1 / (1 + 1 + 2) | pct}} |
-| the size of the pot | {{calc 1 / (1 + 1 + 1) | pct}} |
-| twice the pot | {{calc 2 / (2 + 2 + 1) | pct}} |
+| a third of the pot | {{calc 1 / (1 + 1 + 3) \| pct}} |
+| half the pot | {{calc 1 / (1 + 1 + 2) \| pct}} |
+| the size of the pot | {{calc 1 / (1 + 1 + 1) \| pct}} |
+| twice the pot | {{calc 2 / (2 + 2 + 1) \| pct}} |
 
 ## Worked hand
 

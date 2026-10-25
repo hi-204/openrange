@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { useSettings } from '../../lib/settings/useSettings';
 import { t, type MessageKey } from '../../lib/i18n';
 import { CancelledError, SolverClient, solverClient, type Progress } from '../../lib/wasm/client';
 import type { RunResult, SolverInfo, SolverNode } from '../../lib/wasm/protocol';
@@ -43,11 +44,15 @@ function StreetFields({ name, value, onChange }: { name: StreetName; value: Stre
 }
 
 export function SolverPage() {
-  const [form, setForm] = useState<Form>(PRESETS.river);
+  // The Solver section of Settings provides the defaults; each preset keeps its own spot.
+  const solverSettings = useSettings((st) => st.settings.solver);
+  const withSettings = (f: Form): Form => ({ ...f, target: String(solverSettings.targetPct), maxIterations: String(solverSettings.maxIterations), budgetMb: String(solverSettings.memoryMb), simplify: solverSettings.simplify });
+  const [form, setForm] = useState<Form>(() => withSettings(PRESETS.river));
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [info, setInfo] = useState<SolverInfo | null>(null);
   const [path, setPath] = useState<Step[]>([]);
   const [node, setNode] = useState<SolverNode | null>(null);
+  const [rootReach, setRootReach] = useState<number[][] | undefined>(undefined);
   const [cell, setCell] = useState<number | null>(null);
   const client = useRef<SolverClient | null>(null);
   const simplifyId = useId();
@@ -62,7 +67,11 @@ export function SolverPage() {
     let live = true;
     client.current
       .call('solverNode', { path: path.map((p) => p.index) })
-      .then((n) => live && setNode(n))
+      .then((n) => {
+        if (!live) return;
+        setNode(n);
+        if (path.length === 0) setRootReach(n.reach);
+      })
       .catch((e: Error) => live && setStatus({ kind: 'error', message: e.message }));
     return () => {
       live = false;
@@ -98,7 +107,7 @@ export function SolverPage() {
     setStatus({ kind: 'starting' });
     void guarded(async () => {
       const i = await c.call('solverStart', {
-        spot: toSpot(form),
+        spot: { ...toSpot(form), algorithm: solverSettings.algorithm },
         budgetBytes: Number(form.budgetMb) * 1e6,
         allowAbstraction: form.simplify,
       });
@@ -138,7 +147,7 @@ export function SolverPage() {
       <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label={t('solver.examples')}>
         <span className="font-medium">{t('solver.examples')}:</span>
         {(['river', 'turn', 'flop'] as const).map((k) => (
-          <button key={k} type="button" className="btn-secondary px-3 py-1" onClick={() => setForm(PRESETS[k])} disabled={running}>
+          <button key={k} type="button" className="btn-secondary px-3 py-1" onClick={() => setForm(withSettings(PRESETS[k]))} disabled={running}>
             {t(`solver.preset.${k}`)}
           </button>
         ))}
@@ -268,7 +277,9 @@ export function SolverPage() {
         )}
       </section>
 
-      {browsable && info && node && <NodeBrowser info={info} node={node} path={path} setPath={setPath} cell={cell} setCell={setCell} />}
+      {browsable && info && node && (
+        <NodeBrowser info={info} node={node} path={path} setPath={setPath} cell={cell} setCell={setCell} exploitabilityPct={status.kind === 'stopped' ? status.result.pctPot : undefined} rootReach={rootReach} />
+      )}
     </div>
   );
 }

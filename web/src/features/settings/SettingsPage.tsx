@@ -23,12 +23,15 @@ type Def = {
 const seg = <T extends string>(id: string, get: (s: S) => T, put: (s: S, v: T) => S, values: readonly T[]) =>
   function SegSetting(s: S, set: (f: (s: S) => S) => void) {
     return (
-      <SegmentedControl
-        label={t(`settings.${id}` as MessageKey)}
-        value={get(s)}
-        onChange={(v) => set((x) => put(x, v))}
-        options={values.map((v) => ({ value: v, label: t(`settings.${id}.${v}` as MessageKey) }))}
-      />
+      <div className="space-y-1.5">
+        <p className="text-sm font-medium">{t(`settings.${id}` as MessageKey)}</p>
+        <SegmentedControl
+          label={t(`settings.${id}` as MessageKey)}
+          value={get(s)}
+          onChange={(v) => set((x) => put(x, v))}
+          options={values.map((v) => ({ value: v, label: t(`settings.${id}.${v}` as MessageKey) }))}
+        />
+      </div>
     );
   };
 

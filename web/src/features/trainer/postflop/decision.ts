@@ -1,6 +1,6 @@
 // Everything about one hero decision in a postflop drill: grade, features and claims.
 
-import type { EquityRequest, EquityResult } from '../../../lib/wasm/protocol';
+import type { EquityRequest, EquityResult, SolverInfo } from '../../../lib/wasm/protocol';
 import type { Claim } from '../explain/claims';
 import { postflopClaims, type PostflopContext } from '../explain/postflop';
 import { grade, type Grade, type Thresholds } from '../grading';
@@ -18,20 +18,18 @@ async function exact(equity: EquityFn, ranges: [string, string], board: string[]
   return r;
 }
 
-export async function decide(
-  hand: PostflopHand,
-  node: ActionNode,
-  chosen: number,
-  opts: { exploitabilityPct: number; thresholds?: Thresholds; equity: EquityFn },
-): Promise<DecisionResult> {
-  const hero = hand.heroSeat;
+export type DecideOptions = { exploitabilityPct: number; thresholds?: Thresholds; equity: EquityFn };
+
+export async function decide(hand: PostflopHand, node: ActionNode, chosen: number, opts: DecideOptions): Promise<DecisionResult> {
+  return decideAt(hand.info, node, hand.heroSeat, hand.heroIndex(), hand.heroReachShare(node), chosen, opts);
+}
+
+/** The same, for any hand of the acting player at a node (workbench "Explain this hand"). */
+export async function decideAt(info: SolverInfo, node: ActionNode, hero: 0 | 1, hi: number, reachShare: number, chosen: number, opts: DecideOptions): Promise<DecisionResult> {
   const villain = (1 - hero) as 0 | 1;
-  const info = hand.info;
   const n = info.hands[hero].length;
-  const hi = hand.heroIndex();
   const ev = node.actions.map((_, a) => node.evBb[a * n + hi] ?? null);
   const strategy = node.actions.map((_, a) => node.strategy[a * n + hi]!);
-  const reachShare = hand.heroReachShare(node);
   const offPath = reachShare < OFF_PATH_REACH;
   const g = offPath
     ? null

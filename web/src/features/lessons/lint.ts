@@ -94,6 +94,7 @@ export function lintLessons(lessons: Lesson[], ctx: LintContext): string[] {
       if (quizzes.length !== 1) p(`needs exactly one quiz, found ${quizzes.length}`);
       for (const s of segs) {
         if (s.kind === 'html' && s.html.includes('gloss-missing')) p('a glossary term has no definition');
+        if ((s.kind === 'html' || s.kind === 'callout') && /\{\{|\[\[/.test(s.html)) p(`a directive or glossary term was not rendered: ${(/(\{\{|\[\[)[^}\]]*/.exec(s.html) ?? [''])[0]} (inside a table write | as \|)`);
         if (s.kind === 'widget') {
           const check = WIDGETS[s.name];
           if (!check) p(`unknown widget "${s.name}"`);

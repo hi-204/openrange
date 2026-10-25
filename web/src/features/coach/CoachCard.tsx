@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { pct } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useSettings } from '../../lib/settings/useSettings';
 import { Icon } from '../../lib/ui/Icon';
+import { play } from '../../lib/ui/sound';
 import { lesson } from '../lessons/content';
 import type { CoachCard as Card, Tone } from './coach';
 
@@ -35,6 +36,9 @@ type Props = {
 export function CoachCard({ card, rows, details, extra, footer, nextLabel, onNext, testId = 'answer' }: Props) {
   const showMath = useSettings((s) => s.settings.coaching.showMath);
   const tone = TONE[card.tone];
+  useEffect(() => {
+    play(card.tone === 'best' ? 'good' : card.tone === 'fine' ? 'fine' : card.tone === 'ungraded' ? 'deal' : 'bad');
+  }, [card.tone, card.verdict]);
   const href = lesson(card.learnMore.href.replace('#/learn/', '')) ? card.learnMore.href : '#/glossary';
   return (
     <section className="card space-y-4 border-l-4" style={{ borderLeftColor: tone.color }} aria-live="polite" aria-labelledby={`${testId}-verdict`} data-testid={testId}>

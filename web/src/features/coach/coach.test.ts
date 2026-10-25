@@ -42,6 +42,12 @@ function checkCoach(card: CoachCard, claims: Claim[], g: Grade | null, actions: 
     expect(['best', 'fine'], 'mixed action called a mistake').toContain(card.tone);
     expect(card.verdict).not.toMatch(/mistake/i);
   }
+  // "Slightly more common" only for close mixes.
+  if (card.verdict.includes('slightly more common')) {
+    const top = Math.max(...strategy);
+    expect(top - strategy[chosen]!, 'not a close mix').toBeLessThan(0.3);
+  }
+  expect(all).not.toMatch(/1 players/);
   // Quoted numbers equal the computed values (as formatted).
   if (g.category !== 'best') expect(card.verdict).toContain(fmtLoss(g.loss, g.unit));
   const call = claims.find((c) => c.kind === 'callMath');
@@ -108,11 +114,11 @@ describe('coach on synthetic decisions', () => {
       const g = graded ? grade(input) : null;
       const claims = preflopClaims({ actions, ev, evStdError: se, strategy, chosen, grade: g });
       const detail = details[i % 3]!;
-      const card = buildCoach(claims, { seed: `s${i}`, drill: 'preflop', position: 'CO', hand: 'AKo', playersBehind: 3, detail });
+      const card = buildCoach(claims, { seed: `s${i}`, drill: 'preflop', position: 'CO', hand: 'AKo', playersBehind: 1 + (i % 4), detail });
       checkCoach(card, claims, g, actions, strategy, chosen);
       expect(card.why.length).toBeLessThanOrEqual({ simple: 2, standard: 3, detailed: 4 }[detail]);
       // Deterministic: the same decision reads the same.
-      expect(text(buildCoach(claims, { seed: `s${i}`, drill: 'preflop', position: 'CO', hand: 'AKo', playersBehind: 3, detail }))).toBe(text(card));
+      expect(text(buildCoach(claims, { seed: `s${i}`, drill: 'preflop', position: 'CO', hand: 'AKo', playersBehind: 1 + (i % 4), detail }))).toBe(text(card));
     }
   });
 
