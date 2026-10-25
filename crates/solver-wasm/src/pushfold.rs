@@ -2,7 +2,7 @@
 //! loaded once from `data/equity/preflop-pairs.json` and kept for the session.
 
 use serde_json::{Value, json};
-use solver_core::cards::COMBOS;
+use solver_core::cards::{COMBOS, Combo};
 use solver_core::hands::{HandClass, NUM_CLASSES};
 use solver_core::preflop::pairs::{PairEquity, pair_equity_from_json};
 use solver_core::preflop::pushfold::{PushFoldSpot, hu_spot, solve};
@@ -106,4 +106,105 @@ pub fn solve_spot(spot_json: &str) -> Result<Value, String> {
             },
         }))
     })
+}
+
+/// `{hero: "AhKd" | "AKo", villain: [169 class weights]}`. The villain holds a uniformly
+/// random combo that doesn't share a card with the hero's and continues (shoves, calls…) with
+/// it at its class weight. For each hero combo: `share` = probability the villain continues,
+/// `equity` = hero's all-in equity against the hands that continue (exact, from the
+/// combo-pair table). Used by the trainer's explanations.
+pub fn matchup(json_text: &str) -> Result<Value, String> {
+    let v: Value = serde_json::from_str(json_text).map_err(|e| format!("bad matchup: {e}"))?;
+    let hero = v["hero"].as_str().ok_or("missing hero")?;
+    let combos: Vec<Combo> = match Combo::parse(hero) {
+        Some(c) => vec![c],
+        None => HandClass::parse(hero)
+            .ok_or_else(|| format!("'{hero}' is neither a combo nor a hand class"))?
+            .combos(),
+    };
+    let weights: Vec<f64> = v["villain"]
+        .as_array()
+        .ok_or("missing villain weights")?
+        .iter()
+        .map(|x| x.as_f64().ok_or("villain weights must be numbers"))
+        .collect::<Result<_, _>>()?;
+    if weights.len() != NUM_CLASSES {
+        return Err(format!("villain needs {NUM_CLASSES} class weights"));
+    }
+    let class_of: Vec<usize> = COMBOS.iter().map(|c| HandClass::of(*c).index()).collect();
+    PAIRS.with(|cell| {
+        let pairs = cell.borrow();
+        let eq = pairs.as_ref().ok_or("preflop equities are not loaded")?;
+        let rows: Vec<Value> = combos
+            .iter()
+            .map(|h| {
+                let (mut alive, mut cont, mut eq_sum) = (0f64, 0f64, 0f64);
+                for (j, villain) in COMBOS.iter().enumerate() {
+                    if villain.cards().intersects(h.cards()) {
+                        continue;
+                    }
+                    alive += 1.0;
+                    let w = weights[class_of[j]];
+                    cont += w;
+                    eq_sum += w * eq.equity(h.index(), j) as f64;
+                }
+                json!({
+                    "combo": h.to_string(),
+                    "share": cont / alive,
+                    "equity": if cont > 0.0 { Value::from(eq_sum / cont) } else { Value::Null },
+                })
+            })
+            .collect();
+        Ok(json!({ "combos": rows }))
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn load() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../data/equity/preflop-pairs.json"
+        );
+        load_pairs(&std::fs::read_to_string(path).unwrap()).unwrap();
+    }
+
+    fn weights(classes: &[&str]) -> Vec<f64> {
+        let mut w = vec![0.0; NUM_CLASSES];
+        for c in classes {
+            w[HandClass::parse(c).unwrap().index()] = 1.0;
+        }
+        w
+    }
+
+    #[test]
+    fn matchup_has_exact_card_removal() {
+        load();
+        // AhAd vs a villain who continues only with AA: one combo (AcAs) survives out of 1225.
+        let r =
+            matchup(&json!({ "hero": "AhAd", "villain": weights(&["AA"]) }).to_string()).unwrap();
+        let row = &r["combos"][0];
+        assert!((row["share"].as_f64().unwrap() - 1.0 / 1225.0).abs() < 1e-12);
+        assert!((row["equity"].as_f64().unwrap() - 0.5).abs() < 0.03);
+        // A class expands to its combos; AKs vs KK: the hero holds one K, 3 KK combos remain.
+        let r =
+            matchup(&json!({ "hero": "AKs", "villain": weights(&["KK"]) }).to_string()).unwrap();
+        let rows = r["combos"].as_array().unwrap();
+        assert_eq!(rows.len(), 4);
+        for row in rows {
+            assert!((row["share"].as_f64().unwrap() - 3.0 / 1225.0).abs() < 1e-12);
+            let e = row["equity"].as_f64().unwrap();
+            assert!(e > 0.25 && e < 0.40, "AKs vs KK equity {e}");
+        }
+        // Villain never continues: no equity to report.
+        let r = matchup(&json!({ "hero": "72o", "villain": vec![0.0; NUM_CLASSES] }).to_string())
+            .unwrap();
+        assert!(r["combos"][0]["equity"].is_null());
+        assert!(
+            matchup(&json!({ "hero": "XX", "villain": vec![0.0; NUM_CLASSES] }).to_string())
+                .is_err()
+        );
+    }
 }

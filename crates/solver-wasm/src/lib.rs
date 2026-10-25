@@ -112,3 +112,13 @@ pub fn push_fold(spot_json: &str) -> Result<String, JsError> {
         .map(|v| v.to_string())
         .map_err(|e| JsError::new(&e))
 }
+
+/// Hero hand (combo or class) against a per-class continuing range, with exact card removal:
+/// the villain's continue probability and the hero's equity against the continuing hands.
+/// Needs `loadPairs` first.
+#[wasm_bindgen(js_name = preflopMatchup)]
+pub fn preflop_matchup(json: &str) -> Result<String, JsError> {
+    pushfold::matchup(json)
+        .map(|v| v.to_string())
+        .map_err(|e| JsError::new(&e))
+}

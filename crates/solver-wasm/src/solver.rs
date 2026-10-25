@@ -4,7 +4,9 @@
 use serde_json::{Value, json};
 use solver_core::postflop::abstraction::fit_to_budget;
 use solver_core::postflop::json::{spot_from_json, spot_to_json};
-use solver_core::postflop::{Action, Options, PostflopGame, ViewKind, estimate_memory};
+use solver_core::postflop::{
+    Action, Options, PostflopGame, ViewKind, estimate_memory, estimate_memory_with,
+};
 
 /// Largest memory budget the browser build will accept, whatever the user sets (D-011).
 pub const MAX_BUDGET: f64 = 3.0e9;
@@ -32,12 +34,19 @@ impl Session {
         let v: Value = serde_json::from_str(spot_json).map_err(|e| format!("bad spot: {e}"))?;
         let cfg = spot_from_json(&v)?;
         let budget = budget_bytes.clamp(0.0, MAX_BUDGET) as usize;
-        let options = Options::default();
+        // `"isomorphism": false` turns off suit isomorphism (tests compare both).
+        let options = Options {
+            isomorphism: v
+                .get("isomorphism")
+                .and_then(Value::as_bool)
+                .unwrap_or(true),
+            ..Options::default()
+        };
         let (cfg, bytes, abstraction) = if allow_abstraction {
             let f = fit_to_budget(&cfg, budget, options)?;
             (f.config, f.bytes, f.steps)
         } else {
-            let bytes = estimate_memory(&cfg)?;
+            let bytes = estimate_memory_with(&cfg, options)?;
             if bytes > budget {
                 return Err(format!(
                     "this spot needs about {:.0} MB but the memory budget is {:.0} MB. Try fewer bet sizes, \

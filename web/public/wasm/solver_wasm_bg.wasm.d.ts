@@ -8,6 +8,7 @@ export const estimateMemory: (a: number, b: number) => [number, number, number, 
 export const loadPairs: (a: number, b: number) => [number, number, number, number];
 export const pairsLoaded: () => number;
 export const parseRange: (a: number, b: number) => [number, number];
+export const preflopMatchup: (a: number, b: number) => [number, number, number, number];
 export const pushFold: (a: number, b: number) => [number, number, number, number];
 export const solver_exploitability: (a: number) => [number, number];
 export const solver_fingerprint: (a: number) => [number, number];

@@ -65,6 +65,13 @@ export function pairsLoaded(): boolean;
 export function parseRange(text: string): string;
 
 /**
+ * Hero hand (combo or class) against a per-class continuing range, with exact card removal:
+ * the villain's continue probability and the hero's equity against the continuing hands.
+ * Needs `loadPairs` first.
+ */
+export function preflopMatchup(json: string): string;
+
+/**
  * Exact heads-up push/fold: `{stacks, pusher, caller, ante, payouts}` (empty payouts = chip
  * EV). Needs `loadPairs` first.
  */
@@ -86,6 +93,7 @@ export interface InitOutput {
     readonly loadPairs: (a: number, b: number) => [number, number, number, number];
     readonly pairsLoaded: () => number;
     readonly parseRange: (a: number, b: number) => [number, number];
+    readonly preflopMatchup: (a: number, b: number) => [number, number, number, number];
     readonly pushFold: (a: number, b: number) => [number, number, number, number];
     readonly solver_exploitability: (a: number) => [number, number];
     readonly solver_fingerprint: (a: number) => [number, number];
