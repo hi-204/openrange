@@ -20,6 +20,19 @@ impl Source {
     }
 }
 
+/// `git status` over everything except folders the generators themselves write, so writing
+/// one output (or running several generators in a row) doesn't mark the next output as
+/// built from a modified tree. Generator inputs such as `data/equity` are still checked.
+const DIRTY_CHECK: [&str; 7] = [
+    "status",
+    "--porcelain",
+    "--",
+    ".",
+    ":(exclude)data/charts",
+    ":(exclude)data/goldens",
+    ":(exclude)docs/VALIDATION.md",
+];
+
 fn git(args: &[&str]) -> Option<String> {
     let out = Command::new("git").args(args).output().ok()?;
     out.status
@@ -30,7 +43,7 @@ fn git(args: &[&str]) -> Option<String> {
 /// Short commit hash, with " (uncommitted changes)" when the working tree is dirty.
 pub fn git_commit_label() -> String {
     let commit = git(&["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".into());
-    match git(&["status", "--porcelain"]) {
+    match git(&DIRTY_CHECK) {
         Some(s) if !s.is_empty() => format!("{commit} (uncommitted changes)"),
         _ => commit,
     }
@@ -62,7 +75,7 @@ pub fn utc_now() -> String {
 /// Build the provenance object. `solver` and `model` are `null` for non-CFR artifacts.
 pub fn provenance(source: Source, generator: &str, solver: Value, notes: &str) -> Value {
     let commit = git(&["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".into());
-    let dirty = git(&["status", "--porcelain"]).map(|s| !s.is_empty());
+    let dirty = git(&DIRTY_CHECK).map(|s| !s.is_empty());
     json!({
         "schema": "openrange.provenance/1",
         "source": source.as_str(),
