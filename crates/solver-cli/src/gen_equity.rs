@@ -154,9 +154,6 @@ pub fn run(out: &str) -> Result<(), String> {
             "mirroredMaxError": mirrored_max_error,
         },
     });
-    let text = serde_json::to_string(&doc).map_err(|e| e.to_string())?;
-    std::fs::write(out, format!("{text}\n")).map_err(|e| format!("writing {out}: {e}"))?;
-
     let pairs_out = std::path::Path::new(out).with_file_name("preflop-pairs.json");
     let pairs_doc = json!({
         "provenance": provenance(
@@ -173,6 +170,10 @@ pub fn run(out: &str) -> Result<(), String> {
         "wins": t.wins,
         "ties": t.ties,
     });
+    // Both provenance blocks are built before either file is written: writing the first
+    // file would otherwise make the working tree "dirty" for the second.
+    let text = serde_json::to_string(&doc).map_err(|e| e.to_string())?;
+    std::fs::write(out, format!("{text}\n")).map_err(|e| format!("writing {out}: {e}"))?;
     let text = serde_json::to_string(&pairs_doc).map_err(|e| e.to_string())?;
     std::fs::write(&pairs_out, format!("{text}\n"))
         .map_err(|e| format!("writing {}: {e}", pairs_out.display()))?;
