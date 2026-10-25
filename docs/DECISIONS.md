@@ -563,3 +563,20 @@ predicate (`checkClaims`) that recomputes it from the raw data.
   settings, on this device only.
 - The Review page can export everything as JSON, import it, and reset it.
 - Unit tests use the same `TrainerStore` interface with an in-memory implementation.
+
+### D-057 · M6 test thresholds, including the ones changed after seeing a run
+- **Explanation identity tolerances.** Before the first run I set 0.002 bb for the heads-up
+  identities (from the charts' 4-decimal rounding) and 0.005 bb for the river identity.
+  - **Measured worst errors:** heads-up call 7.8e-5 bb and shove 6.0e-5 bb, over all 24 stacks
+    × 169 classes. River 9.8e-6 bb (river test spot, 59 call decisions) and 8.1e-5 bb (river
+    decisions of the turn test spot).
+  - **Tightened** both to 5e-4 bb, about 6× the worst error (the 5–10× rule).
+- **Suit-mapping test** (the iso vs non-iso solve).
+  - **Before:** it required "> 1000 EV comparisons", a number I guessed before running. It
+    failed with 828 comparisons, all of which agreed within 1e-3 bb.
+  - **After seeing the run:** it compares *every* mirrored card instead of the first six, and
+    requires each one to be compared on more than 50 hand/action pairs.
+- **Heads-up explanation test timeout.** It failed once in the full parallel run under
+  Vitest's default 5 s timeout. Alone it takes about 1.3 s; it competes with the postflop
+  solves. It now has an explicit 60 s timeout, like the other heavy tests. Two further full
+  runs passed.

@@ -27,6 +27,8 @@ describe('preflop explanations on the exact heads-up charts', () => {
     let checked = 0;
     let callClaims = 0;
     let shoveClaims = 0;
+    let worstCall = 0;
+    let worstShove = 0;
     for (const s of stacks) {
       const sb = hu.charts.find((c) => c.id === `sb-shove-${s}`)!;
       const bb = hu.charts.find((c) => c.id === `bb-call-${s}`)!;
@@ -50,6 +52,9 @@ describe('preflop explanations on the exact heads-up charts', () => {
             const bad = checkClaims({ actions: chart.actions, input }, claims, true);
             expect(bad, `${chart.id} ${hu.classes[k]} chose ${chosen}`).toEqual([]);
             const cm = claims.find((c) => c.kind === 'callMath');
+            const sm = claims.find((c) => c.kind === 'shoveMath');
+            if (cm) worstCall = Math.max(worstCall, Math.abs(cm.equity * cm.potAfterCall - cm.toCall - cm.evDiff));
+            if (sm) worstShove = Math.max(worstShove, Math.abs(sm.rebuilt - sm.evShove));
             if (cm) {
               callClaims++;
               // The equity identity holds exactly on the exact chart.
@@ -62,9 +67,10 @@ describe('preflop explanations on the exact heads-up charts', () => {
       }
     }
     expect(checked).toBe(stacks.length * 169 * 2 * 2);
+    console.log(`heads-up identities: worst call error ${worstCall.toExponential(2)} bb, worst shove error ${worstShove.toExponential(2)} bb`);
     expect(callClaims).toBe(stacks.length * 169 * 2);
     expect(shoveClaims).toBe(stacks.length * 169 * 2);
-  });
+  }, 60_000);
 });
 
 // Seeded PRNG (mulberry32) for reproducible synthetic decisions.

@@ -57,6 +57,47 @@ export function renderClaim(c: Claim): string[] {
       if (!c.exact) out.push(t('trainer.callMath.rough'));
       return out;
     }
+    case 'accuracy':
+      return [t('trainer.accuracy', { x: c.exploitabilityPct.toFixed(2) })];
+    case 'offPath':
+      return [t('trainer.offPath', { share: pct(c.reachShare, 1) })];
+    case 'potOdds': {
+      const key: MessageKey = c.verdict === 'continue' ? 'trainer.potOdds.call' : c.verdict === 'fold' ? 'trainer.potOdds.fold' : 'trainer.potOdds.even';
+      const out = [
+        t('trainer.potOdds', { toCall: c.toCall.toFixed(2), pot: c.potAfterCall.toFixed(2), required: pct(c.required, 1), equity: pct(c.equity, 1) }),
+        t(key, { diff: fmtBb(Math.abs(c.evDiff)) }),
+      ];
+      if (!c.exact) {
+        out.push(t('trainer.potOdds.raw'));
+        if (c.verdict !== 'even' && c.verdict !== c.rawVerdict) out.push(t('trainer.potOdds.disagree'));
+      }
+      return out;
+    }
+    case 'mdf':
+      return [t('trainer.mdf', { mdf: pct(c.mdf, 0), defend: pct(c.defend, 0) })];
+    case 'spr':
+      return [t('trainer.spr', { spr: c.spr.toFixed(1), stack: c.stack.toFixed(1), pot: c.pot.toFixed(1) })];
+    case 'texture': {
+      const parts = [
+        t(c.paired ? 'trainer.texture.paired' : 'trainer.texture.unpaired'),
+        c.maxSuit >= 3 ? t('trainer.texture.flush3', { n: c.maxSuit }) : t(c.maxSuit === 2 ? 'trainer.texture.flush2' : 'trainer.texture.rainbow'),
+        t(c.straightPossible ? 'trainer.texture.straight' : 'trainer.texture.noStraight'),
+        t('trainer.texture.high', { rank: c.highCard }),
+      ];
+      return [t('trainer.texture', { board: c.board.join(' '), parts: parts.join(', ') })];
+    }
+    case 'advantage':
+      return [
+        t('trainer.advantage', {
+          equity: pct(c.heroEquity, 1),
+          lead: t(c.lead === 'hero' ? 'trainer.advantage.hero' : c.lead === 'villain' ? 'trainer.advantage.villain' : 'trainer.advantage.even'),
+          heroNuts: pct(c.heroNuts, 0),
+          villainNuts: pct(c.villainNuts, 0),
+          nut: pct(c.nut, 0),
+        }),
+      ];
+    case 'blockers':
+      return [t('trainer.blockers', { strong: pct(c.strongBlocked, 0), weak: pct(c.weakBlocked, 0) })];
     case 'shoveMath':
       return [
         c.equityWhenCalled === null
@@ -70,6 +111,8 @@ export function renderClaim(c: Claim): string[] {
 export function lessonFor(claims: Claim[], fallback: MessageKey): MessageKey {
   if (claims.some((c) => c.kind === 'callMath')) return 'trainer.lesson.potOdds';
   if (claims.some((c) => c.kind === 'shoveMath')) return 'trainer.lesson.pushFold';
+  if (claims.some((c) => c.kind === 'potOdds')) return 'trainer.lesson.potOdds';
+  if (claims.some((c) => c.kind === 'mdf')) return 'trainer.lesson.mdf';
   if (claims.some((c) => c.kind === 'verdict' && c.lowerFrequency)) return 'trainer.lesson.mixed';
   return fallback;
 }

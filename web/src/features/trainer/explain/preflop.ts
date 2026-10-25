@@ -17,8 +17,11 @@ export type PreflopContext = {
   headsUp?: { stack: number; role: 'shove' | 'call'; matchup: MatchupRow[] };
 };
 
-/** Identity tolerance: chart EVs are stored to 4 decimals. */
-export const EXACT_TOLERANCE_BB = 0.002;
+/**
+ * Identity tolerance (D-057): about 6× the worst error measured over every class and stack of
+ * the exact heads-up charts (7.8e-5 bb, from the charts' 4-decimal rounding).
+ */
+export const EXACT_TOLERANCE_BB = 5e-4;
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 

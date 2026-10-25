@@ -56,7 +56,40 @@ export type Claim =
   /** The reference is sampled: EVs carry standard errors. */
   | { kind: 'sampled'; largestStdError: number }
   /** Practice spot: shown for reference, not graded. */
-  | { kind: 'practice'; reason: 'outOfBand' };
+  | { kind: 'practice'; reason: 'outOfBand' }
+  /** Postflop: how accurately the reference was solved. */
+  | { kind: 'accuracy'; exploitabilityPct: number }
+  /** Postflop: the hero reached this node with an action the solution doesn't take with this hand. */
+  | { kind: 'offPath'; reachShare: number }
+  /**
+   * Postflop, facing a bet: price vs raw equity against the opponent's range at this node.
+   * `exact` on the river, where EV(call) − EV(fold) = equity · potAfterCall − toCall.
+   */
+  | {
+      kind: 'potOdds';
+      toCall: number;
+      potAfterCall: number;
+      required: number;
+      equity: number;
+      evDiff: number;
+      verdict: Verdict;
+      rawVerdict: 'continue' | 'fold';
+      exact: boolean;
+    }
+  /** Postflop, facing a bet: minimum defence frequency vs how often the solution continues. */
+  | { kind: 'mdf'; mdf: number; defend: number }
+  | { kind: 'spr'; spr: number; stack: number; pot: number }
+  | { kind: 'texture'; board: string[]; paired: boolean; maxSuit: number; straightPossible: boolean; highCard: string }
+  /** Range vs range at this node: average equity and share of very strong hands (≥ `nut`). */
+  | { kind: 'advantage'; heroEquity: number; heroNuts: number; villainNuts: number; nut: number; lead: 'hero' | 'villain' | 'even' }
+  /** Share of the opponent's strong (≥ 70%) and weak (≤ 30%) hands, by weight, that the hero's cards remove. */
+  | { kind: 'blockers'; strongBlocked: number; weakBlocked: number };
+
+/** Range advantage is called "even" within this margin of 50%. */
+export const ADVANTAGE_MARGIN = 0.02;
+export const NUT_EQUITY = 0.85;
+export const STRONG_EQUITY = 0.7;
+export const WEAK_EQUITY = 0.3;
 
 /** Margin (bb) inside which a verdict is reported as "even". */
 export const EVEN_MARGIN_BB = 0.005;
