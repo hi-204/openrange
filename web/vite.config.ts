@@ -35,6 +35,9 @@ function contentSecurityPolicy(): Plugin {
 export default defineConfig({
   plugins: [react(), tailwindcss(), contentSecurityPolicy()],
   worker: { format: 'es' },
+  // Never inline fonts as data: URLs: the CSP allows fonts from 'self' only (small font subsets
+  // were inlined and blocked).
+  build: { assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined) },
   server: { port: Number(process.env.PORT) || 5173 },
   preview: { port: 4173 },
   test: {

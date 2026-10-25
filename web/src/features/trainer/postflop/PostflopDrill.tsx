@@ -12,11 +12,9 @@ import { StrategyGrid } from '../../solver/StrategyGrid';
 import { ActionBar, actionColor } from '../../table/ActionBar';
 import { PokerTable, type Seat } from '../../table/PokerTable';
 import { fmtBb, renderClaim } from '../explain/render';
-import { Hints, SessionSummary, TimerBadge, useCountdown, useQuickAdvance, type SessionAnswer } from '../flow';
+import { Hints, SessionSummary, TimerBadge, useCountdown, useFamilies, useQuickAdvance, type SessionAnswer } from '../flow';
 import { mulberry32 } from '../preflop/deal';
-import { recordAnswer } from '../session';
 import { useDrillKeys } from '../shortcuts';
-import type { FamilyState } from '../srs';
 import { trainerStore, type TrainerSettings } from '../store';
 import { decide, type DecisionResult } from './decision';
 import { price, remainingStack, texture } from './features';
@@ -54,10 +52,10 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
   const [seatChoice, setSeatChoice] = useState<'0' | '1' | 'alt'>('alt');
   const [solve, setSolve] = useState<Solve>({ kind: 'idle' });
   const [phase, setPhase] = useState<Phase>({ kind: 'none' });
-  const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
   const [trainer, setTrainer] = useState<TrainerSettings>({ thresholds: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, saveAnswer] = useFamilies((e) => setError(e.message));
   const [hintsUsed, setHintsUsed] = useState(0);
   const [session, setSession] = useState<SessionAnswer[]>([]);
   const [handGrades, setHandGrades] = useState<SessionAnswer[]>([]);
@@ -71,7 +69,6 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
 
   useEffect(() => {
     const store = trainerStore();
-    store.families().then(setFamilies).catch(() => undefined);
     store.settings().then(setTrainer).catch(() => undefined);
     return () => client.current?.cancel();
   }, []);
@@ -143,9 +140,7 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
         const entry: SessionAnswer = { family, label: t(`trainer.post.spot.${spotId}` as MessageKey), hand: h.hero, category: result.grade?.category ?? null, loss: result.grade?.loss ?? null, unit: 'pctPot', hints: hintsUsed };
         setSession((s) => [...s, entry]);
         setHandGrades((g) => [...g, entry]);
-        setFamilies(
-          await recordAnswer(
-            trainerStore(),
+        saveAnswer(
             {
               at: Date.now(),
               drill: 'postflop',
@@ -163,9 +158,7 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
               hints: hintsUsed,
               groups: { drill: 'postflop', reference: spotId, position: seatName, street, scenario: facing ? 'facing-bet' : 'first-or-checked-to', handClass: cls },
             },
-            families,
             app.training.srs,
-          ),
         );
       } catch (e) {
         setError((e as Error).message);
@@ -173,7 +166,7 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
         setBusy(false);
       }
     },
-    [phase, busy, solve, trainer, spotId, families, hintsUsed, app],
+    [phase, busy, solve, trainer, spotId, hintsUsed, app, saveAnswer],
   );
 
   const proceed = useCallback(async () => {

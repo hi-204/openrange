@@ -58,6 +58,30 @@ test('lesson reader: computed numbers, callouts, widgets, instant quiz feedback,
   await expect(page.getByTestId('practice').getByRole('link', { name: /Math drill/ })).toHaveAttribute('href', '#/train/math?drill=potodds');
 });
 
+test('placement quiz: a weak level sets the suggested start, and the course map shows it', async ({ page }) => {
+  await open(page, '/#/learn/placement');
+  const quiz = page.getByTestId('placement-quiz');
+  const sets = quiz.locator('fieldset');
+  await expect(sets).toHaveCount(15);
+  // Right answers from placement.yaml; Level 3 (questions 10–12) answered wrongly on purpose.
+  const right = [1, 1, 0, 1, 2, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0];
+  for (let i = 0; i < 15; i++) await sets.nth(i).getByRole('radio').nth(i >= 9 && i < 12 ? 1 : right[i]!).check();
+  await page.getByRole('button', { name: 'See my result' }).click();
+  await expect(page.getByTestId('placement-result')).toContainText('Suggested start: Level 3');
+  await expect(page.getByTestId('placement-result')).toContainText('Level 3: 0 of 3 right');
+  await page.getByRole('link', { name: 'Go to the course' }).click();
+  await expect(page.getByTestId('course-map')).toContainText('starting at Level 3');
+});
+
+test('a Level 4 lesson solves its spot in the browser', async ({ page }) => {
+  await open(page, '/#/learn/4.9');
+  const lesson = page.getByTestId('lesson');
+  await expect(lesson.getByRole('heading', { name: 'Sizing basics', level: 2 })).toBeVisible();
+  await expect(lesson).toContainText('57.1%'); // computed MDF in the table
+  await lesson.getByRole('button', { name: /Solve/ }).click();
+  await expect(page.getByTestId('minisolver-status')).toContainText('Solved to', { timeout: 30_000 });
+});
+
 test('math drill: answer, coaching card with the worked solution', async ({ page }) => {
   await open(page, '/#/train/math?drill=potodds');
   const problem = page.getByTestId('math-problem');

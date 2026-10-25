@@ -44,10 +44,13 @@ describe('course content', () => {
       expect(def.length, term).toBeGreaterThan(20);
       expect(bareNumbers(def), term).toEqual([]);
     }
+    // Three questions for each level 0–4 (D-061), with explanations and no typed numbers.
+    for (let level = 0; level <= 4; level++) expect(PLACEMENT.filter((q) => q.level === level).length, `level ${level}`).toBe(3);
     for (const q of PLACEMENT) {
       expect(q.choices.length).toBeGreaterThanOrEqual(2);
-      expect(q.answer).toBeLessThan(q.choices.length);
-      expect(q.level).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length, q.q).toBe(true);
+      expect(q.explain, q.q).toBeTruthy();
+      expect(bareNumbers([q.q, ...q.choices, q.explain].join(' ')), q.q).toEqual([]);
       expect(renderInline(q.q, GLOSSARY)).not.toContain('gloss-missing');
     }
   });

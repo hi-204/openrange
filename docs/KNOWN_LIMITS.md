@@ -122,6 +122,14 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
   standard errors.
 - **Limping isn't covered by data**: the cash tree has no limps, so lesson 1.4 argues from
   arithmetic only.
+- **Postflop lessons use small example spots** (narrow ranges, one or two sizes). What they
+  show is true for those spots, and the lessons say "in this spot"; other ranges and sizes can
+  behave differently.
+- **Hand groups in the postflop lessons are simple:** made hand (two pair or better, one pair),
+  straight or flush draw (at least four cards complete it), or nothing; on the river, equity
+  against the other range. Backdoor draws count as nothing.
+- **The placement quiz shows right or wrong after each answer** (it reuses the lesson quiz).
+- **Levels 5–7 are M8.** Level 0–4 lessons link only to each other and to drills.
 
 ## Not yet verified
 

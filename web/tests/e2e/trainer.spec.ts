@@ -13,6 +13,8 @@ test('preflop drill: answer with the keyboard, get an EV-loss grade, see it in t
   await expect(question).toContainText('bb');
 
   for (let i = 0; i < 3; i++) {
+    // Wait until the hand is dealt and waiting for us: a key pressed during the deal is ignored.
+    await expect(question).toContainText('Your move.');
     // "1" is always the first action (Fold); the grade and explanation follow.
     await page.keyboard.press('1');
     const answer = page.getByTestId('answer');

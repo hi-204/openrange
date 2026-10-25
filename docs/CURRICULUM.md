@@ -5,8 +5,25 @@ Each lesson: 5–10 minutes, one worked hand, a "common mistakes" box, a 3–5 q
 added to the glossary. Any number shown in a lesson is either computed live by a widget or
 comes from a generated chart with its provenance badge.
 
-_Status: lesson list and objectives. Per-lesson outlines (sections, worked hand, quiz
-questions, widgets) are written at the start of M7/M8; full content follows._
+_Status: Levels 0–4 are written (M7), with 15 placement questions. Levels 5–7 follow in M8.
+Each lesson's checked claims are listed in `docs/LESSON_REVIEW.md`._
+
+## Deviations from this plan in M7
+
+The lesson list is as planned. A few lessons use different widgets from the table below,
+because the planned one didn't exist or didn't fit:
+
+- **0.3 The betting actions:** a table plus the quiz instead of an action sandbox (no sandbox
+  widget yet; play mode arrives in M9).
+- **1.2 The 169 hands:** combo counter as well as the range grid.
+- **2.6 Implied odds:** the pot-odds slider, with the extra-winnings formula computed in the text.
+- **2.8 Blockers:** the combo counter with known cards (the range grid has no blocker input).
+- **3.7 Calling vs raising:** the chart widget's per-cell EVs instead of a separate EV comparison.
+- **4.2 Board textures:** the range-vs-range widget (which now describes the board's texture)
+  instead of the board explorer, so the lesson can show how texture moves equities.
+- **4.4 Position:** the turn mini-solver, plus a tested seat-swap experiment.
+- **4.5 SPR, 4.9 Sizing:** as planned (SPR calculator, sizing explorer), plus the river
+  mini-solver in 4.9.
 
 ## Level 0 — Absolute basics
 | # | Lesson | You will be able to… | Widgets |

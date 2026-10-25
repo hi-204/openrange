@@ -15,6 +15,23 @@ between dark and light.
 **Settings** has a search box, presets (Beginner / Standard / Advanced) and a "Reset to
 defaults" button per section. Every setting says in one sentence what it does.
 
+## Course (`Learn` in the menu)
+
+**Placement quiz.** Fifteen questions, three for each of Levels 0–4. It suggests a starting
+level (the first level where you got fewer than two of three right). Nothing is locked: you
+can open any lesson, and you can retake the quiz.
+
+**Lessons.** Levels 0–4 are available (38 lessons of 5–10 minutes): the rules, preflop
+basics, poker math, preflop in depth and postflop fundamentals. Every lesson has objectives,
+a worked hand, common mistakes, a short quiz and links to the matching drill. Underlined words
+open the glossary. Numbers in lessons are computed, never typed; where a lesson describes a
+chart or a solve, it is OpenRange's own data and a test checks the description.
+
+**Widgets inside lessons.** Many are interactive: change the cards, ranges, pot or bet and
+the numbers update. In chart widgets, click a cell to see how often the hand takes each action
+and the EV of each (with its sampling margin). Mini-solvers solve their spot in your browser
+when you press "Solve this spot"; the flop one takes about half a minute.
+
 ## Trainer (`Train` in the menu)
 
 **Preflop.** You get a hand and a situation; answer with the buttons or the keyboard: F

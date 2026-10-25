@@ -15,11 +15,10 @@ import { PokerTable } from '../../table/PokerTable';
 import { playersBehind, preflopTable } from '../../table/preflopTable';
 import { preflopClaims } from '../explain/preflop';
 import { fmtBb, renderClaim } from '../explain/render';
-import { Hints, SessionSummary, TimerBadge, useCountdown, useQuickAdvance, type SessionAnswer } from '../flow';
+import { Hints, SessionSummary, TimerBadge, useCountdown, useFamilies, useQuickAdvance, type SessionAnswer } from '../flow';
 import { grade } from '../grading';
-import { handType, recordAnswer } from '../session';
+import { handType } from '../session';
 import { useDrillKeys } from '../shortcuts';
-import type { FamilyState } from '../srs';
 import { trainerStore, type TrainerSettings } from '../store';
 import { candidates, deal, drillSources, mulberry32, scenarioOf, stackBand, type Candidate, type Dealt, type Difficulty, type Filters } from './deal';
 
@@ -51,9 +50,9 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
   const [index, setIndex] = useState<ChartIndexEntry[] | null>(null);
   const [docs, setDocs] = useState<Map<string, ChartFile>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [families, saveAnswer] = useFamilies((e) => setError(t('trainer.saveError', { message: e.message })));
   const [filters, setFilters] = useState<Filters | null>(null);
   const [onlyFamilies, setOnlyFamilies] = useState<string[] | null>(null);
-  const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
   const [trainer, setTrainer] = useState<TrainerSettings>({ thresholds: null });
   const [dealt, setDealt] = useState<Dealt | null>(null);
   const [answered, setAnswered] = useState<Answered | null>(null);
@@ -74,7 +73,6 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
       })
       .catch((e: Error) => setError(e.message));
     const store = trainerStore();
-    store.families().then(setFamilies).catch((e: Error) => setError(e.message));
     store.settings().then(setTrainer).catch(() => undefined);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -151,8 +149,7 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
         const claims = preflopClaims({ actions: chart.actions, ev, evStdError: se, strategy, chosen, grade: g, headsUp });
         setAnswered({ chosen, card: buildCoach(claims, coachContext(dealt, chosen)), details: claims.flatMap(renderClaim) });
         setSession((s) => [...s, { family: dealt.family, label: chart.title, hand: dealt.handClass, category: g?.category ?? null, loss: g?.loss ?? null, unit: 'bb', hints: hintsUsed }]);
-        const updated = await recordAnswer(
-          trainerStore(),
+        saveAnswer(
           {
             at: Date.now(),
             drill: 'preflop',
@@ -170,17 +167,15 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
             hints: hintsUsed,
             groups: { drill: 'preflop', reference: doc.family, position: chart.seat, scenario: scenarioOf(chart), stack: stackBand(doc.family, dealt.stack), handType: handType(dealt.handClass), handClass: dealt.handClass },
           },
-          families,
           app.training.srs,
         );
-        setFamilies(updated);
       } catch (e) {
         setError(t('trainer.saveError', { message: e instanceof Error ? e.message : String(e) }));
       } finally {
         setBusy(false);
       }
     },
-    [dealt, answered, busy, trainer, families, hintsUsed, app], // eslint-disable-line react-hooks/exhaustive-deps
+    [dealt, answered, busy, trainer, hintsUsed, app, saveAnswer], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Timer: running out shows the answer, ungraded.

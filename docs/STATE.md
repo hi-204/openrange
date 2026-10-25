@@ -2,6 +2,39 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M7 done: course part 1 (Levels 0–4)
+
+**Works (verified):**
+- **Content:** 38 lessons (Level 0: 8, Level 1: 6, Level 2: 8, Level 3: 7, Level 4: 9), 15
+  placement questions (three per level), and a glossary of the terms they use.
+- **Every number is computed:** `{{calc}}` arithmetic and build-time engine equities
+  (`facts.json`, 14 values, recomputed exactly by a test). The lint rejects typed
+  percentages and decimals.
+- **Every described fact is tested** (`docs/LESSON_REVIEW.md` lists each claim and how):
+  - showdowns and outs: hand evaluator and `countOuts`;
+  - chart descriptions: the 100 bb cash charts (`lessonCharts.test.ts`), with EV comparisons
+    only beyond two standard errors (D-071);
+  - postflop behaviour: fresh solves of the lesson spots, grouped by hand strength, including
+    a seat-swap experiment for position (`lessonPostflop.test.ts`).
+- **Widgets:**
+  - chart cells show frequencies and EVs (± two standard errors);
+  - the range-vs-range widget describes the board's texture;
+  - mini-solvers run in lessons.
+- **Fixes found on the way:**
+  - the course text no longer sits in the main bundle (622 → 358 kB);
+  - fonts are no longer inlined, so the production CSP stopped blocking one;
+  - favicon added;
+  - drill key presses right after a new hand are no longer dropped, and saving no longer
+    blocks the next answer (D-072, D-073).
+- **Tests:** Vitest 121, Playwright 40 (adds placement and an in-lesson solve), visual 6/6,
+  `npm run check` passing.
+
+**Not done / known issues:** KNOWN_LIMITS → Lessons. The preflop lessons use the approximate
+cash charts, which are below their sanity bands for UTG, HJ and CO; the lessons say so.
+
+**Next:** M8 (Levels 5–7, range-building, board-texture and hand-reading drills; equity, ICM
+and variance widgets).
+
 ## 2026-10-25 — M6.5 done: design and UX pass
 
 **Works (verified):**

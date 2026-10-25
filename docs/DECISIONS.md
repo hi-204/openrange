@@ -743,3 +743,37 @@ lessons will push it past the 30 s limit of D-068.
 still recomputes every value exactly; nothing is sampled or skipped. Other tests that need these
 equities read `facts.json` instead of computing them again. Lesson table cells write `\|` for
 the pipe in `{{calc … \| fmt}}` and `[[term\|label]]`; the lint accepts both.
+
+### D-071 · Lesson claims about charts and solves are pinned by tests
+**Context:** Levels 1, 3 and 4 describe what OpenRange's charts and solver do ("the button
+almost never calls", "two pair or better never folds here"). Those numbers can't be typed
+(D-059), and charts get regenerated.
+**Decision:** lessons state such facts in words, and `lessonCharts.test.ts` and
+`lessonPostflop.test.ts` check each one against the generated charts or a fresh solve of the
+same spot. An EV comparison only counts as "better" when the gap is more than two standard
+errors of the sampled EVs. Solver claims are checked at the drills' own targets and at
+tighter solves, because the app's worker often solves further than the target. The chart
+widget shows a clicked cell's frequencies and EVs (± two standard errors) so learners can
+check the same facts.
+
+### D-072 · Course text loads in its own chunk; fonts are never inlined
+**Context:** after Levels 0–4 the home page's static import of the lessons grew the main
+bundle from 463 kB to 622 kB. Separately, an e2e run showed the production CSP blocking a
+font: Vite inlines files under 4 kB as `data:` URLs, and the CSP allows fonts from 'self' only.
+**Decision:** the home page imports the course with a dynamic import (main bundle 358 kB,
+course 264 kB). Fonts are excluded from Vite's inlining, so the CSP stays as strict as before.
+Also added an original SVG favicon (the missing `/favicon.ico` was the run's 404).
+
+### D-073 · Drill answers: keys read the latest hand; saving doesn't block answering
+**Context:** the keyboard e2e test began failing on this machine at every commit back to
+M6.5. Two causes:
+- the key listener was re-attached in an effect after paint, so for a moment the new hand
+  was shown while the old listener (with no actions) was still attached;
+- more importantly, `busy` covered the IndexedDB save, and on a fresh profile the save could
+  outlast reading the answer, so the next hand's first key press was dropped.
+**Decision:**
+- one key listener per drill, reading the current actions from a ref updated before paint;
+- `useFamilies` (trainer `flow.tsx`) saves answers through an ordered queue: each save builds
+  on the spaced-repetition state the previous one returned, and the first load heads the
+  queue. `busy` now covers only computing the grade.
+No grading, data or scheduling logic changed.

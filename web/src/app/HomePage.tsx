@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LESSONS } from '../features/lessons/content';
+import type { Lesson } from '../features/lessons/lessonMeta';
 import { drillHref } from '../features/lessons/links';
 import { dailyPlan, startOfDay, type PlanItem } from '../features/lessons/plan';
 import { MIN_SAMPLE, wilson } from '../features/trainer/stats';
@@ -13,7 +13,10 @@ import { solverClient } from '../lib/wasm/client';
 import type { HelloResult } from '../lib/wasm/protocol';
 import { href } from './route';
 
-type Data = { answers: AnswerRecord[]; families: Map<string, FamilyState>; lessons: Map<string, LessonProgress>; math: MathAttempt[]; placement: PlacementResult | null };
+type Data = { answers: AnswerRecord[]; families: Map<string, FamilyState>; lessons: Map<string, LessonProgress>; math: MathAttempt[]; placement: PlacementResult | null; course: Lesson[] };
+
+// The course text is large, so it loads in its own chunk rather than with the home page.
+const loadCourse = () => import('../features/lessons/content').then((m) => m.LESSONS);
 
 const DAY = 86_400_000;
 
@@ -48,9 +51,14 @@ export function HomePage() {
   const [engineError, setEngineError] = useState<string | null>(null);
   useEffect(() => {
     const s = trainerStore();
-    Promise.all([s.answers(), s.families(), s.lessons(), s.math(), s.placement()])
-      .then(([answers, families, lessons, math, placement]) => setData({ answers, families, lessons, math, placement }))
-      .catch(() => setData({ answers: [], families: new Map(), lessons: new Map(), math: [], placement: null }));
+    const empty = { answers: [], families: new Map(), lessons: new Map(), math: [], placement: null };
+    Promise.all([s.answers(), s.families(), s.lessons(), s.math(), s.placement(), loadCourse()])
+      .then(([answers, families, lessons, math, placement, course]) => setData({ answers, families, lessons, math, placement, course }))
+      .catch(() =>
+        loadCourse()
+          .then((course) => setData({ ...empty, course }))
+          .catch(() => setData({ ...empty, course: [] })),
+      );
     solverClient()
       .call('hello', {})
       .then(setEngine)
@@ -67,9 +75,9 @@ export function HomePage() {
     const startLevel = data.placement?.startLevel ?? 0;
     const todayAnswers = data.answers.filter((a) => a.at >= today);
     plan = dailyPlan({
-      lessons: LESSONS,
+      lessons: data.course,
       progress: data.lessons,
-      startLevel: Math.min(startLevel, Math.max(...LESSONS.map((l) => l.meta.level), 0)),
+      startLevel: Math.min(startLevel, Math.max(...data.course.map((l) => l.meta.level), 0)),
       due: [...data.families.values()].filter((f) => f.due <= now).length,
       today: {
         lessonsCompleted: [...data.lessons.values()].filter((l) => l.completedAt >= today).map((l) => l.id),

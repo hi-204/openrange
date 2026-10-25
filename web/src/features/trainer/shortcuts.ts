@@ -1,7 +1,7 @@
 // Keyboard shortcuts for drills: F fold, C check/call, R the first bet/raise/all-in, 1–9 the
 // button with that number; Enter or N for the next hand.
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 export function actionForKey(key: string, actions: string[]): number | null {
   const k = key.toLowerCase();
@@ -19,13 +19,22 @@ export function actionForKey(key: string, actions: string[]): number | null {
   return null;
 }
 
-/** Listen for drill keys; ignored while typing in a form field. */
+/**
+ * Listen for drill keys; ignored while typing in a form field. One listener for the component's
+ * life reads the latest actions from a ref updated before paint, so a key pressed right after a
+ * new hand appears is never handled by the previous hand's listener.
+ */
 export function useDrillKeys(actions: string[] | null, onAction: (i: number) => void, onNext: (() => void) | null) {
+  const latest = useRef({ actions, onAction, onNext });
+  useLayoutEffect(() => {
+    latest.current = { actions, onAction, onNext };
+  });
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')) return;
+      const { actions, onAction, onNext } = latest.current;
       if (onNext && (e.key === 'Enter' || e.key.toLowerCase() === 'n')) {
         e.preventDefault();
         onNext();
@@ -40,5 +49,5 @@ export function useDrillKeys(actions: string[] | null, onAction: (i: number) => 
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [actions, onAction, onNext]);
+  }, []);
 }

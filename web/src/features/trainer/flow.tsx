@@ -1,10 +1,13 @@
 // Drill flow helpers (docs/DESIGN.md §5): progressive hints, quick mode, timer, session summary.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '../../lib/i18n';
 import { Icon } from '../../lib/ui/Icon';
 import { fmtLoss } from './explain/render';
 import type { Category, Unit } from './grading';
+import { recordAnswer } from './session';
+import type { FamilyState, INTENSITY_SCALE } from './srs';
+import { trainerStore, type AnswerRecord } from './store';
 
 /** Hints revealed one at a time before answering. Using them is recorded, never penalised. */
 export function Hints({ hints, used, onUse }: { hints: string[]; used: number; onUse: () => void }) {
@@ -25,6 +28,40 @@ export function Hints({ hints, used, onUse }: { hints: string[]; used: number; o
       )}
     </div>
   );
+}
+
+/**
+ * The spaced-repetition state, and a save that never blocks the next answer. Saves run one at a
+ * time in order (each builds on the state the previous one returned); the first load is the
+ * head of the queue, so no save can start from an empty state.
+ */
+export function useFamilies(onError: (e: Error) => void) {
+  const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
+  const latest = useRef(families);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const report = useRef(onError);
+  useEffect(() => {
+    report.current = onError;
+  });
+  useEffect(() => {
+    queue.current = queue.current
+      .then(() => trainerStore().families())
+      .then((f) => {
+        latest.current = f;
+        setFamilies(f);
+      })
+      .catch((e: Error) => report.current(e));
+  }, []);
+  const save = useCallback((rec: AnswerRecord, intensity: keyof typeof INTENSITY_SCALE) => {
+    queue.current = queue.current
+      .then(async () => {
+        const updated = await recordAnswer(trainerStore(), rec, latest.current, intensity);
+        latest.current = updated;
+        setFamilies(updated);
+      })
+      .catch((e: Error) => report.current(e));
+  }, []);
+  return [families, save] as const;
 }
 
 /** Quick mode: move on by itself after a short pause, unless the user does something. */

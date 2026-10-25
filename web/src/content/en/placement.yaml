@@ -1,2 +1,82 @@
-# Placement questions (D-061): three per level 0-4.
-[]
+# Placement questions (D-061): three per level 0-4. Each answer restates a claim from its
+# level's lessons, where it is computed or tested (docs/LESSON_REVIEW.md).
+
+- level: 0
+  q: Which hand ranks higher?
+  choices: [A straight, A flush, Three of a kind]
+  answer: 1
+  explain: A flush beats a straight, and a straight beats three of a kind (lesson 0.4).
+- level: 0
+  q: In a 6-max game, who acts first before the flop?
+  choices: [The small blind, The player to the left of the big blind, The button]
+  answer: 1
+  explain: Before the flop the action starts with the seat after the big blind, called under the gun (lesson 0.2).
+- level: 0
+  q: You hold A♦Q♦ and the board is Q♠7♥2♣Q♣9♦. What is your best five-card hand?
+  choices: ["Three queens with an ace and a nine", "Two pair, queens and nines", "A flush"]
+  answer: 0
+  explain: The three queens plus your ace and the board's nine make the best five (lesson 0.1).
+
+- level: 1
+  q: How many combos does a pocket pair such as 99 have?
+  choices: ["Four", "Six", "Twelve"]
+  answer: 1
+  explain: Choose two of the four nines, which gives six combos (lesson 1.2).
+- level: 1
+  q: When everyone folds to you, from which seat do you open the most hands?
+  choices: [Under the gun, The cutoff, The button]
+  answer: 2
+  explain: The button has the fewest players behind and acts last after the flop (lesson 1.5).
+- level: 1
+  q: What can a raise do, when you are first in, that a limp can't?
+  choices: [Win the blinds straight away, See a cheaper flop, Guarantee position]
+  answer: 0
+  explain: After a limp the big blind can check for free, so only a raise can win the pot at once (lesson 1.4).
+
+- level: 2
+  q: The pot is 10 bb and your opponent bets 5 bb. What share of the final pot is your call?
+  choices: ["One quarter", "One third", "One half"]
+  answer: 0
+  explain: You call 5 bb to make a final pot of 20 bb, so you need at least a quarter of the equity (lesson 2.3).
+- level: 2
+  q: After the flop you have four cards of one suit. How many cards complete your flush?
+  choices: ["Eight", "Nine", "Thirteen"]
+  answer: 1
+  explain: Thirteen cards of the suit minus the four you can see leaves nine (lesson 2.1).
+- level: 2
+  q: You hold an ace. How many A-K combos can your opponent have?
+  choices: ["Sixteen", "Twelve", "Nine"]
+  answer: 1
+  explain: Three aces are left, times four kings, which gives twelve (lesson 2.7).
+
+- level: 3
+  q: Why does the big blind defend more hands against a button open than against an under-the-gun open?
+  choices: [The button opens a much wider range, The button always bluffs, Under the gun raises bigger]
+  answer: 0
+  explain: Against the button's wide range more of the big blind's hands do well (lesson 3.1).
+- level: 3
+  q: What is a squeeze?
+  choices: [A 3-bet after an open and a call, A small bet on the river, Calling a 3-bet]
+  answer: 0
+  explain: It's a re-raise when there is an open and at least one caller (lesson 3.6).
+- level: 3
+  q: In OpenRange's charts, how does an opener react to a smaller 3-bet compared with a bigger one?
+  choices: [It continues with more hands, It folds more, No difference]
+  answer: 0
+  explain: A smaller 3-bet gives a better price, so more of the opening range continues (lesson 3.3).
+
+- level: 4
+  q: What does nut advantage mean?
+  choices: [More equity on average, More of the very strongest hands, Acting last]
+  answer: 1
+  explain: Range advantage is about the average; nut advantage is about the top of the range (lesson 4.3).
+- level: 4
+  q: Which range shape usually goes with a big river bet?
+  choices: [Merged, with many medium hands, "Polarized: strong hands and bluffs", Only medium hands]
+  answer: 1
+  explain: Against a big bet only better hands call, so medium hands check instead (lesson 4.9).
+- level: 4
+  q: The pot is 20 bb on the flop and the smaller stack behind is 80 bb. What is the stack-to-pot ratio?
+  choices: ["Four", "Eighty", "One quarter"]
+  answer: 0
+  explain: 80 ÷ 20 = 4 (lesson 4.5).
