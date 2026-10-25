@@ -10,6 +10,8 @@ const ALLOWED = new Set([
   'MIT', 'MIT-0', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'Zlib',
   'Unicode-3.0', 'Unicode-DFS-2016', 'MPL-2.0', '0BSD', 'CC0-1.0', 'BlueOak-1.0.0',
   'Apache-2.0 WITH LLVM-exception',
+  // D-058: argparse (markdown-it's CLI only; not in the app bundle).
+  'PSF-2.0',
 ]);
 const OUT = join(ROOT, 'docs', 'THIRD_PARTY_LICENSES.md');
 

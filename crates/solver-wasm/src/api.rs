@@ -3,6 +3,7 @@
 use serde_json::{Value, json};
 use solver_core::cards::{CardSet, parse_cards};
 use solver_core::equity::{exact_cost, exact_range_vs_range, monte_carlo};
+use solver_core::eval::Evaluator;
 use solver_core::range::Range;
 
 /// Above this many hand evaluations, "auto" mode switches from exact enumeration to
@@ -110,9 +111,72 @@ fn equity_inner(request_json: &str) -> Result<Value, String> {
     }
 }
 
+/// Evaluate 5 to 7 cards ("AsKd7h2c9s…"): category, a strength that compares hands (higher
+/// wins, equal ties) and the best five cards. Used by the lesson widgets.
+pub fn evaluate(cards_text: &str) -> Value {
+    let Some(cards) = parse_cards(cards_text) else {
+        return err(format!(
+            "can't read the cards \"{cards_text}\" (use e.g. AsKd7h2c9s)"
+        ));
+    };
+    if !(5..=7).contains(&cards.len()) {
+        return err("give 5, 6 or 7 cards");
+    }
+    if CardSet::from_cards(&cards).len() as usize != cards.len() {
+        return err("a card appears twice");
+    }
+    let ev = Evaluator::get();
+    let strength = ev.eval(&cards);
+    // The best five: the first 5-card subset that is as strong as the whole hand.
+    let n = cards.len();
+    let mut best = Vec::new();
+    'search: for a in 0..n {
+        for b in a + 1..n {
+            for c in b + 1..n {
+                for d in c + 1..n {
+                    for e in d + 1..n {
+                        let five = [cards[a], cards[b], cards[c], cards[d], cards[e]];
+                        if ev.eval(&five) == strength {
+                            best = five.to_vec();
+                            break 'search;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    json!({
+        "ok": true,
+        "strength": strength.0,
+        "category": strength.category().name(),
+        "categoryIndex": strength.category() as u8,
+        "best": best.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn evaluate_finds_category_strength_and_best_five() {
+        let flush = evaluate("AhKh7h2h9hQsQd");
+        assert_eq!(flush["category"], "flush");
+        let best: Vec<String> = serde_json::from_value(flush["best"].clone()).unwrap();
+        assert_eq!(best.len(), 5);
+        assert!(best.iter().all(|c| c.ends_with('h')), "{best:?}");
+        // The board plays: both hands use the same five cards and tie.
+        let a = evaluate("2c3dAsKsQsJsTs");
+        let b = evaluate("4c5dAsKsQsJsTs");
+        assert_eq!(a["category"], "straight flush");
+        assert_eq!(a["strength"], b["strength"]);
+        // A kicker decides.
+        let ak = evaluate("AhKdAs7c2d");
+        let aq = evaluate("AhQdAs7c2d");
+        assert!(ak["strength"].as_u64() > aq["strength"].as_u64());
+        assert_eq!(evaluate("AhKd")["ok"], false);
+        assert_eq!(evaluate("AhAhKd7c2d")["ok"], false);
+    }
 
     #[test]
     fn parse_range_reports_canonical_form_and_errors() {

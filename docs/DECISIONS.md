@@ -580,3 +580,15 @@ predicate (`checkClaims`) that recomputes it from the raw data.
   Vitest's default 5 s timeout. Alone it takes about 1.3 s; it competes with the postflop
   solves. It now has an explicit 60 s timeout, like the other heavy tests. Two further full
   runs passed.
+
+### D-058 · PSF-2.0 allowed for argparse (via markdown-it)
+**Context:**
+- markdown-it 15.0.3 (D-022) depends on `argparse` 3.0.4, a JavaScript port of Python's
+  argparse licensed PSF-2.0.
+- The license report rejected it: PSF-2.0 isn't on the D-004 list.
+**Facts checked:**
+- PSF-2.0 is permissive, OSI-approved and GPL-compatible.
+- Only markdown-it's command-line tool (`bin/markdown-it.mjs`) imports argparse. The library
+  code we bundle (`lib/`, `dist/`) doesn't, so argparse never ships in the app.
+**Decision:** add PSF-2.0 to the allowed licenses. The license report lists it like any
+other dependency.

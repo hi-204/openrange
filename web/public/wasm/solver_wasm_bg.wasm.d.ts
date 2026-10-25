@@ -5,6 +5,7 @@ export const __wbg_solver_free: (a: number, b: number) => void;
 export const countStartingCombos: () => number;
 export const equity: (a: number, b: number) => [number, number];
 export const estimateMemory: (a: number, b: number) => [number, number, number, number];
+export const evaluateHand: (a: number, b: number) => [number, number];
 export const loadPairs: (a: number, b: number) => [number, number, number, number];
 export const pairsLoaded: () => number;
 export const parseRange: (a: number, b: number) => [number, number];

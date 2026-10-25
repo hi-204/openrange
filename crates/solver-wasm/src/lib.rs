@@ -122,3 +122,9 @@ pub fn preflop_matchup(json: &str) -> Result<String, JsError> {
         .map(|v| v.to_string())
         .map_err(|e| JsError::new(&e))
 }
+
+/// Evaluate 5 to 7 cards: category, comparable strength and the best five cards.
+#[wasm_bindgen(js_name = evaluateHand)]
+pub fn evaluate_hand(cards: &str) -> String {
+    api::evaluate(cards).to_string()
+}

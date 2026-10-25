@@ -52,6 +52,11 @@ export function equity(request_json: string): string;
 export function estimateMemory(spot_json: string): string;
 
 /**
+ * Evaluate 5 to 7 cards: category, comparable strength and the best five cards.
+ */
+export function evaluateHand(cards: string): string;
+
+/**
  * Load the exact combo-pair equities (`data/equity/preflop-pairs.json` text) once.
  */
 export function loadPairs(json: string): string;
@@ -90,6 +95,7 @@ export interface InitOutput {
     readonly countStartingCombos: () => number;
     readonly equity: (a: number, b: number) => [number, number];
     readonly estimateMemory: (a: number, b: number) => [number, number, number, number];
+    readonly evaluateHand: (a: number, b: number) => [number, number];
     readonly loadPairs: (a: number, b: number) => [number, number, number, number];
     readonly pairsLoaded: () => number;
     readonly parseRange: (a: number, b: number) => [number, number];
