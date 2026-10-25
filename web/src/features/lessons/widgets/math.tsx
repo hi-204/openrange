@@ -36,7 +36,7 @@ export function PotOdds({ config }: { config: Config }) {
         <p>{t('widget.potodds.steps', { bet, pot, final: final.toFixed(1) })}</p>
         <p className="font-medium">{t('widget.potodds.required', { required: pct(required, 1) })}</p>
         <p>{eq / 100 >= required ? t('widget.potodds.enough', { eq: `${eq}%` }) : t('widget.potodds.short', { eq: `${eq}%` })}</p>
-        <p className="text-xs text-slate-600 dark:text-slate-400">{t('widget.potodds.caveat')}</p>
+        <p className="text-xs text-ink-muted">{t('widget.potodds.caveat')}</p>
       </div>
     </div>
   );
@@ -123,7 +123,7 @@ export function SizingExplorer({ config }: { config: Config }) {
         <dt>{t('widget.sizing.bluffs')}</dt>
         <dd className="font-mono">{pct(price, 1)}</dd>
       </dl>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{t('widget.sizing.caveat')}</p>
+      <p className="text-xs text-ink-muted">{t('widget.sizing.caveat')}</p>
     </div>
   );
 }

@@ -1,20 +1,205 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "@fontsource-variable/inter/wght.css";
+@import "katex/dist/katex.min.css";
 
-:root {
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+/* Dark mode follows the resolved theme on <html data-theme>, not just the OS (Settings). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Token-backed names for components (docs/DESIGN.md §2). */
+@theme inline {
+  --font-sans: 'Inter Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --radius-card: var(--r-lg);
+  --radius-control: var(--r-md);
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
+}
+
+/* Older screens use the slate scale; it is remapped onto the warm neutrals of the tokens so
+   every screen shares one palette while they are restyled. */
+@theme {
+  --color-slate-50: #f7f5f1;
+  --color-slate-100: #f1eee8;
+  --color-slate-200: #e7e2d9;
+  --color-slate-300: #d9d2c6;
+  --color-slate-400: #b3ab9f;
+  --color-slate-500: #857e74;
+  --color-slate-600: #5b564e;
+  --color-slate-700: #45413b;
+  --color-slate-800: #2d2a26;
+  --color-slate-900: #1a1917;
+  --color-slate-950: #121110;
+}
+
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers that change (stacks, pots, EVs, percentages) never jitter. */
+.num,
+.font-mono,
+table td {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @layer components {
   .card {
-    @apply rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900;
+    @apply rounded-card border border-line bg-surface shadow-1;
+    padding: calc(var(--pad) * 1.25);
   }
   .field {
-    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-950;
+    @apply w-full rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink;
+    min-height: 2.75rem;
+    transition: border-color calc(var(--dur-fast) * var(--motion)) var(--ease);
+  }
+  .field:focus {
+    @apply border-accent;
+  }
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-quiet,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-control px-4 text-sm font-medium select-none;
+    min-height: 2.75rem;
+    transition:
+      background-color calc(var(--dur-fast) * var(--motion)) var(--ease),
+      border-color calc(var(--dur-fast) * var(--motion)) var(--ease),
+      transform calc(var(--dur-fast) * var(--motion)) var(--ease);
+  }
+  :is(.btn, .btn-primary, .btn-secondary, .btn-quiet, .btn-danger):active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  :is(.btn, .btn-primary, .btn-secondary, .btn-quiet, .btn-danger):disabled {
+    @apply cursor-not-allowed opacity-50;
   }
   .btn-primary {
-    @apply rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300;
+    @apply bg-accent text-accent-ink hover:bg-accent-strong;
   }
   .btn-secondary {
-    @apply rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800;
+    @apply border border-line bg-surface text-ink hover:bg-surface-2;
   }
+  .btn-quiet {
+    @apply text-ink-muted hover:bg-surface-2 hover:text-ink;
+  }
+  .btn-danger {
+    @apply border border-bad text-bad hover:bg-surface-2;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold tracking-wide text-ink-muted uppercase;
+  }
+
+  /* Glossary terms: dotted underline, definition on hover or keyboard focus. */
+  .gloss {
+    @apply relative cursor-help underline decoration-dotted decoration-ink-faint underline-offset-4;
+  }
+  .gloss-tip {
+    @apply invisible absolute bottom-full left-0 z-20 mb-2 w-64 rounded-control border border-line bg-surface p-3 text-sm font-normal text-ink no-underline opacity-0 shadow-2;
+    transition: opacity calc(var(--dur-fast) * var(--motion)) var(--ease);
+  }
+  .gloss:hover .gloss-tip,
+  .gloss:focus .gloss-tip,
+  .gloss:focus-within .gloss-tip {
+    @apply visible opacity-100;
+  }
+
+  .lesson-prose {
+    @apply leading-relaxed text-ink;
+    max-width: 68ch;
+  }
+  .lesson-prose h2 {
+    @apply mt-8 mb-3 text-xl font-semibold;
+  }
+  .lesson-prose h3 {
+    @apply mt-6 mb-2 text-lg font-semibold;
+  }
+  .lesson-prose p,
+  .lesson-prose ul,
+  .lesson-prose ol {
+    @apply my-3;
+  }
+  .lesson-prose ul {
+    @apply list-disc pl-6;
+  }
+  .lesson-prose ol {
+    @apply list-decimal pl-6;
+  }
+  .lesson-prose strong {
+    @apply font-semibold;
+  }
+  .lesson-prose a {
+    @apply text-accent underline underline-offset-2;
+  }
+  .lesson-prose code {
+    @apply rounded bg-surface-2 px-1 text-[0.9em];
+  }
+  .lesson-prose table {
+    @apply my-4 w-full text-left text-sm;
+  }
+  .lesson-prose th,
+  .lesson-prose td {
+    @apply border-b border-line py-1.5 pr-3;
+  }
+  .lesson-calc,
+  .lesson-eq {
+    @apply font-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+  .lesson-math {
+    @apply my-4 overflow-x-auto;
+  }
+}
+
+/* Table motion: dealing and chips sliding in, scaled by the animation-speed setting. */
+@keyframes deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.card-deal {
+  animation: deal-in calc(var(--dur-slow) * var(--motion)) var(--ease) both;
+}
+.chip-slide {
+  animation: chip-in calc(var(--dur-slow) * var(--motion)) var(--ease) both;
 }

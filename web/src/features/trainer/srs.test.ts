@@ -33,6 +33,18 @@ describe('SM-2 scheduling', () => {
     expect(s.answers).toBe(11);
   });
 
+  it('scales intervals by review intensity without changing the SM-2 state', () => {
+    const base = review(review(newFamily('f', 0), 'best', 0), 'best', DAY);
+    const first = review(newFamily('f', 0), 'best', 0, 1.5);
+    // 1 day × 1.5, rounded.
+    expect(first.due).toBe(2 * DAY);
+    const light = review(first, 'best', first.due, 1.5);
+    expect(base.intervalDays).toBe(6);
+    expect(light.intervalDays).toBe(6);
+    expect(light.due - first.due).toBe(9 * DAY);
+    expect(review(newFamily('f', 0), 'best', 0, 0.6).due).toBe(DAY);
+  });
+
   it('never lets the ease fall below 1.3', () => {
     let s = newFamily('f', 0);
     for (let i = 0; i < 20; i++) s = review(s, 'mistake', i);

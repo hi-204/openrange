@@ -23,6 +23,8 @@ export type AnswerRecord = {
   category: Category | null;
   loss: number | null;
   gradedLoss: number | null;
+  /** Hints revealed before answering (recorded; never counted against accuracy). */
+  hints?: number;
   /** Stats dimensions: drill, position, scenario, street, hand class… */
   groups: Record<string, string>;
 };
@@ -44,6 +46,8 @@ export type TrainerExport = {
   lessons: LessonProgress[];
   math: MathAttempt[];
   placement: PlacementResult | null;
+  /** App settings (display, modes, coaching…); absent in exports made before M6.5. */
+  app?: unknown;
 };
 
 export interface TrainerStore {
@@ -59,6 +63,9 @@ export interface TrainerStore {
   math(): Promise<MathAttempt[]>;
   placement(): Promise<PlacementResult | null>;
   putPlacement(p: PlacementResult): Promise<void>;
+  /** App settings as stored (normalised by lib/settings). */
+  appSettings(): Promise<unknown>;
+  putAppSettings(s: unknown): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -71,6 +78,13 @@ export class MemoryStore implements TrainerStore {
   private l = new Map<string, LessonProgress>();
   private m: MathAttempt[] = [];
   private pl: PlacementResult | null = null;
+  private app: unknown = null;
+  async appSettings() {
+    return this.app;
+  }
+  async putAppSettings(s: unknown) {
+    this.app = s;
+  }
   async lessons() {
     return new Map(this.l);
   }
@@ -114,13 +128,15 @@ export class MemoryStore implements TrainerStore {
     this.l.clear();
     this.m = [];
     this.pl = null;
+    this.app = null;
   }
 }
 
 class TrainerDb extends Dexie {
   answers!: Table<AnswerRecord, number>;
   families!: Table<FamilyState, string>;
-  settings!: Table<{ key: string; value: TrainerSettings }, string>;
+  // Holds "trainer" (grading thresholds) and "app" (lib/settings) under their keys.
+  settings!: Table<{ key: string; value: unknown }, string>;
   lessons!: Table<LessonProgress, string>;
   math!: Table<MathAttempt, number>;
   placement!: Table<{ key: string; value: PlacementResult }, string>;
@@ -149,10 +165,16 @@ export class DexieStore implements TrainerStore {
     await this.db.families.put(f);
   }
   async settings() {
-    return (await this.db.settings.get('trainer'))?.value ?? DEFAULT_SETTINGS;
+    return ((await this.db.settings.get('trainer'))?.value as TrainerSettings | undefined) ?? DEFAULT_SETTINGS;
   }
   async putSettings(s: TrainerSettings) {
     await this.db.settings.put({ key: 'trainer', value: s });
+  }
+  async appSettings() {
+    return (await this.db.settings.get('app'))?.value ?? null;
+  }
+  async putAppSettings(s: unknown) {
+    await this.db.settings.put({ key: 'app', value: s });
   }
   async lessons() {
     const all = await this.db.lessons.toArray();
@@ -192,6 +214,7 @@ export async function exportAll(store: TrainerStore): Promise<TrainerExport> {
     lessons: [...(await store.lessons()).values()],
     math: await store.math(),
     placement: await store.placement(),
+    app: await store.appSettings(),
   };
 }
 
@@ -215,6 +238,7 @@ export async function importAll(store: TrainerStore, data: unknown): Promise<num
   for (const l of d.lessons ?? []) await store.putLesson(l);
   for (const m of d.math ?? []) await store.addMath(m);
   if (d.placement) await store.putPlacement(d.placement);
+  if (d.app) await store.putAppSettings(d.app);
   return d.answers.length;
 }
 

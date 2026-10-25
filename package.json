@@ -20,6 +20,8 @@
     "check": "node scripts/check.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "validate": "cargo run --release --locked -p solver-cli -- validate",
-    "licenses": "node scripts/license-report.mjs"
+    "licenses": "node scripts/license-report.mjs",
+    "facts": "node scripts/gen-lesson-facts.mjs",
+    "screenshots": "npm --workspace web run screenshots"
   }
 }

@@ -34,7 +34,11 @@ export function StrategyGrid({ hands, reach, strategy, actions, colors, selected
   const cells = aggregate(hands, reach, strategy, actions.length);
   return (
     <div className="grid grid-cols-13 gap-px rounded border border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700" role="grid" aria-label="Strategy by starting hand">
-      {cells.map((c, i) => {
+      {Array.from({ length: 13 }, (_, row) => (
+        // Rows for assistive tech; `contents` keeps the 13-column CSS grid.
+        <div key={row} role="row" className="contents">
+          {cells.slice(row * 13, row * 13 + 13).map((c, j) => {
+        const i = row * 13 + j;
         const name = cellName(i);
         const share = Math.min(1, c.weight / cellCombos(i));
         const label =
@@ -50,7 +54,7 @@ export function StrategyGrid({ hands, reach, strategy, actions, colors, selected
             aria-selected={selected === i}
             title={label}
             onClick={() => onSelect(i)}
-            className={`relative aspect-square overflow-hidden bg-white text-[0.6rem] leading-none dark:bg-slate-900 sm:text-xs ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
+            className={`relative aspect-square overflow-hidden bg-surface text-[0.6rem] leading-none sm:text-xs ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
           >
             {c.weight > 0 && (
               // Bar height shows how much of the hand is still in the range at this node.
@@ -60,12 +64,12 @@ export function StrategyGrid({ hands, reach, strategy, actions, colors, selected
                 ))}
               </span>
             )}
-            <span className="relative font-mono font-semibold text-slate-900 mix-blend-normal [text-shadow:0_0_2px_white] dark:text-slate-100 dark:[text-shadow:0_0_2px_black]">
-              {name}
-            </span>
+            <span className={`relative rounded-sm px-px font-mono font-semibold ${c.weight > 0 ? 'bg-white/90 text-[#1d1b18]' : 'text-ink-muted'}`}>{name}</span>
           </button>
         );
-      })}
+          })}
+        </div>
+      ))}
     </div>
   );
 }

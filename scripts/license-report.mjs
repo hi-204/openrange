@@ -15,6 +15,9 @@ const ALLOWED = new Set([
 ]);
 const OUT = join(ROOT, 'docs', 'THIRD_PARTY_LICENSES.md');
 
+/** D-064: OFL-1.1 is allowed for bundled font packages only. */
+const fontLicense = (p) => p.license === 'OFL-1.1' && p.name.startsWith('@fontsource');
+
 /** Evaluate a simple SPDX expression: `A OR B` needs one allowed, `A AND B` needs both. */
 function allowed(expr) {
   if (!expr) return false;
@@ -52,7 +55,7 @@ const crates = rustCrates();
 const npm = npmPackages();
 const bad = [
   ...(crates ?? []).filter((c) => !allowed(c.license)).map((c) => `crate ${c.name} ${c.version}: ${c.license || '(none)'}`),
-  ...npm.filter((p) => !allowed(p.license)).map((p) => `npm ${p.name} ${p.version}: ${p.license || '(none)'}`),
+  ...npm.filter((p) => !allowed(p.license) && !fontLicense(p)).map((p) => `npm ${p.name} ${p.version}: ${p.license || '(none)'}`),
 ];
 
 const lines = [

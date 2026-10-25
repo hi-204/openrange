@@ -2,6 +2,7 @@
 //! so it is unit-tested natively.
 
 use serde_json::{Value, json};
+use solver_core::cfr::Algorithm;
 use solver_core::postflop::abstraction::fit_to_budget;
 use solver_core::postflop::json::{spot_from_json, spot_to_json};
 use solver_core::postflop::{
@@ -35,12 +36,18 @@ impl Session {
         let cfg = spot_from_json(&v)?;
         let budget = budget_bytes.clamp(0.0, MAX_BUDGET) as usize;
         // `"isomorphism": false` turns off suit isomorphism (tests compare both).
+        // `"algorithm": "cfr+"` picks CFR+ (default DCFR, the validated default).
+        let algorithm = match v.get("algorithm").and_then(Value::as_str) {
+            None | Some("dcfr") => Algorithm::DCFR_DEFAULT,
+            Some("cfr+") => Algorithm::CFR_PLUS,
+            Some(other) => return Err(format!("unknown algorithm \"{other}\" (use dcfr or cfr+)")),
+        };
         let options = Options {
             isomorphism: v
                 .get("isomorphism")
                 .and_then(Value::as_bool)
                 .unwrap_or(true),
-            ..Options::default()
+            algorithm,
         };
         let (cfg, bytes, abstraction) = if allow_abstraction {
             let f = fit_to_budget(&cfg, budget, options)?;
@@ -79,7 +86,11 @@ impl Session {
             "expandedNodes": self.game.expanded_nodes(),
             "storageEntries": self.game.storage_entries(),
             "symmetries": self.game.symmetries(),
-            "algorithm": "DCFR (α=1.5, β=0, γ=2)",
+            "algorithm": match self.game.options.algorithm {
+                Algorithm::CfrPlus { .. } => "CFR+",
+                Algorithm::Vanilla => "CFR",
+                Algorithm::Dcfr { .. } => "DCFR (α=1.5, β=0, γ=2)",
+            },
             "abstraction": self.abstraction,
             "spot": spot_to_json(&self.game.config),
         })
@@ -183,6 +194,24 @@ mod tests {
         let after_bet = s.node("[1]").unwrap();
         assert_eq!(after_bet["player"], 1);
         assert!(s.node("[9]").is_err());
+    }
+
+    #[test]
+    fn cfr_plus_can_be_chosen_and_converges() {
+        let spot = SPOT.replacen('{', r#"{"algorithm":"cfr+","#, 1);
+        let mut s = Session::new(&spot, 1e9, false).unwrap();
+        assert_eq!(s.info()["algorithm"], "CFR+");
+        s.step(20);
+        let early = s.exploitability()["pctPot"].as_f64().unwrap();
+        s.step(380);
+        let late = s.exploitability()["pctPot"].as_f64().unwrap();
+        assert!(late < early && late < 1.0, "CFR+ {early} -> {late}");
+        assert_eq!(
+            Session::new(SPOT, 1e9, false).unwrap().info()["algorithm"],
+            "DCFR (α=1.5, β=0, γ=2)"
+        );
+        let bad = SPOT.replacen('{', r#"{"algorithm":"magic","#, 1);
+        assert!(Session::new(&bad, 1e9, false).is_err());
     }
 
     #[test]

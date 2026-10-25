@@ -1,9 +1,10 @@
 // The bundled course content (D-060): lessons, glossary and placement questions.
 
-import { parseGlossary, parseLesson, type Glossary, type Lesson, type QuizQuestion } from './lesson';
+import { parseGlossary, parseLesson, type Facts, type Glossary, type Lesson, type QuizQuestion } from './lesson';
 import { parse as parseYaml } from 'yaml';
 import glossarySource from '../../content/en/glossary.yaml?raw';
 import placementSource from '../../content/en/placement.yaml?raw';
+import factsJson from '../../content/en/facts.json';
 
 const files = import.meta.glob('../../content/en/lessons/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
@@ -18,6 +19,9 @@ export const LESSONS: Lesson[] = Object.entries(files)
   .sort(byId);
 
 export const GLOSSARY: Glossary = parseGlossary(glossarySource);
+
+/** Lesson equities computed at build time (scripts/gen-lesson-facts.mjs). */
+export const FACTS: Facts = factsJson as Facts;
 
 export type PlacementQuestion = QuizQuestion & { level: number };
 export const PLACEMENT: PlacementQuestion[] = (parseYaml(placementSource) as PlacementQuestion[]) ?? [];

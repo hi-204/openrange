@@ -47,7 +47,7 @@ function HandResult({ v }: { v: HandValue | null }) {
   return (
     <p className="flex flex-wrap items-center gap-2 text-sm">
       <span className="font-semibold capitalize">{v.category}</span>
-      <span className="text-slate-500">{t('widget.bestFive')}</span>
+      <span className="text-ink-muted">{t('widget.bestFive')}</span>
       <Cards cards={v.best} />
     </p>
   );
@@ -78,7 +78,7 @@ export function HandRanker({ config }: { config: Config }) {
           {both[0]!.ok && both[1]!.ok && (both[0]!.strength > both[1]!.strength ? t('widget.aWins') : both[0]!.strength < both[1]!.strength ? t('widget.bWins') : t('widget.tie'))}
         </p>
       )}
-      <p className="text-xs text-slate-600 dark:text-slate-400">{t('widget.cardsHint')}</p>
+      <p className="text-xs text-ink-muted">{t('widget.cardsHint')}</p>
     </div>
   );
 }

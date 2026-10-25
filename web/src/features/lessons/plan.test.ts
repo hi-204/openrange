@@ -6,7 +6,7 @@ import { dailyPlan, drillForLevel, nextLesson, scorePlacement } from './plan';
 const lesson = (id: string, prerequisites: string[] = []): Lesson => ({
   path: `${id}.md`,
   body: '',
-  meta: { id, level: Number(id.split('.')[0]), title: id, minutes: 6, prerequisites, drills: [], glossary: [] },
+  meta: { id, level: Number(id.split('.')[0]), title: id, minutes: 6, prerequisites, drills: [], glossary: [], objectives: [], recap: [] },
 });
 const course = [lesson('0.1'), lesson('0.2', ['0.1']), lesson('1.1'), lesson('1.2', ['1.1']), lesson('2.1', ['1.2'])];
 const done = (...ids: string[]) => new Map<string, LessonProgress>(ids.map((id) => [id, { id, completedAt: 1, lastScore: 3, bestScore: 3, questions: 3, attempts: 1 }]));

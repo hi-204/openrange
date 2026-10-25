@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { open } from './helpers';
 
 test('charts: exact heads-up push/fold with provenance and per-hand EV', async ({ page }) => {
-  await page.goto('/#/charts');
+  await open(page, '/#/charts');
   await expect(page.getByTestId('provenance-badge')).toContainText('Exact solver result');
   await page.getByLabel('Stack').selectOption({ label: '10 bb' });
   await page.getByLabel('Decision').selectOption({ label: 'SB shove or fold, 10 bb' });
@@ -16,7 +17,7 @@ test('charts: exact heads-up push/fold with provenance and per-hand EV', async (
 });
 
 test('charts: approximate families say so, out-of-band ones warn loudly', async ({ page }) => {
-  await page.goto('/#/charts');
+  await open(page, '/#/charts');
   await page.getByLabel('Chart set').selectOption({ label: '6-handed push/fold (approximate)' });
   await expect(page.getByTestId('provenance-badge')).toContainText('Approximate model');
   await expect(page.getByTestId('approx-warning')).toBeVisible();
@@ -31,7 +32,7 @@ test('charts: approximate families say so, out-of-band ones warn loudly', async 
 });
 
 test('charts: compare two decisions side by side', async ({ page }) => {
-  await page.goto('/#/charts');
+  await open(page, '/#/charts');
   await page.getByLabel('Stack').selectOption({ label: '10 bb' });
   await page.getByLabel('Decision').selectOption({ label: 'SB shove or fold, 10 bb' });
   await page.getByLabel('Compare with').selectOption({ label: 'BB call or fold vs SB shove, 10 bb' });

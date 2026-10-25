@@ -1,0 +1,115 @@
+/* Design tokens (docs/DESIGN.md §2). Every colour, radius, shadow and duration in the app comes
+   from here; components use the Tailwind names mapped in index.css. */
+
+:root,
+:root[data-theme='light'] {
+  --canvas: #f7f5f1;
+  --surface: #ffffff;
+  --surface-2: #f1eee8;
+  --surface-3: #e7e2d9;
+  --line: #d9d2c6;
+  --ink: #1d1b18;
+  --ink-muted: #5b564e;
+  --ink-faint: #857e74;
+  --accent: #4f50cf;
+  --accent-strong: #3e3fb3;
+  --accent-soft: #e6e6fb;
+  --accent-ink: #ffffff;
+  --good: #1f6fb2;
+  --warn: #8a5f00;
+  --bad: #b23c12;
+  --felt: #2f7356;
+  --felt-edge: #245a43;
+  --rail: #6b4a33;
+  --shadow-1: 0 1px 2px rgb(60 45 30 / 0.08), 0 1px 1px rgb(60 45 30 / 0.04);
+  --shadow-2: 0 4px 12px rgb(60 45 30 / 0.1), 0 2px 4px rgb(60 45 30 / 0.06);
+  --shadow-3: 0 16px 40px rgb(60 45 30 / 0.16), 0 4px 10px rgb(60 45 30 / 0.08);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --canvas: #121110;
+  --surface: #1a1917;
+  --surface-2: #23211e;
+  --surface-3: #2d2a26;
+  --line: #3a3631;
+  --ink: #ede9e3;
+  --ink-muted: #aaa39a;
+  --ink-faint: #7f786f;
+  --accent: #8e8ff7;
+  --accent-strong: #a9aafa;
+  --accent-soft: #26253f;
+  --accent-ink: #14131f;
+  --good: #5aa9e6;
+  --warn: #e3b341;
+  --bad: #e0704a;
+  --felt: #1f5a43;
+  --felt-edge: #17442f;
+  --rail: #3b2a1e;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 6px 16px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 20px 48px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+/* Felt choices (Settings → Display). */
+:root[data-felt='navy'] { --felt: #1e3a5f; --felt-edge: #162b47; }
+:root[data-felt='burgundy'] { --felt: #5a1f2b; --felt-edge: #43161f; }
+:root[data-felt='charcoal'] { --felt: #2b2b2b; --felt-edge: #1f1f1f; }
+:root[data-theme='light'][data-felt='navy'] { --felt: #2d5a8c; --felt-edge: #234873; }
+:root[data-theme='light'][data-felt='burgundy'] { --felt: #8a3445; --felt-edge: #702836; }
+:root[data-theme='light'][data-felt='charcoal'] { --felt: #4a4a4a; --felt-edge: #3a3a3a; }
+
+:root {
+  /* Action colours: studio palette; hue + glyph + label (DESIGN.md §2). */
+  --act-fold: #8e9aaf;
+  --act-check: #4fa3a5;
+  --act-call: #3f8fd8;
+  --act-raise-1: #e3b341;
+  --act-raise-2: #e8873a;
+  --act-raise-3: #d4553a;
+  --act-allin: #b34a8c;
+  /* Grades. */
+  --grade-best: var(--good);
+  --grade-acceptable: #2a9d8f;
+  --grade-inaccuracy: var(--warn);
+  --grade-mistake: var(--bad);
+  --grade-blunder: #b34a8c;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --pad: 1rem;
+  --gap: 1rem;
+
+  --dur-fast: 150ms;
+  --dur: 200ms;
+  --dur-slow: 250ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Animation speed setting: 0 (off), 0.6 (fast), 1 (normal). */
+  --motion: 1;
+}
+
+/* Okabe–Ito colour-blind palette (Settings → Display). */
+:root[data-palette='okabe-ito'] {
+  --act-fold: #56b4e9;
+  --act-check: #009e73;
+  --act-call: #009e73;
+  --act-raise-1: #f0e442;
+  --act-raise-2: #e69f00;
+  --act-raise-3: #d55e00;
+  --act-allin: #cc79a7;
+}
+
+:root[data-density='compact'] {
+  --pad: 0.75rem;
+  --gap: 0.75rem;
+}
+
+:root[data-motion='off'] {
+  --motion: 0;
+}
+:root[data-motion='fast'] {
+  --motion: 0.6;
+}

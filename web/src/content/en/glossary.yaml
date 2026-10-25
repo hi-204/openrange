@@ -1,1 +1,18 @@
 # Glossary: term (lower case) → definition. Lessons mark terms with [[term]] or [[term|label]].
+# Plain English, one or two sentences, no undefined jargon.
+
+equity: >-
+  Your share of the pot on average if all the remaining cards were dealt with no more betting.
+  Ties count half.
+implied odds: >-
+  Extra money you expect to win on later streets when you hit, which can make a call pay even
+  when the current price is too high.
+pot odds: >-
+  The price of a call: what you pay divided by the pot you will have after calling. You need at
+  least that much equity for the call to break even.
+range: >-
+  All the hands a player could hold in a spot, with how often they would play each one this
+  way. Good decisions think about ranges, not single hands.
+showdown: >-
+  The end of a hand when two or more players are left after the last bet: they show their cards
+  and the best five-card hand wins.

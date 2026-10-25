@@ -87,7 +87,7 @@ function CellDetail({ doc, chart, cell }: { doc: ChartFile; chart: Chart; cell: 
               <td className="py-1 font-mono">{pct(chart.strategy[cell]![k]!, 1)}</td>
               <td className="py-1 font-mono">
                 {ev === null || ev === undefined ? '—' : `${ev.toFixed(3)} bb`}
-                {se !== null && se !== undefined && <span className="text-xs text-slate-500"> ± {se.toFixed(3)}</span>}
+                {se !== null && se !== undefined && <span className="text-xs text-ink-muted"> ± {se.toFixed(3)}</span>}
               </td>
             </tr>
           );
@@ -96,7 +96,7 @@ function CellDetail({ doc, chart, cell }: { doc: ChartFile; chart: Chart; cell: 
       {reach !== undefined && (
         <tfoot>
           <tr>
-            <td colSpan={3} className="pt-2 text-xs text-slate-600 dark:text-slate-400">
+            <td colSpan={3} className="pt-2 text-xs text-ink-muted">
               {t('charts.reach', { pct: pct(reach, 0) })}
             </td>
           </tr>
@@ -153,7 +153,7 @@ export function ChartsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">{t('charts.heading')}</h2>
-        <p className="mt-1 max-w-prose text-sm text-slate-600 dark:text-slate-400">{t('charts.intro')}</p>
+        <p className="mt-1 max-w-prose text-sm text-ink-muted">{t('charts.intro')}</p>
       </div>
 
       <div className="card grid gap-4 sm:grid-cols-4">
@@ -199,7 +199,7 @@ export function ChartsPage() {
         <section className="space-y-3" aria-live="polite">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <ProvenanceBadge p={doc.provenance} />
-            {chart?.solve && <span className="text-slate-600 dark:text-slate-400">{t('charts.exactNote', { ex: chart.solve.exploitabilityBb.toExponential(1) })}</span>}
+            {chart?.solve && <span className="text-ink-muted">{t('charts.exactNote', { ex: chart.solve.exploitabilityBb.toExponential(1) })}</span>}
           </div>
           {doc.provenance.source === 'solver_approx' && (
             <p role="note" className="rounded-md border border-amber-600 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200" data-testid="approx-warning">
@@ -224,9 +224,9 @@ export function ChartsPage() {
                 <ChartView doc={doc} chart={compare} cell={cell} setCell={setCell} title={compare.title} />
               ) : (
                 <div className="space-y-3 text-sm">
-                  {chart.line && <p className="text-slate-600 dark:text-slate-400">{t('charts.line', { line: chart.line })}</p>}
+                  {chart.line && <p className="text-ink-muted">{t('charts.line', { line: chart.line })}</p>}
                   {cell === null ? <p>{t('charts.pickCell')}</p> : <CellDetail doc={doc} chart={chart} cell={cell} />}
-                  <p className="text-xs text-slate-600 dark:text-slate-400">{t('charts.evNote', { unit: doc.evUnit })}</p>
+                  <p className="text-xs text-ink-muted">{t('charts.evNote', { unit: doc.evUnit })}</p>
                 </div>
               )}
             </div>

@@ -18,6 +18,8 @@ minutes: 7
 prerequisites: ["2.1"]
 drills: ["math:potodds"]
 glossary: ["pot odds"]
+objectives: ["Work out a price.", "Compare it with equity."]
+recap: ["Price is call over final pot.", "Call when equity covers it."]
 ---
 [[Pot odds]] compare the price with the pot: $\\dfrac{C}{P+C}$. Facing a half-pot bet you need {{calc 5 / (10 + 5 + 5) | pct | show}}.
 Aces beat kings {{eq AhAs vs KdKc}} of the time. Blinds are 0.5/1.

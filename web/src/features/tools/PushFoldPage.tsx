@@ -26,7 +26,7 @@ function Field({ label, value, onChange, hint }: { label: string; value: string;
         {label}
       </label>
       <input id={id} className="field" value={value} onChange={(e) => onChange(e.target.value)} spellCheck={false} autoComplete="off" />
-      {hint && <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function PushFoldPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">{t('pushfold.heading')}</h2>
-        <p className="mt-1 max-w-prose text-sm text-slate-600 dark:text-slate-400">{t('pushfold.intro')}</p>
+        <p className="mt-1 max-w-prose text-sm text-ink-muted">{t('pushfold.intro')}</p>
       </div>
       <form
         className="card grid gap-4 sm:grid-cols-3"
@@ -117,7 +117,7 @@ export function PushFoldPage() {
                 );
               })}
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400">{t('pushfold.note')}</p>
+            <p className="text-xs text-ink-muted">{t('pushfold.note')}</p>
           </section>
         )}
       </div>

@@ -43,7 +43,7 @@ export function MiniSolver({ config }: { config: Config }) {
   return (
     <div className="space-y-3">
       <p className="text-sm">{t(`trainer.post.spot.${spot.id}` as MessageKey)}</p>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{t('trainer.post.inputs')}</p>
+      <p className="text-xs text-ink-muted">{t('trainer.post.inputs')}</p>
       {state.kind === 'idle' && (
         <button type="button" className="btn-primary" onClick={() => void solve()}>
           {t('widget.solver.solve')}

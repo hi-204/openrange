@@ -38,6 +38,8 @@ Allowed licenses (D-004): MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, IS
 
 | Package | Version | License | Dev only |
 |---|---|---|---|
+| @axe-core/playwright | 4.14.0 | MPL-2.0 | yes |
+| @fontsource-variable/inter | 5.3.0 | OFL-1.1 | no |
 | @jridgewell/gen-mapping | 0.3.13 | MIT | yes |
 | @jridgewell/remapping | 2.3.5 | MIT | yes |
 | @jridgewell/resolve-uri | 3.1.2 | MIT | yes |
@@ -63,6 +65,7 @@ Allowed licenses (D-004): MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, IS
 | @vitest/spy | 5.0.5 | MIT | yes |
 | argparse | 3.0.4 | PSF-2.0 | no |
 | assertion-error | 2.0.1 | MIT | yes |
+| axe-core | 4.14.0 | MPL-2.0 | yes |
 | chai | 6.3.0 | MIT | yes |
 | commander | 15.0.0 | MIT | no |
 | csstype | 3.2.3 | MIT | no |

@@ -19,8 +19,8 @@ export function drillIds(chartFiles: string[]): Set<string> {
 
 export function drillHref(id: string): string {
   const [kind = '', arg] = id.split(':');
-  if (kind === 'preflop') return href('trainer', ['preflop'], arg ? { files: arg } : {});
-  if (kind === 'postflop') return href('trainer', ['postflop'], arg ? { spot: arg } : {});
-  if (kind === 'math') return href('trainer', ['math'], arg ? { drill: arg } : {});
-  return href('trainer', ['review']);
+  if (kind === 'preflop') return href('train', ['preflop'], arg ? { files: arg } : {});
+  if (kind === 'postflop') return href('train', ['postflop'], arg ? { spot: arg } : {});
+  if (kind === 'math') return href('train', ['math'], arg ? { drill: arg } : {});
+  return href('stats');
 }

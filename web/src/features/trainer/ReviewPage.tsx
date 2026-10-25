@@ -5,6 +5,7 @@ import { fmtLoss } from './explain/render';
 import { CATEGORIES, DEFAULT_THRESHOLDS, type Thresholds, type Unit } from './grading';
 import type { FamilyState } from './srs';
 import { groupStats, MIN_SAMPLE, type GradedAnswer } from './stats';
+import { useSettings } from '../../lib/settings/useSettings';
 import { exportAll, importAll, trainerStore, type AnswerRecord, type TrainerSettings } from './store';
 
 const DIMENSIONS = ['drill', 'reference', 'position', 'scenario', 'street', 'stack', 'handType'];
@@ -56,14 +57,14 @@ function Stats({ answers }: { answers: AnswerRecord[] }) {
                           <>
                             <td className="py-1 font-mono">
                               {fmtLoss(r.meanLoss, unit)}
-                              {r.lossInterval && <span className="text-xs text-slate-500"> ({fmtLoss(Math.max(0, r.lossInterval.low), unit)} – {fmtLoss(r.lossInterval.high, unit)})</span>}
+                              {r.lossInterval && <span className="text-xs text-ink-muted"> ({fmtLoss(Math.max(0, r.lossInterval.low), unit)} – {fmtLoss(r.lossInterval.high, unit)})</span>}
                             </td>
                             <td className="py-1 font-mono">
-                              {pct(r.errorRate, 0)} <span className="text-xs text-slate-500">({pct(r.errorInterval.low, 0)} – {pct(r.errorInterval.high, 0)})</span>
+                              {pct(r.errorRate, 0)} <span className="text-xs text-ink-muted">({pct(r.errorInterval.low, 0)} – {pct(r.errorInterval.high, 0)})</span>
                             </td>
                           </>
                         ) : (
-                          <td className="py-1 text-slate-500" colSpan={2}>
+                          <td className="py-1 text-ink-muted" colSpan={2}>
                             {t('review.notEnough', { n: r.n, min: MIN_SAMPLE })}
                           </td>
                         )}
@@ -73,7 +74,7 @@ function Stats({ answers }: { answers: AnswerRecord[] }) {
                 </table>
               );
             })}
-            <p className="text-xs text-slate-600 dark:text-slate-400">{t('review.leakNote', { min: MIN_SAMPLE })}</p>
+            <p className="text-xs text-ink-muted">{t('review.leakNote', { min: MIN_SAMPLE })}</p>
           </section>
         );
       })}
@@ -81,7 +82,7 @@ function Stats({ answers }: { answers: AnswerRecord[] }) {
   );
 }
 
-function ThresholdSettings({ settings, onSave }: { settings: TrainerSettings; onSave: (s: TrainerSettings) => Promise<void> }) {
+export function ThresholdSettings({ settings, onSave }: { settings: TrainerSettings; onSave: (s: TrainerSettings) => Promise<void> }) {
   const base = settings.thresholds ?? DEFAULT_THRESHOLDS;
   const [draft, setDraft] = useState<Record<Unit, string[]>>({ bb: base.bb.map(String), pctPot: base.pctPot.map(String) });
   const [message, setMessage] = useState<string | null>(null);
@@ -96,9 +97,8 @@ function ThresholdSettings({ settings, onSave }: { settings: TrainerSettings; on
     setMessage(t('review.saved'));
   };
   return (
-    <section className="card space-y-3">
-      <h3 className="font-semibold">{t('review.settings')}</h3>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{t('review.settingsNote')}</p>
+    <div className="space-y-3">
+      <p className="text-xs text-ink-muted">{t('review.settingsNote')}</p>
       {UNITS.map((u) => (
         <div key={u} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {CATEGORIES.slice(0, 4).map((c, i) => (
@@ -133,32 +133,27 @@ function ThresholdSettings({ settings, onSave }: { settings: TrainerSettings; on
         </button>
       </div>
       {message && <p role="status" className="text-sm">{message}</p>}
-    </section>
+    </div>
   );
 }
 
-export function ReviewPage() {
-  const [answers, setAnswers] = useState<AnswerRecord[] | null>(null);
-  const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
-  const [settings, setSettings] = useState<TrainerSettings>({ thresholds: null });
+/** Backup (export/import), reset, and how much this browser is storing. */
+export function DataSettings({ onChange }: { onChange?: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [usage, setUsage] = useState<string | null>(null);
   const fileId = useId();
   const store = trainerStore();
-
-  const reload = useCallback(async () => {
-    setAnswers(await store.answers());
-    setFamilies(await store.families());
-    setSettings(await store.settings());
-  }, [store]);
   useEffect(() => {
-    void reload();
-  }, [reload]);
-
+    navigator.storage
+      ?.estimate?.()
+      .then((e) => setUsage(t('review.storage', { mb: ((e.usage ?? 0) / 1e6).toFixed(1) })))
+      .catch(() => undefined);
+  }, [message]);
   const download = async () => {
     const blob = new Blob([JSON.stringify(await exportAll(store), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `openrange-trainer-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `openrange-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -166,7 +161,8 @@ export function ReviewPage() {
     try {
       const n = await importAll(store, JSON.parse(await file.text()));
       setMessage(t('review.imported', { n }));
-      await reload();
+      await useSettings.getState().load();
+      onChange?.();
     } catch (e) {
       setMessage((e as Error).message);
     }
@@ -175,8 +171,46 @@ export function ReviewPage() {
     if (!window.confirm(t('review.resetConfirm'))) return;
     await store.reset();
     setMessage(t('review.resetDone'));
-    await reload();
+    await useSettings.getState().load();
+    onChange?.();
   };
+  return (
+    <div className="space-y-3" data-testid="data-settings">
+      <p className="text-xs text-ink-muted">{t('review.dataNote')}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn-secondary" onClick={() => void download()}>
+          {t('review.export')}
+        </button>
+        <label htmlFor={fileId} className="btn-secondary cursor-pointer">
+          {t('review.import')}
+        </label>
+        <input id={fileId} type="file" accept="application/json,.json" className="sr-only" onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
+        <button type="button" className="btn-danger" onClick={() => void reset()}>
+          {t('review.reset')}
+        </button>
+      </div>
+      {usage && <p className="text-xs text-ink-muted">{usage}</p>}
+      {message && (
+        <p role="status" className="text-sm">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function ReviewPage() {
+  const [answers, setAnswers] = useState<AnswerRecord[] | null>(null);
+  const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
+  const store = trainerStore();
+
+  const reload = useCallback(async () => {
+    setAnswers(await store.answers());
+    setFamilies(await store.families());
+  }, [store]);
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   if (!answers) return <p>{t('review.loading')}</p>;
   const now = Date.now();
@@ -229,35 +263,6 @@ export function ReviewPage() {
           </section>
         </>
       )}
-      <ThresholdSettings
-        key={JSON.stringify(settings)}
-        settings={settings}
-        onSave={async (s) => {
-          await store.putSettings(s);
-          setSettings(s);
-        }}
-      />
-      <section className="card space-y-3">
-        <h3 className="font-semibold">{t('review.data')}</h3>
-        <p className="text-xs text-slate-600 dark:text-slate-400">{t('review.dataNote')}</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="btn-secondary" onClick={() => void download()}>
-            {t('review.export')}
-          </button>
-          <label htmlFor={fileId} className="btn-secondary cursor-pointer">
-            {t('review.import')}
-          </label>
-          <input id={fileId} type="file" accept="application/json,.json" className="sr-only" onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
-          <button type="button" className="btn-secondary" onClick={() => void reset()}>
-            {t('review.reset')}
-          </button>
-        </div>
-        {message && (
-          <p role="status" className="text-sm">
-            {message}
-          </p>
-        )}
-      </section>
     </div>
   );
 }

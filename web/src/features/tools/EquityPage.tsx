@@ -68,7 +68,7 @@ function RangeField({
         spellCheck={false}
         autoComplete="off"
       />
-      <p id={`${id}-hint`} className="mt-1 min-h-5 text-xs text-slate-600 dark:text-slate-400">
+      <p id={`${id}-hint`} className="mt-1 min-h-5 text-xs text-ink-muted">
         {parsed?.ok === true &&
           t(parsed.combos === 1 ? 'equity.combo' : 'equity.combos', {
             combos: count(parsed.combos),
@@ -113,7 +113,7 @@ export function EquityPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">{t('equity.heading')}</h2>
-        <p className="mt-1 max-w-prose text-sm text-slate-600 dark:text-slate-400">{t('equity.intro')}</p>
+        <p className="mt-1 max-w-prose text-sm text-ink-muted">{t('equity.intro')}</p>
       </div>
 
       <form
@@ -218,7 +218,7 @@ export function EquityPage() {
                     </td>
                     <td className="py-1 font-mono" data-testid={`equity-${i}`}>
                       {pct(p.equity)}
-                      {'stdError' in p && <span className="text-xs text-slate-500"> ± {pct(p.stdError)}</span>}
+                      {'stdError' in p && <span className="text-xs text-ink-muted"> ± {pct(p.stdError)}</span>}
                     </td>
                     {'win' in p && <td className="py-1 font-mono">{pct(p.win)}</td>}
                     <td className="py-1 font-mono">{pct(p.tie)}</td>
@@ -226,7 +226,7 @@ export function EquityPage() {
                 ))}
               </tbody>
             </table>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-ink-muted">
               {result.method === 'exact'
                 ? t('equity.exactNote', { runouts: count(result.runouts) })
                 : t('equity.mcNote', { samples: count(result.samples), seed: result.seed })}

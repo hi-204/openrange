@@ -33,7 +33,7 @@ export function newFamily(family: string, now: number): FamilyState {
  * Update a family after a graded answer. Answers before the family is due only count when
  * they are lapses, so drilling one family many times in a row can't inflate its interval.
  */
-export function review(state: FamilyState, category: Category, now: number): FamilyState {
+export function review(state: FamilyState, category: Category, now: number, intervalScale = 1): FamilyState {
   const q = QUALITY[category];
   const s = { ...state, answers: state.answers + 1 };
   if (q < 3) {
@@ -49,9 +49,11 @@ export function review(state: FamilyState, category: Category, now: number): Fam
   if (now < state.due) return s;
   const repetitions = s.repetitions + 1;
   const intervalDays = repetitions === 1 ? 1 : repetitions === 2 ? 6 : Math.round(s.intervalDays * s.ease);
+  // Review intensity (Settings → Training): light spaces reviews out, intense brings them back.
+  const scheduledDays = Math.max(1, Math.round(intervalDays * intervalScale));
   // SM-2 ease update.
   const ease = Math.max(1.3, s.ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
-  return { ...s, repetitions, intervalDays, ease, due: now + intervalDays * DAY };
+  return { ...s, repetitions, intervalDays, ease, due: now + scheduledDays * DAY };
 }
 
 /**
@@ -75,3 +77,6 @@ export function pickFamily(candidates: string[], states: Map<string, FamilyState
   }
   return overdue?.family ?? unseen ?? soonest!.family;
 }
+
+/** Interval multiplier for the review-intensity setting. */
+export const INTENSITY_SCALE = { light: 1.5, normal: 1, intense: 0.6 } as const;

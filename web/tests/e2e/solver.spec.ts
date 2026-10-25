@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { open } from './helpers';
 
 test('river solver: solves in the worker, shows provenance, browses nodes', async ({ page }) => {
-  await page.goto('/#/solver');
+  await open(page, '/#/solver');
   await page.getByLabel('Max iterations').fill('300');
   await page.getByLabel('Target exploitability (% of pot)').fill('0');
   await page.getByRole('button', { name: 'Solve' }).click();
@@ -22,7 +23,7 @@ test('river solver: solves in the worker, shows provenance, browses nodes', asyn
 });
 
 test('turn solver: deal a river card and keep browsing', async ({ page }) => {
-  await page.goto('/#/solver');
+  await open(page, '/#/solver');
   await page.getByRole('button', { name: 'Turn', exact: true }).click();
   await page.getByLabel('Max iterations').fill('40');
   await page.getByRole('button', { name: 'Solve' }).click();
@@ -39,7 +40,7 @@ test('turn solver: deal a river card and keep browsing', async ({ page }) => {
 });
 
 test('solver: refuses a spot over the memory budget with a clear message', async ({ page }) => {
-  await page.goto('/#/solver');
+  await open(page, '/#/solver');
   await page.getByLabel('Memory budget (MB)').fill('0.5');
   await page.getByLabel(/simplify the tree automatically/).uncheck();
   await page.getByRole('button', { name: 'Solve' }).click();
@@ -47,7 +48,7 @@ test('solver: refuses a spot over the memory budget with a clear message', async
 });
 
 test('solver: simplifies a spot that does not fit and says so', async ({ page }) => {
-  await page.goto('/#/solver');
+  await open(page, '/#/solver');
   // Budget = the solver's own estimate for the spot as entered, minus 1 kB: the full tree no
   // longer fits, while the first simplification (dropping river raises) saves far more than that.
   const estimate = page.getByTestId('memory-estimate');

@@ -42,7 +42,7 @@ export function TableDiagram({ config }: { config: Config }) {
           );
         })}
       </svg>
-      <p className="text-xs text-slate-600 dark:text-slate-400">{t('widget.table.note')}</p>
+      <p className="text-xs text-ink-muted">{t('widget.table.note')}</p>
     </div>
   );
 }
@@ -81,15 +81,15 @@ export function HandFlow({ config }: { config: Config }) {
       </ol>
       <div className="flex flex-wrap items-center gap-6">
         <div>
-          <p className="text-xs text-slate-500">{t('widget.yourCards')}</p>
+          <p className="text-xs text-ink-muted">{t('widget.yourCards')}</p>
           {step >= 1 ? <Cards cards={hero} size="xl" /> : <span className="text-sm">—</span>}
         </div>
         <div>
-          <p className="text-xs text-slate-500">{t('widget.boardCards')}</p>
+          <p className="text-xs text-ink-muted">{t('widget.boardCards')}</p>
           {shown ? <Cards cards={board.slice(0, shown)} size="xl" /> : <span className="text-sm">—</span>}
         </div>
         <div>
-          <p className="text-xs text-slate-500">{t('widget.theirCards')}</p>
+          <p className="text-xs text-ink-muted">{t('widget.theirCards')}</p>
           {name === 'showdown' ? <Cards cards={villain} size="xl" /> : <span className="text-sm">{step >= 1 ? '🂠 🂠' : '—'}</span>}
         </div>
       </div>

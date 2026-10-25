@@ -1,45 +1,66 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { pct } from '../../../lib/format';
 import { t, type MessageKey } from '../../../lib/i18n';
-import { Cards } from '../../../lib/poker/Cards';
 import { ProvenanceBadge } from '../../../lib/provenance/ProvenanceBadge';
 import { loadJson, type ChartFile, type ChartIndexEntry } from '../../../lib/provenance/types';
+import { useSettings } from '../../../lib/settings/useSettings';
+import { Accordion, ErrorState, Skeleton } from '../../../lib/ui/components';
 import { solverClient } from '../../../lib/wasm/client';
+import { ClassGrid } from '../../charts/ClassGrid';
 import { familyLabel } from '../../charts/ChartsPage';
-import { AnswerPanel, type ActionRow } from '../AnswerPanel';
-import type { Claim } from '../explain/claims';
+import { buildCoach, type CoachCard as Card } from '../../coach/coach';
+import { CoachCard, type MathRow } from '../../coach/CoachCard';
+import { ActionBar, actionColor } from '../../table/ActionBar';
+import { PokerTable } from '../../table/PokerTable';
+import { playersBehind, preflopTable } from '../../table/preflopTable';
 import { preflopClaims } from '../explain/preflop';
-import { fmtBb, fmtLoss } from '../explain/render';
-import { grade, type Category } from '../grading';
+import { fmtBb, renderClaim } from '../explain/render';
+import { Hints, SessionSummary, TimerBadge, useCountdown, useQuickAdvance, type SessionAnswer } from '../flow';
+import { grade } from '../grading';
 import { handType, recordAnswer } from '../session';
 import { useDrillKeys } from '../shortcuts';
 import type { FamilyState } from '../srs';
 import { trainerStore, type TrainerSettings } from '../store';
-import { candidates, deal, drillSources, mulberry32, scenarioOf, stackBand, type Dealt, type Difficulty, type Filters } from './deal';
+import { candidates, deal, drillSources, mulberry32, scenarioOf, stackBand, type Candidate, type Dealt, type Difficulty, type Filters } from './deal';
 
 const SEATS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const SCENARIOS = ['first-in', 'vs-all-in', 'vs-open', 'squeeze', 'vs-3bet', 'vs-4bet', 'vs-5bet'];
 const DIFFICULTIES: Difficulty[] = ['any', 'easy', 'medium', 'hard'];
 
-type Answered = { chosen: number; category: Category | null; claims: Claim[]; loss: number | null };
+type Answered = { chosen: number | null; card: Card; details: string[] };
 
-function question(d: Dealt): string[] {
-  const s = d.stack;
-  if (d.doc.family === 'pushfold-hu') return [t('trainer.pf.headsUp', { stack: s }), d.chart.id.startsWith('sb-shove') ? t('trainer.pf.sbFirst') : t('trainer.pf.bbVsShove', { stack: s })];
-  const intro = d.doc.family === 'cash-6max' ? t('trainer.pf.cash', { stack: s }) : t('trainer.pf.players', { n: d.doc.players ?? d.source.players, stack: s });
-  return [intro, t('trainer.pf.youAre', { seat: d.chart.seat }), d.chart.line ? t('trainer.pf.action', { line: d.chart.line }) : t('trainer.pf.firstToAct')];
+const playersOf = (d: Dealt) => (d.doc.family === 'pushfold-hu' ? 2 : (d.doc.players ?? d.source.players));
+const seatOf = (d: Dealt) => (d.chart.seat ? d.chart.seat : d.chart.id.startsWith('sb-shove') ? 'SB' : 'BB');
+
+/** Hints that point at what matters without giving the answer away. */
+function hintsFor(d: Dealt): string[] {
+  const out: string[] = [];
+  const seat = seatOf(d);
+  const players = playersOf(d);
+  const scenario = scenarioOf(d.chart);
+  if (scenario === 'first-in') out.push(t('flow.hint.position', { seat, n: playersBehind(players, seat) }));
+  else out.push(t('flow.hint.facing', { seat }));
+  out.push(t(`flow.hint.hand.${handType(d.handClass)}` as MessageKey, { hand: d.handClass }));
+  if (d.doc.family === 'pushfold-hu' && seat === 'BB') out.push(t('flow.hint.price', { required: pct((d.stack - 1) / (2 * d.stack), 1) }));
+  if (d.doc.family === 'pushfold-hu' && seat === 'SB') out.push(t('flow.hint.shove'));
+  return out;
 }
 
-export function PreflopDrill() {
+export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
+  const app = useSettings((s) => s.settings);
   const [index, setIndex] = useState<ChartIndexEntry[] | null>(null);
   const [docs, setDocs] = useState<Map<string, ChartFile>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
+  const [onlyFamilies, setOnlyFamilies] = useState<string[] | null>(null);
   const [families, setFamilies] = useState<Map<string, FamilyState>>(new Map());
-  const [settings, setSettings] = useState<TrainerSettings>({ thresholds: null });
+  const [trainer, setTrainer] = useState<TrainerSettings>({ thresholds: null });
   const [dealt, setDealt] = useState<Dealt | null>(null);
   const [answered, setAnswered] = useState<Answered | null>(null);
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [tally, setTally] = useState({ n: 0, loss: 0 });
+  const [session, setSession] = useState<SessionAnswer[]>([]);
+  const [showSummary, setShowSummary] = useState(false);
   const rnd = useMemo(() => mulberry32(Date.now() & 0x7fffffff), []);
   const ids = { min: useId(), max: useId(), difficulty: useId() };
 
@@ -47,13 +68,15 @@ export function PreflopDrill() {
     loadJson<ChartIndexEntry[]>('data/charts/index.json')
       .then((ix) => {
         setIndex(ix);
-        setFilters({ files: drillSources(ix).filter((s) => s.graded).map((s) => s.file), seats: [], scenarios: [], stackMin: 0, stackMax: 100, difficulty: 'any' });
+        const graded = drillSources(ix).filter((s) => s.graded).map((s) => s.file);
+        const wanted = initialFiles?.filter((f) => ix.some((e) => e.file === f));
+        setFilters({ files: wanted?.length ? wanted : graded, seats: [], scenarios: [], stackMin: 0, stackMax: 100, difficulty: 'any' });
       })
       .catch((e: Error) => setError(e.message));
     const store = trainerStore();
     store.families().then(setFamilies).catch((e: Error) => setError(e.message));
-    store.settings().then(setSettings).catch(() => undefined);
-  }, []);
+    store.settings().then(setTrainer).catch(() => undefined);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load the chart files the filters use, each once. (Re-requesting files still in flight let
   // a late duplicate response rebuild the pool and re-deal over an answer.)
@@ -74,12 +97,16 @@ export function PreflopDrill() {
   const pool = useMemo(() => {
     if (!filters || !ready) return null;
     const loaded = sources.filter((s) => docs.has(s.file)).map((source) => ({ source, doc: docs.get(source.file)! }));
-    return candidates(loaded, filters);
-  }, [filters, ready, sources, docs]);
+    const all = candidates(loaded, filters);
+    if (!onlyFamilies) return all;
+    const weak = new Map<string, Candidate[]>([...all].filter(([k]) => onlyFamilies.includes(k)));
+    return weak.size ? weak : all;
+  }, [filters, ready, sources, docs, onlyFamilies]);
 
   const next = useCallback(() => {
     if (!pool) return;
     setAnswered(null);
+    setHintsUsed(0);
     setDealt(deal(pool, families, Date.now(), rnd));
   }, [pool, families, rnd]);
 
@@ -87,10 +114,20 @@ export function PreflopDrill() {
   useEffect(() => {
     if (pool) {
       setAnswered(null);
+      setHintsUsed(0);
       setDealt(deal(pool, families, Date.now(), rnd));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pool]);
+
+  const coachContext = (d: Dealt, chosen: number) => ({
+    seed: `${d.family}|${d.chart.id}|${d.handClass}|${chosen}`,
+    drill: 'preflop' as const,
+    position: seatOf(d),
+    hand: d.handClass,
+    playersBehind: scenarioOf(d.chart) === 'first-in' ? playersBehind(playersOf(d), seatOf(d)) : undefined,
+    detail: app.coaching.detail,
+  });
 
   const answer = useCallback(
     async (chosen: number) => {
@@ -101,7 +138,7 @@ export function PreflopDrill() {
         const ev = chart.ev![k]!;
         const se = chart.evStdError?.[k] ?? null;
         const strategy = chart.strategy[k]!;
-        const g = source.graded ? grade({ ev, evStdError: se, strategy, chosen, unit: 'bb', thresholds: settings.thresholds?.bb }) : null;
+        const g = source.graded ? grade({ ev, evStdError: se, strategy, chosen, unit: 'bb', thresholds: trainer.thresholds?.bb }) : null;
         let headsUp;
         if (doc.family === 'pushfold-hu') {
           const role = chart.id.startsWith('sb-shove') ? ('shove' as const) : ('call' as const);
@@ -112,9 +149,8 @@ export function PreflopDrill() {
           }
         }
         const claims = preflopClaims({ actions: chart.actions, ev, evStdError: se, strategy, chosen, grade: g, headsUp });
-        setAnswered({ chosen, category: g?.category ?? null, claims, loss: g?.loss ?? null });
-        if (g) setTally((x) => ({ n: x.n + 1, loss: x.loss + g.loss }));
-        const scenario = scenarioOf(chart);
+        setAnswered({ chosen, card: buildCoach(claims, coachContext(dealt, chosen)), details: claims.flatMap(renderClaim) });
+        setSession((s) => [...s, { family: dealt.family, label: chart.title, hand: dealt.handClass, category: g?.category ?? null, loss: g?.loss ?? null, unit: 'bb', hints: hintsUsed }]);
         const updated = await recordAnswer(
           trainerStore(),
           {
@@ -131,9 +167,11 @@ export function PreflopDrill() {
             category: g?.category ?? null,
             loss: g?.loss ?? null,
             gradedLoss: g?.gradedLoss ?? null,
-            groups: { drill: 'preflop', reference: doc.family, position: chart.seat, scenario, stack: stackBand(doc.family, dealt.stack), handType: handType(dealt.handClass), handClass: dealt.handClass },
+            hints: hintsUsed,
+            groups: { drill: 'preflop', reference: doc.family, position: chart.seat, scenario: scenarioOf(chart), stack: stackBand(doc.family, dealt.stack), handType: handType(dealt.handClass), handClass: dealt.handClass },
           },
           families,
+          app.training.srs,
         );
         setFamilies(updated);
       } catch (e) {
@@ -142,129 +180,181 @@ export function PreflopDrill() {
         setBusy(false);
       }
     },
-    [dealt, answered, busy, settings, families],
+    [dealt, answered, busy, trainer, families, hintsUsed, app], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  useDrillKeys(dealt && !answered ? dealt.chart.actions : null, answer, answered ? next : null);
+  // Timer: running out shows the answer, ungraded.
+  const timeUp = useCallback(() => {
+    if (!dealt || answered) return;
+    const k = dealt.classIndex;
+    const strat = dealt.chart.strategy[k]!;
+    const best = dealt.chart.actions[strat.indexOf(Math.max(...strat))]!;
+    setAnswered({
+      chosen: null,
+      card: { tone: 'ungraded', category: null, verdict: t('flow.timeUp', { best }), why: [], keyIdea: t('flow.timeUpIdea'), lookFor: t('coach.look.ranges'), recommended: [best], learnMore: { topic: t('coach.topic.ranges'), href: '#/learn/1.5' } },
+      details: [],
+    });
+  }, [dealt, answered]);
+  const left = useCountdown(app.training.timerSeconds, !!dealt && !answered, timeUp);
+  const autoPending = useQuickAdvance(app.training.autoAdvance, !!answered, next);
+  useDrillKeys(dealt && !answered ? dealt.chart.actions : null, (i) => void answer(i), answered ? next : null);
 
-  if (error) return <p className="text-amber-700 dark:text-amber-400">{t('trainer.loadError', { message: error })}</p>;
-  if (!index || !filters) return <p>{t('trainer.loading')}</p>;
+  if (error) return <ErrorState title={t('flow.errorTitle')} message={t('trainer.loadError', { message: error })} next={<button type="button" className="btn-secondary" onClick={() => location.reload()}>{t('flow.reload')}</button>} />;
+  if (!index || !filters)
+    return (
+      <div className="space-y-3" aria-busy="true">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-14" />
+      </div>
+    );
 
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const rows: ActionRow[] = dealt
+  const expert = app.mode === 'expert';
+
+  const filtersPanel = (
+    <Accordion title={t('trainer.filters')} defaultOpen={expert} testId="preflop-filters">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset>
+          <legend className="mb-1 text-sm font-medium">{t('trainer.filters.sources')}</legend>
+          {sources.map((s) => (
+            <label key={s.file} className="flex min-h-9 items-center gap-2 text-sm">
+              <input type="checkbox" checked={filters.files.includes(s.file)} onChange={() => setFilters({ ...filters, files: toggle(filters.files, s.file) })} />
+              {familyLabel(index.find((e) => e.file === s.file)!)}
+            </label>
+          ))}
+          <p className="mt-1 text-xs text-ink-muted">{t('trainer.filters.practiceNote')}</p>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-1 text-sm font-medium">{t('trainer.filters.seats')}</legend>
+          <div className="flex flex-wrap gap-3">
+            {SEATS.map((seat) => (
+              <label key={seat} className="flex min-h-9 items-center gap-1 text-sm">
+                <input type="checkbox" checked={filters.seats.includes(seat)} onChange={() => setFilters({ ...filters, seats: toggle(filters.seats, seat) })} />
+                {seat}
+              </label>
+            ))}
+          </div>
+          <p className="mt-3 mb-1 text-sm font-medium">{t('trainer.filters.scenarios')}</p>
+          <div className="flex flex-wrap gap-3">
+            {SCENARIOS.map((sc) => (
+              <label key={sc} className="flex min-h-9 items-center gap-1 text-sm">
+                <input type="checkbox" checked={filters.scenarios.includes(sc)} onChange={() => setFilters({ ...filters, scenarios: toggle(filters.scenarios, sc) })} />
+                {t(`trainer.scenario.${sc}` as MessageKey)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor={ids.min} className="mb-1 block text-sm font-medium">{t('trainer.filters.stackMin')}</label>
+            <input id={ids.min} className="field num" type="number" min={0} value={filters.stackMin} onChange={(e) => setFilters({ ...filters, stackMin: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label htmlFor={ids.max} className="mb-1 block text-sm font-medium">{t('trainer.filters.stackMax')}</label>
+            <input id={ids.max} className="field num" type="number" min={0} value={filters.stackMax} onChange={(e) => setFilters({ ...filters, stackMax: Number(e.target.value) })} />
+          </div>
+        </div>
+        <div>
+          <label htmlFor={ids.difficulty} className="mb-1 block text-sm font-medium">{t('trainer.filters.difficulty')}</label>
+          <select id={ids.difficulty} className="field" value={filters.difficulty} onChange={(e) => setFilters({ ...filters, difficulty: e.target.value as Difficulty })}>
+            {DIFFICULTIES.map((d) => (
+              <option key={d} value={d}>
+                {t(`trainer.difficulty.${d}` as MessageKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </Accordion>
+  );
+
+  let table = null;
+  if (dealt) {
+    const players = playersOf(dealt);
+    const seat = seatOf(dealt);
+    const line = dealt.chart.line ?? (seat === 'BB' && dealt.doc.family === 'pushfold-hu' ? `SB all-in ${dealt.stack}` : '');
+    const pic = preflopTable({ players, stack: dealt.stack, line, hero: seat, heroCards: [dealt.combo.slice(0, 2), dealt.combo.slice(2, 4)], heroLabel: t('table.you') });
+    const fam = dealt.doc.family === 'cash-6max' ? t('flow.spot.cash') : players === 2 ? t('flow.spot.hu') : t('flow.spot.players', { n: players });
+    table = <PokerTable seats={pic.seats} pot={pic.pot} board={[]} history={pic.history} summary={`${fam} · ${dealt.stack} bb · ${dealt.chart.title}`} />;
+  }
+
+  const k = dealt?.classIndex ?? 0;
+  const rows: MathRow[] = dealt
     ? dealt.chart.actions.map((action, a) => {
-        const ev = dealt.chart.ev?.[dealt.classIndex]?.[a] ?? null;
-        return { action, frequency: dealt.chart.strategy[dealt.classIndex]![a]!, ev, evText: ev === null ? '—' : fmtBb(ev), stdError: dealt.chart.evStdError?.[dealt.classIndex]?.[a] ?? null };
+        const ev = dealt.chart.ev?.[k]?.[a] ?? null;
+        const evs = dealt.chart.ev?.[k]?.filter((x): x is number => x !== null) ?? [];
+        return { action, frequency: dealt.chart.strategy[k]![a]!, evText: ev === null ? '—' : fmtBb(ev), stdError: dealt.chart.evStdError?.[k]?.[a] ?? null, chosen: answered?.chosen === a, best: ev !== null && ev >= Math.max(...evs) - 1e-9 };
       })
     : [];
 
   return (
-    <div className="space-y-4">
-      <details className="card" data-testid="preflop-filters">
-        <summary className="cursor-pointer font-medium">{t('trainer.filters')}</summary>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <fieldset>
-            <legend className="mb-1 text-sm font-medium">{t('trainer.filters.sources')}</legend>
-            {sources.map((s) => (
-              <label key={s.file} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={filters.files.includes(s.file)} onChange={() => setFilters({ ...filters, files: toggle(filters.files, s.file) })} />
-                {familyLabel(index.find((e) => e.file === s.file)!)}
-              </label>
-            ))}
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{t('trainer.filters.practiceNote')}</p>
-          </fieldset>
-          <fieldset>
-            <legend className="mb-1 text-sm font-medium">{t('trainer.filters.seats')}</legend>
-            <div className="flex flex-wrap gap-3">
-              {SEATS.map((seat) => (
-                <label key={seat} className="flex items-center gap-1 text-sm">
-                  <input type="checkbox" checked={filters.seats.includes(seat)} onChange={() => setFilters({ ...filters, seats: toggle(filters.seats, seat) })} />
-                  {seat}
-                </label>
-              ))}
-            </div>
-            <legend className="mb-1 mt-3 text-sm font-medium">{t('trainer.filters.scenarios')}</legend>
-            <div className="flex flex-wrap gap-3">
-              {SCENARIOS.map((sc) => (
-                <label key={sc} className="flex items-center gap-1 text-sm">
-                  <input type="checkbox" checked={filters.scenarios.includes(sc)} onChange={() => setFilters({ ...filters, scenarios: toggle(filters.scenarios, sc) })} />
-                  {t(`trainer.scenario.${sc}` as MessageKey)}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor={ids.min} className="mb-1 block text-sm font-medium">{t('trainer.filters.stackMin')}</label>
-              <input id={ids.min} className="field" type="number" min={0} value={filters.stackMin} onChange={(e) => setFilters({ ...filters, stackMin: Number(e.target.value) })} />
-            </div>
-            <div>
-              <label htmlFor={ids.max} className="mb-1 block text-sm font-medium">{t('trainer.filters.stackMax')}</label>
-              <input id={ids.max} className="field" type="number" min={0} value={filters.stackMax} onChange={(e) => setFilters({ ...filters, stackMax: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div>
-            <label htmlFor={ids.difficulty} className="mb-1 block text-sm font-medium">{t('trainer.filters.difficulty')}</label>
-            <select id={ids.difficulty} className="field" value={filters.difficulty} onChange={(e) => setFilters({ ...filters, difficulty: e.target.value as Difficulty })}>
-              {DIFFICULTIES.map((d) => (
-                <option key={d} value={d}>
-                  {t(`trainer.difficulty.${d}` as MessageKey)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </details>
-
-      {!ready && <p>{t('trainer.loading')}</p>}
+    <div className="space-y-5">
+      {filtersPanel}
+      {onlyFamilies && (
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          {t('flow.weakOnly')}
+          <button type="button" className="btn-quiet" onClick={() => setOnlyFamilies(null)}>
+            {t('flow.allSpots')}
+          </button>
+        </p>
+      )}
+      {!ready && <Skeleton className="h-64" />}
       {ready && !dealt && <p data-testid="no-spots">{t('trainer.filters.none')}</p>}
-      {dealt && (
-        <section className="card space-y-4" data-testid="preflop-question" aria-labelledby="pf-q">
-          <div className="space-y-1 text-sm" id="pf-q">
-            {question(dealt).map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
+      {showSummary && (
+        <SessionSummary
+          answers={session}
+          onClose={() => setShowSummary(false)}
+          onDrillWeak={(f) => {
+            setOnlyFamilies(f);
+            setSession([]);
+            setShowSummary(false);
+          }}
+        />
+      )}
+      {dealt && !showSummary && (
+        <section className="space-y-4" data-testid="preflop-question" aria-label={t('flow.question')}>
+          {table}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium" id="pf-q">
+              {answered ? t('flow.answered') : t('flow.yourMove')}
+            </p>
+            <TimerBadge left={left} />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600 dark:text-slate-400">{t('trainer.yourHand')}</span>
-            <Cards cards={dealt.combo} size="xl" />
-          </div>
-          <ul className="flex flex-wrap gap-2" aria-label={t('solver.actions')}>
-            {dealt.chart.actions.map((a, i) => (
-              <li key={a}>
-                <button
-                  type="button"
-                  className={`min-w-28 rounded-md border-2 px-5 py-3 text-base font-semibold ${answered?.chosen === i ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800'}`}
-                  disabled={!!answered || busy}
-                  onClick={() => answer(i)}
-                  aria-keyshortcuts={String(i + 1)}
-                >
-                  <span className="mr-2 text-xs text-slate-500">{i + 1}</span>
-                  {a}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <ActionBar actions={dealt.chart.actions} onAction={(i) => void answer(i)} disabled={!!answered || busy} chosen={answered?.chosen ?? null} />
+          {!answered && app.training.hints && <Hints hints={hintsFor(dealt)} used={hintsUsed} onUse={() => setHintsUsed((h) => h + 1)} />}
         </section>
       )}
-      {dealt && answered && (
-        <AnswerPanel
-          category={answered.category}
-          claims={answered.claims}
-          hand={dealt.handClass}
+      {dealt && answered && !showSummary && (
+        <CoachCard
+          card={answered.card}
           rows={rows}
-          chosen={answered.chosen}
-          notes={[t('trainer.answer.combo', { hand: dealt.handClass })]}
-          reference={
-            <span className="inline-flex flex-wrap items-center gap-2">
-              {t('trainer.answer.reference')}: {dealt.chart.title} <ProvenanceBadge p={dealt.doc.provenance} />
-            </span>
+          details={answered.details}
+          extra={
+            <div className="max-w-sm space-y-1">
+              <p className="text-xs text-ink-muted">{t('flow.gridNote', { hand: dealt.handClass })}</p>
+              <ClassGrid classes={dealt.doc.classes} strategy={dealt.chart.strategy} actions={dealt.chart.actions} colors={dealt.chart.actions.map((_, i) => actionColor(dealt.chart.actions, i))} reach={dealt.chart.reach} selected={k} onSelect={() => undefined} label={dealt.chart.title} />
+            </div>
           }
-          lesson={dealt.doc.family.startsWith('pushfold') ? 'trainer.lesson.pushFold' : 'trainer.lesson.ranges'}
+          footer={
+            <>
+              <p>{t('trainer.answer.combo', { hand: dealt.handClass })}</p>
+              <p className="flex flex-wrap items-center gap-2">
+                {t('trainer.answer.reference')}: {dealt.chart.title} <ProvenanceBadge p={dealt.doc.provenance} />
+              </p>
+              <p>{autoPending ? t('flow.autoNext') : t('trainer.nextHint')}</p>
+            </>
+          }
           onNext={next}
         />
       )}
-      {tally.n > 0 && <p className="text-sm text-slate-600 dark:text-slate-400" data-testid="session-tally">{t('trainer.session', { n: tally.n, loss: fmtLoss(tally.loss / tally.n, 'bb') })}</p>}
+      {session.length > 0 && !showSummary && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-muted" data-testid="session-tally">
+          <span>{t('flow.sessionCount', { n: session.length })}</span>
+          <button type="button" className="btn-secondary" onClick={() => setShowSummary(true)} data-testid="end-session">
+            {t('flow.endSession')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

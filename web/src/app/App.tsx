@@ -1,67 +1,147 @@
 import { useEffect, useState } from 'react';
-import { SolverPage } from '../features/solver/SolverPage';
-import { ChartsPage } from '../features/charts/ChartsPage';
 import { GlossaryPage } from '../features/lessons/GlossaryPage';
 import { LearnPage } from '../features/lessons/LearnPage';
-import { EquityPage } from '../features/tools/EquityPage';
-import { PushFoldPage } from '../features/tools/PushFoldPage';
+import { Onboarding } from '../features/onboarding/Onboarding';
+import { PlayPage } from '../features/play/PlayPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
+import { SolvePage } from '../features/solve/SolvePage';
+import { StatsPage } from '../features/stats/StatsPage';
 import { TrainerPage } from '../features/trainer/TrainerPage';
 import { t, type MessageKey } from '../lib/i18n';
+import { useSettings } from '../lib/settings/useSettings';
+import { Icon, type IconName } from '../lib/ui/Icon';
+import { SegmentedControl, Toaster } from '../lib/ui/components';
 import { HomePage } from './HomePage';
-import { parseRoute, type Route } from './route';
+import { parseRoute, redirect, type Route } from './route';
 
-// Tiny hash router: no dependency needed for a handful of pages, and hash URLs work from
-// any static host and offline. A route is its first path segment; pages get the rest and the
-// query (e.g. #/learn/2.3, #/trainer/math?drill=potodds).
-const ROUTES: { path: string; label: MessageKey; page: (p: { route: Route }) => React.JSX.Element; hidden?: boolean }[] = [
-  { path: '', label: 'nav.home', page: HomePage },
-  { path: 'learn', label: 'nav.learn', page: LearnPage },
-  { path: 'trainer', label: 'nav.trainer', page: TrainerPage },
-  { path: 'equity', label: 'nav.equity', page: EquityPage },
-  { path: 'charts', label: 'nav.charts', page: ChartsPage },
-  { path: 'pushfold', label: 'nav.pushfold', page: PushFoldPage },
-  { path: 'solver', label: 'nav.solver', page: SolverPage },
-  { path: 'glossary', label: 'nav.glossary', page: GlossaryPage, hidden: true },
+// Tiny hash router: no dependency needed, and hash URLs work from any static host and
+// offline. A route is its first path segment; pages get the rest and the query.
+type Page = { path: string; label: MessageKey; icon: IconName; page: (p: { route: Route }) => React.JSX.Element; mobile: boolean; hidden?: boolean };
+const PAGES: Page[] = [
+  { path: '', label: 'nav.home', icon: 'home', page: HomePage, mobile: true },
+  { path: 'learn', label: 'nav.learn', icon: 'learn', page: LearnPage, mobile: true },
+  { path: 'train', label: 'nav.train', icon: 'train', page: TrainerPage, mobile: true },
+  { path: 'play', label: 'nav.play', icon: 'play', page: PlayPage, mobile: false },
+  { path: 'solve', label: 'nav.solve', icon: 'solve', page: SolvePage, mobile: true },
+  { path: 'stats', label: 'nav.stats', icon: 'stats', page: StatsPage, mobile: true },
+  { path: 'settings', label: 'nav.settings', icon: 'settings', page: SettingsPage, mobile: false },
+  { path: 'glossary', label: 'nav.glossary', icon: 'learn', page: GlossaryPage, mobile: false, hidden: true },
 ];
+
+function NavLink({ p, current, compact }: { p: Page; current: boolean; compact?: boolean }) {
+  return (
+    <a
+      href={`#/${p.path}`}
+      aria-current={current ? 'page' : undefined}
+      className={`flex items-center gap-3 rounded-control font-medium transition-colors ${compact ? 'min-h-14 flex-1 flex-col justify-center gap-0.5 px-1 text-[0.7rem]' : 'min-h-11 px-3 text-sm'} ${current ? 'bg-accent-soft text-accent' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}`}
+      style={{ transitionDuration: 'calc(var(--dur-fast) * var(--motion))' }}
+    >
+      <Icon name={p.icon} size={compact ? 22 : 20} />
+      {t(p.label)}
+    </a>
+  );
+}
 
 export function App() {
   const [route, setRoute] = useState(() => parseRoute(window.location.hash));
+  const [moreOpen, setMoreOpen] = useState(false);
+  const { settings, loaded, load, update } = useSettings();
+  useEffect(() => {
+    void load().catch(() => undefined);
+  }, [load]);
   useEffect(() => {
     const onHash = () => {
-      setRoute(parseRoute(window.location.hash));
+      const r = parseRoute(window.location.hash);
+      const to = redirect(r);
+      if (to) {
+        window.location.replace(to);
+        return;
+      }
+      setRoute(r);
+      setMoreOpen(false);
       window.scrollTo(0, 0);
     };
+    onHash();
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  const current = ROUTES.find((r) => r.path === route.page) ?? ROUTES[0]!;
+  const current = PAGES.find((p) => p.path === route.page) ?? PAGES[0]!;
   const Page = current.page;
+  const dark = document.documentElement.dataset.theme === 'dark';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-baseline justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">{t('app.title')}</h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">{t('app.tagline')}</p>
-          </div>
-          <nav aria-label={t('nav.label')} className="flex flex-wrap gap-1">
-            {ROUTES.filter((r) => !r.hidden).map((r) => (
-              <a
-                key={r.path}
-                href={`#/${r.path}`}
-                aria-current={r === current ? 'page' : undefined}
-                className="rounded-md px-3 py-1.5 text-sm hover:bg-slate-200 aria-[current=page]:bg-slate-900 aria-[current=page]:text-white dark:hover:bg-slate-800 dark:aria-[current=page]:bg-slate-100 dark:aria-[current=page]:text-slate-900"
-              >
-                {t(r.label)}
-              </a>
-            ))}
-          </nav>
+    <div className="min-h-screen bg-canvas text-ink md:grid md:grid-cols-[15rem_1fr]">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">
+        {t('nav.skip')}
+      </a>
+      {/* Desktop rail */}
+      <aside className="sticky top-0 hidden h-screen flex-col gap-6 border-r border-line bg-surface px-3 py-5 md:flex">
+        <div className="px-3">
+          <p className="text-lg font-semibold tracking-tight">{t('app.title')}</p>
+          <p className="text-xs text-ink-muted">{t('app.tagline')}</p>
         </div>
-      </header>
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <Page key={current.path} route={route} />
-      </main>
+        <nav aria-label={t('nav.label')} className="flex flex-col gap-1">
+          {PAGES.filter((p) => !p.hidden).map((p) => (
+            <NavLink key={p.path} p={p} current={p === current} />
+          ))}
+        </nav>
+      </aside>
+
+      <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 py-3 backdrop-blur md:px-8">
+          <h1 className="truncate text-lg font-semibold">
+            <span className="md:hidden">{t('app.title')} · </span>
+            {t(current.label)}
+          </h1>
+          <div className="flex items-center gap-2">
+            <SegmentedControl
+              size="sm"
+              label={t('mode.label')}
+              value={settings.mode}
+              options={[
+                { value: 'guided', label: t('mode.guided') },
+                { value: 'expert', label: t('mode.expert') },
+              ]}
+              onChange={(mode) => void update((s) => ({ ...s, mode }))}
+            />
+            <button
+              type="button"
+              className="btn-quiet !min-h-10 !px-2.5"
+              aria-label={dark ? t('theme.toLight') : t('theme.toDark')}
+              onClick={() => void update((s) => ({ ...s, display: { ...s.display, theme: dark ? 'light' : 'dark' } }))}
+            >
+              <Icon name={dark ? 'sun' : 'moon'} />
+            </button>
+          </div>
+        </header>
+
+        <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 md:px-8 md:pb-10" data-mode={settings.mode}>
+          <Page key={current.path} route={route} />
+        </main>
+      </div>
+
+      {/* Phone tab bar */}
+      <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface px-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+        {PAGES.filter((p) => p.mobile).map((p) => (
+          <NavLink key={p.path} p={p} current={p === current} compact />
+        ))}
+        <div className="relative flex flex-1">
+          <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)} className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[0.7rem] font-medium text-ink-muted">
+            <Icon name="more" size={22} />
+            {t('nav.more')}
+          </button>
+          {moreOpen && (
+            <div className="absolute right-1 bottom-16 w-48 rounded-control border border-line bg-surface p-1 shadow-3">
+              {PAGES.filter((p) => !p.mobile).map((p) => (
+                <NavLink key={p.path} p={p} current={p === current} />
+              ))}
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {loaded && !settings.onboarded && <Onboarding />}
+      <Toaster />
     </div>
   );
 }

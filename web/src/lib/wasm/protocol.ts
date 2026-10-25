@@ -49,6 +49,8 @@ export type SpotJson = {
   rake?: { percent: number; capBb: number };
   /** Suit isomorphism (default on); tests turn it off to compare. */
   isomorphism?: boolean;
+  /** Solving algorithm (default DCFR). */
+  algorithm?: 'dcfr' | 'cfr+';
 };
 
 export type SolverInfo = {

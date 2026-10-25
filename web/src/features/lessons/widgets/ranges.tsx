@@ -103,7 +103,7 @@ export function ChartEmbed({ config }: { config: Config }) {
       <div className="max-w-md">
         <ClassGrid classes={doc.classes} strategy={chart.strategy} actions={chart.actions} colors={colors} reach={chart.reach} selected={null} onSelect={noop} label={chart.title} />
       </div>
-      {doc.provenance.source !== 'solver_exact' && <p className="text-xs text-slate-600 dark:text-slate-400">{t('widget.chart.approx')}</p>}
+      {doc.provenance.source !== 'solver_exact' && <p className="text-xs text-ink-muted">{t('widget.chart.approx')}</p>}
       {outOfBand && <p className="text-xs font-semibold text-[#a34700] dark:text-[#ff8f4a]">{t('widget.chart.outOfBand')}</p>}
     </div>
   );
@@ -205,7 +205,7 @@ export function EquityWidget({ config }: { config: Config }) {
       ) : (
         <p className="text-sm" data-testid="equity-result">
           {t('widget.equity.result', { a: pct(r.players[0]!.equity, 1), b: pct(r.players[1]!.equity, 1) })}{' '}
-          <span className="text-slate-500">{r.method === 'exact' ? t('widget.equity.exact') : t('widget.equity.sampled', { se: pct(r.players[0]!.stdError, 2) })}</span>
+          <span className="text-ink-muted">{r.method === 'exact' ? t('widget.equity.exact') : t('widget.equity.sampled', { se: pct(r.players[0]!.stdError, 2) })}</span>
         </p>
       )}
     </div>

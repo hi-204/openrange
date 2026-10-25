@@ -55,6 +55,9 @@ export function lintLessons(lessons: Lesson[], ctx: LintContext): string[] {
     if (Number(m.id.split('.')[0]) !== m.level) p(`id ${m.id} doesn't match level ${m.level}`);
     if (!m.title) p('missing title');
     if (!(m.minutes >= 5 && m.minutes <= 10)) p(`minutes must be 5–10, got ${m.minutes}`);
+    if (m.objectives.length < 2 || m.objectives.length > 4) p(`needs 2–4 objectives ("What you'll learn"), has ${m.objectives.length}`);
+    if (m.recap.length < 2 || m.recap.length > 4) p(`needs 2–4 recap points, has ${m.recap.length}`);
+    for (const n of bareNumbers([...m.objectives, ...m.recap].join(' '))) p(`front-matter: typed number "${n}"`);
     for (const pre of m.prerequisites) {
       if (!ids.has(pre)) p(`unknown prerequisite ${pre}`);
       else if (!before(pre, m.id)) p(`prerequisite ${pre} comes after ${m.id}`);

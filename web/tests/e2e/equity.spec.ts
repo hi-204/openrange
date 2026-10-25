@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { open } from './helpers';
 
 test('equity calculator: exact two-way result on a flop, readable range errors', async ({ page }) => {
-  await page.goto('/#/equity');
+  await open(page, '/#/equity');
   const ranges = page.getByPlaceholder('e.g. AA, AKs, or AhKh');
   await ranges.nth(0).fill('AhKh');
   await ranges.nth(1).fill('QQ+, AKo');

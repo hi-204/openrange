@@ -15,6 +15,9 @@ export type LessonMeta = {
   prerequisites: string[];
   drills: string[];
   glossary: string[];
+  /** "What you'll learn" (2–4 items) and "Recap" (2–4 items). */
+  objectives: string[];
+  recap: string[];
 };
 
 export type Lesson = { meta: LessonMeta; body: string; path: string };
@@ -24,7 +27,11 @@ export type QuizQuestion = { q: string; choices: string[]; answer: number; expla
 export type Segment =
   | { kind: 'html'; html: string }
   | { kind: 'widget'; name: string; config: Record<string, unknown> }
-  | { kind: 'quiz'; questions: QuizQuestion[] };
+  | { kind: 'quiz'; questions: QuizQuestion[] }
+  | { kind: 'callout'; variant: CalloutVariant; html: string };
+
+export const CALLOUTS = ['key', 'mistake', 'try', 'example'] as const;
+export type CalloutVariant = (typeof CALLOUTS)[number];
 
 export type Glossary = Map<string, string>;
 
@@ -41,11 +48,24 @@ export function parseLesson(source: string, path: string): Lesson {
     prerequisites: list('prerequisites'),
     drills: list('drills'),
     glossary: list('glossary'),
+    objectives: list('objectives'),
+    recap: list('recap'),
   };
   return { meta, body: m[2]!, path };
 }
 
 const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+export const slug = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+/** The lesson's "## " sections, for the table of contents. */
+export function sections(body: string): { id: string; title: string }[] {
+  return [...body.matchAll(/^##\s+(.+)$/gm)].map((m) => ({ id: slug(m[1]!.trim()), title: m[1]!.trim() }));
+}
 
 /** "AhAs vs KdKc on Jh7h2c" → parts; ranges may contain commas and spaces. */
 export function parseEq(body: string): { a: string; b: string; board: string } {
@@ -109,16 +129,28 @@ function directive(state: StateInline, silent: boolean): boolean {
 
 let glossaryId = 0;
 
-export function markdown(glossary: Glossary): MarkdownIt {
+/** Equities computed at build time (scripts/gen-lesson-facts.mjs → facts.json), by eq key. */
+export type Facts = Record<string, number>;
+export const eqKey = (e: { a: string; b: string; board: string }) => `${e.a} vs ${e.b}${e.board ? ` on ${e.board}` : ''}`;
+
+export function markdown(glossary: Glossary, facts: Facts = {}): MarkdownIt {
   const md = markdownit({ html: false, linkify: false, typographer: false });
   md.inline.ruler.before('escape', 'math_inline', mathInline);
   md.inline.ruler.before('link', 'directive', directive);
   md.block.ruler.before('fence', 'math_block', mathBlock);
+  // Section headings get ids so the table of contents can link to them.
+  md.core.ruler.push('heading_ids', (state) => {
+    const tokens = state.tokens;
+    for (let i = 0; i < tokens.length; i++) if (tokens[i]!.type === 'heading_open') tokens[i]!.attrSet('id', slug(tokens[i + 1]?.content ?? ''));
+  });
   md.renderer.rules.math_inline = (tokens, i) => katex.renderToString(tokens[i]!.content, { throwOnError: true });
   md.renderer.rules.math_block = (tokens, i) => `<div class="lesson-math">${katex.renderToString(tokens[i]!.content, { throwOnError: true, displayMode: true })}</div>`;
   md.renderer.rules.calc = (tokens, i) => `<span class="lesson-calc">${escape(renderCalc(tokens[i]!.content))}</span>`;
   md.renderer.rules.eq = (tokens, i) => {
     const e = parseEq(tokens[i]!.content);
+    const v = facts[eqKey(e)];
+    // Precomputed at build time; the live placeholder is a fallback for unbuilt facts.
+    if (v !== undefined) return `<span class="lesson-eq">${(v * 100).toFixed(1)}%</span>`;
     return `<span class="lesson-eq" data-a="${escape(e.a)}" data-b="${escape(e.b)}" data-board="${escape(e.board)}">…</span>`;
   };
   md.renderer.rules.glossary = (tokens, i) => {
@@ -131,8 +163,8 @@ export function markdown(glossary: Glossary): MarkdownIt {
   return md;
 }
 
-export function renderLesson(body: string, glossary: Glossary): Segment[] {
-  const md = markdown(glossary);
+export function renderLesson(body: string, glossary: Glossary, facts: Facts = {}): Segment[] {
+  const md = markdown(glossary, facts);
   const env = {};
   const tokens = md.parse(body, env);
   const out: Segment[] = [];
@@ -147,6 +179,11 @@ export function renderLesson(body: string, glossary: Glossary): Segment[] {
       flush();
       const name = info.slice('widget'.length).trim();
       out.push({ kind: 'widget', name, config: t.content.trim() ? (JSON.parse(t.content) as Record<string, unknown>) : {} });
+    } else if (info.startsWith('callout')) {
+      flush();
+      const variant = info.slice('callout'.length).trim() as CalloutVariant;
+      if (!CALLOUTS.includes(variant)) throw new Error(`unknown callout "${variant}" (use ${CALLOUTS.join(', ')})`);
+      out.push({ kind: 'callout', variant, html: md.render(t.content, env) });
     } else if (info === 'quiz') {
       flush();
       out.push({ kind: 'quiz', questions: JSON.parse(t.content) as QuizQuestion[] });
@@ -165,6 +202,11 @@ export function parseGlossary(source: string): Glossary {
 }
 
 /** Inline Markdown (quiz questions and answers): math, glossary terms and computed numbers. */
-export function renderInline(text: string, glossary: Glossary): string {
-  return markdown(glossary).renderInline(text);
+export function renderInline(text: string, glossary: Glossary, facts: Facts = {}): string {
+  return markdown(glossary, facts).renderInline(text);
+}
+
+/** Every `{{eq …}}` in a lesson body (for the build-time facts and their freshness test). */
+export function eqDirectives(body: string): { a: string; b: string; board: string }[] {
+  return [...body.matchAll(/\{\{eq\s+([^}]+)\}\}/g)].map((m) => parseEq(m[1]!));
 }

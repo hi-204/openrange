@@ -52,12 +52,12 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
                 onClick={() => go({ index: k, label: c })}
               >
                 {c}
-                {node.mirrors[k]!.length > 0 && <span className="text-xs text-slate-500"> +{node.mirrors[k]!.length}</span>}
+                {node.mirrors[k]!.length > 0 && <span className="text-xs text-ink-muted"> +{node.mirrors[k]!.length}</span>}
               </button>
             </li>
           ))}
         </ul>
-        {node.mirrors.some((m) => m.length > 0) && <p className="text-xs text-slate-600 dark:text-slate-400">{t('solver.isoNote')}</p>}
+        {node.mirrors.some((m) => m.length > 0) && <p className="text-xs text-ink-muted">{t('solver.isoNote')}</p>}
       </section>
     );
   }
@@ -104,7 +104,7 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
         <StrategyGrid hands={hands} reach={reach} strategy={node.strategy} actions={node.actions} colors={colors} selected={cell} onSelect={setCell} />
         <div className="text-sm">
           {cell === null ? (
-            <p className="text-slate-600 dark:text-slate-400">{t('solver.pickCell')}</p>
+            <p className="text-ink-muted">{t('solver.pickCell')}</p>
           ) : combos.length === 0 ? (
             <p>{t('solver.notInRange', { hand: cellName(cell) })}</p>
           ) : (
@@ -131,7 +131,7 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
                       return (
                         <td key={a} className="py-1 font-mono">
                           {pct(node.strategy[a * n + i]!, 0)}
-                          <span className="block text-xs text-slate-500">{ev === null || ev === undefined ? '—' : `${ev.toFixed(2)} bb`}</span>
+                          <span className="block text-xs text-ink-muted">{ev === null || ev === undefined ? '—' : `${ev.toFixed(2)} bb`}</span>
                         </td>
                       );
                     })}
@@ -140,7 +140,7 @@ export function NodeBrowser({ info, node, path, setPath, cell, setCell }: Props)
               </tbody>
             </table>
           )}
-          <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{t('solver.evNote')}</p>
+          <p className="mt-3 text-xs text-ink-muted">{t('solver.evNote')}</p>
         </div>
       </div>
     </section>

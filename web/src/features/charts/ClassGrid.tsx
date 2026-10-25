@@ -20,7 +20,11 @@ type Props = {
 export function ClassGrid({ classes, strategy, actions, colors, reach, selected, onSelect, label }: Props) {
   return (
     <div className="grid grid-cols-13 gap-px rounded border border-slate-300 bg-slate-300 dark:border-slate-700 dark:bg-slate-700" role="grid" aria-label={label}>
-      {classes.map((name, i) => {
+      {Array.from({ length: 13 }, (_, row) => (
+        // Rows for assistive tech; `contents` keeps the 13-column CSS grid.
+        <div key={row} role="row" className="contents">
+          {classes.slice(row * 13, row * 13 + 13).map((name, j) => {
+        const i = row * 13 + j;
         const unreached = reach !== undefined && reach[i]! < UNREACHED;
         const freq = strategy[i]!;
         const text = unreached ? `${name}: not reached` : `${name}: ${actions.map((a, k) => `${a} ${pct(freq[k]!, 0)}`).join(', ')}`;
@@ -33,7 +37,7 @@ export function ClassGrid({ classes, strategy, actions, colors, reach, selected,
             aria-selected={selected === i}
             title={text}
             onClick={() => onSelect(i)}
-            className={`relative aspect-square overflow-hidden text-[0.6rem] leading-none sm:text-xs ${unreached ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600' : 'bg-white dark:bg-slate-900'} ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
+            className={`relative aspect-square overflow-hidden text-[0.6rem] leading-none sm:text-xs ${unreached ? 'bg-surface-2 text-ink-muted' : 'bg-surface'} ${selected === i ? 'outline-2 outline-offset-[-2px] outline-slate-900 dark:outline-white' : ''}`}
             data-combos={cellCombos(i)}
           >
             {!unreached && (
@@ -43,10 +47,12 @@ export function ClassGrid({ classes, strategy, actions, colors, reach, selected,
                 ))}
               </span>
             )}
-            <span className="relative font-mono font-semibold [text-shadow:0_0_2px_white] dark:[text-shadow:0_0_2px_black]">{name}</span>
+            <span className={`relative rounded-sm px-px font-mono font-semibold ${unreached ? '' : 'bg-white/90 text-[#1d1b18]'}`}>{name}</span>
           </button>
         );
-      })}
+          })}
+        </div>
+      ))}
     </div>
   );
 }

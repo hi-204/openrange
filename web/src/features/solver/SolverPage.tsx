@@ -132,7 +132,7 @@ export function SolverPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">{t('solver.heading')}</h2>
-        <p className="mt-1 max-w-prose text-sm text-slate-600 dark:text-slate-400">{t('solver.intro')}</p>
+        <p className="mt-1 max-w-prose text-sm text-ink-muted">{t('solver.intro')}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label={t('solver.examples')}>
@@ -172,7 +172,7 @@ export function SolverPage() {
         <div>
           <Field label={t('solver.budget')} value={form.budgetMb} onChange={set('budgetMb')} />
           {estimate && 'bytes' in estimate && (
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400" data-testid="memory-estimate" data-bytes={estimate.bytes}>
+            <p className="mt-1 text-xs text-ink-muted" data-testid="memory-estimate" data-bytes={estimate.bytes}>
               {t('solver.estimate', { mb: (estimate.bytes / 1e6).toFixed(2) })}
             </p>
           )}
@@ -220,7 +220,7 @@ export function SolverPage() {
         {status.kind === 'cancelled' && <p>{t('solver.cancelled')}</p>}
         {status.kind === 'error' && <p className="text-amber-700 dark:text-amber-400">{t('solver.error', { message: status.message })}</p>}
         {info && (
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-ink-muted">
             {t('solver.info', {
               mb: (info.estimateBytes / 1e6).toFixed(1),
               oop: info.hands[0].length,
