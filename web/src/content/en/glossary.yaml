@@ -162,3 +162,49 @@ dead money: >-
   Chips in the pot from a player who is likely to fold, which anyone can win.
 stack-to-pot ratio: >-
   The smaller stack behind divided by the pot (SPR). The lower it is, the sooner all the money goes in.
+continuation bet: >-
+  A bet on the flop by the player who made the last raise before the flop (a c-bet).
+range bet: >-
+  Betting with almost every hand in your range, usually with a small size.
+board texture: >-
+  What a board allows: how many cards share a suit, whether it is paired, and how connected its ranks are.
+dry board: >-
+  A board with few draws or strong hands possible, such as K-7-2 in three suits.
+wet board: >-
+  A board with many draws and strong hands possible, such as J-T-9 with two hearts.
+rainbow: >-
+  A flop with three different suits, so no flush draw is possible yet.
+two-tone: >-
+  A flop with two cards of one suit, so flush draws are possible.
+monotone: >-
+  A flop with all three cards of one suit, so a flush is already possible.
+paired board: >-
+  A board with two cards of the same rank, which makes trips and full houses possible.
+range advantage: >-
+  Having more equity on average than your opponent's range on a board.
+nut advantage: >-
+  Having more of the very strongest hands than your opponent's range on a board.
+equity realization: >-
+  How much of your equity you actually win once the betting is played out. Position and range strength change it.
+initiative: >-
+  Being the last player to bet or raise, so that you are expected to bet next.
+committed: >-
+  Having so much of your stack in the pot, relative to what is left, that folding is rarely right.
+check-raise: >-
+  Checking, then raising after your opponent bets.
+semi-bluff: >-
+  A bet or raise with a draw: it can win when the opponent folds, and it can still improve when called.
+checking range: >-
+  All the hands you check with in a spot.
+barrel: >-
+  Betting again on a later street after betting the previous one.
+bluff catcher: >-
+  A hand that beats your opponent's bluffs but loses to their value bets.
+polarized: >-
+  A range made of strong hands and bluffs, with few medium hands.
+merged: >-
+  A range that includes many medium hands as well as strong ones.
+minimum defence frequency: >-
+  The share of your range you must continue with so that a pure bluff of B into a pot P doesn't profit at once: P ÷ (P + B).
+overbet: >-
+  A bet bigger than the pot.

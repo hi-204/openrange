@@ -8,7 +8,8 @@ import { solverClient } from '../../../lib/wasm/client';
 import type { EquityResult } from '../../../lib/wasm/protocol';
 import { ClassGrid, UNREACHED } from '../../charts/ClassGrid';
 import { actionColors } from '../../solver/colors';
-import { rangeSummary } from '../../trainer/postflop/features';
+import { rangeSummary, texture } from '../../trainer/postflop/features';
+import { renderClaim } from '../../trainer/explain/render';
 import { COMBO_STRINGS } from './cards';
 
 type Config = Record<string, unknown>;
@@ -163,6 +164,7 @@ export function RangeAdvantage({ config }: { config: Config }) {
       live = false;
     };
   }, [a, b, board]);
+  const boardCards = board.replace(/\s+/g, '').match(/[2-9TJQKA][cdhs]/g) ?? [];
   const buckets = (per: { weight: number; equity: number }[]) => {
     const out = [0, 0, 0, 0, 0];
     const total = per.reduce((s, x) => s + x.weight, 0);
@@ -176,6 +178,11 @@ export function RangeAdvantage({ config }: { config: Config }) {
         <TextInput label={t('widget.rangeB')} value={b} onChange={setB} />
         <TextInput label={t('widget.boardCards')} value={board} onChange={setBoard} />
       </div>
+      {boardCards.length >= 3 && boardCards.length <= 5 && (
+        <p className="text-sm" data-testid="advantage-texture">
+          {renderClaim({ kind: 'texture', board: boardCards, ...texture(boardCards) })[0]}
+        </p>
+      )}
       {!r ? (
         <p>…</p>
       ) : !r.ok ? (

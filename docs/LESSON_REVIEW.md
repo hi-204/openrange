@@ -97,3 +97,24 @@ file's tree. Pot arithmetic is `{{calc}}`.
 | 3.5 Blind vs blind | SB opens 3 bb, over 30% of hands; BB price 2 ÷ 6 = 33.3% vs 27.3% against BTN; BB defends more vs SB and 3-bets 1.7–2.5× as often; K2o calls vs SB, folds vs BTN | calc + charts; position as the reason is reasoning |
 | 3.6 Squeezes | squeeze to 12.5 into 6; pure bluff needs 11.5 ÷ 17.5 = 65.7%; SB's calls vs BTN contain no AA, KK, QQ, AK; with a caller BB raises more and calls under half as often; KQo squeezes, clearly above calling | calc + charts |
 | 3.7 Calling vs raising | 77, KQo, KJs: 3-bet clearly above call for BTN vs CO; for over 80% of the hands BTN 3-bets there, 3-bet EV > call EV; BB vs BTN: A5s call clearly above 3-bet; BB fold EV −1 bb | charts |
+
+## Level 4
+
+Solver claims are checked in `lessonPostflop.test.ts`, which solves the lesson spots with the
+engine (river and turn to 0.05% of the pot; the claims were also checked at the drills' own,
+looser targets; flop to its 1% target) and groups hands as the lessons do: made hands on the
+flop and turn (two pair or better, one pair, a straight or flush draw, nothing), equity against
+the other range on the river (strong ≥ 75, medium 35–75, weak < 35). Range-vs-range claims use
+exact equities and the widget's "very strong" threshold (85).
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 4.1 C-betting | on Q♠J♥4♦ range A has more equity and more very strong hands; OOP bets a third of the pot with over 85% of its range and over 80% of each group; A-K bets; facing the bet IP folds under 30% | engine + solver |
+| 4.2 Board textures | 22,100 flops; monotone 5.2%, rainbow 39.8%, two-tone 55.1%, paired 16.9%; more of both ranges in the 35–65 equity middle on J♥T♥9♠ than K♠7♦2♣; the opener's very strong share on 8♠8♦3♣ under half of K♠7♦2♣; A♠A♦ vs the call range 86.9% vs 62.5% | calc + engine |
+| 4.3 Range vs nut advantage | A♠K♦3♣: opener ahead on both; 7♠6♦5♣: opener more equity, caller more very strong hands (exactly 77, 66, 55, 98s); QQ over 55% there; betting implications | engine; implications are reasoning |
+| 4.4 Position | turn spots solved with the ranges swapped: each range realizes more in position on both boards; on Q♠J♥7♦4♣ the stronger range realizes above 100% OOP and clearly more IP; the weaker range below 100% both ways and much less OOP | solver + engine; "why" is reasoning |
+| 4.5 SPR | SRP 5.5 pot, 97.5 behind → 17.7; 3-bet pot 20.5, 90 → 4.4; 4-bet pot 1.7; pot-sized bet and call triples the pot; 90 → 69.5 → 8 after two pot bets | calc; commitment guidance is reasoning |
+| 4.6 Check-raising | Q♠J♥7♦4♣ and K♥T♥6♥3♠ facing a pot bet after a check: two pair+ never folds and raises 35–70%; pairs raise under 5%; draws fold over 70% yet some raise; strong hands are the largest raise group; T9s raises over 60%, A-K (a gutshot) folds over 75%; price 10 ÷ 30, 8/46 = 17.4% | solver + calc |
+| 4.7 Protecting checks | strong hands check 15–35% on Q-J-7-4 ("about a quarter") and 30–50% on K-T-6-3 ("about two in five"); IP bets over 80% of its strong hands after a check; QJs both checks and bets | solver |
+| 4.8 Turn and river | turn draws bet more often than pairs; river bets of 7.5 and 15 have under 5% medium hands; medium hands never bet big; IP folds more to bigger bets; medium hands call the small bet over 95% and fold over half to the overbet; price 15 ÷ 40 | solver + calc |
+| 4.9 Sizing | price B ÷ (P + 2B) and MDF P ÷ (P + B) for a third, three quarters and one and a half pots; small bet over 40% medium hands, big bets under 5%; IP defence within 6 points of MDF at each size; strong hands split between check, small and three-quarter bets, overbet under 10% | calc + solver |
