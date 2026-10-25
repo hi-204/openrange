@@ -661,3 +661,39 @@ checked by a machine rather than by review.
 - **Answers:** percentages within ±1 point, counts exact.
 - Attempts are stored and shown with Wilson intervals. Math drills are not scheduled by SM-2:
   problems are generated fresh, so there is no fixed card to review.
+
+### D-063 · M6.5 design pass: direction, information architecture, modes
+**Decision:** see `docs/DESIGN.md`.
+- **Look:** a warm dark-first theme with an iris accent; all values are tokens in CSS
+  variables.
+- **Navigation:** Home · Learn · Train · Play · Solve · Stats · Settings, with old routes
+  redirecting.
+- **Modes:** Guided and Expert change presentation and defaults only, never what is graded or
+  computed.
+- **No frontend-design skill was available.** The direction is our own, and the defaults
+  assumed are listed in DESIGN.md §10.
+- **Inserted before M7** at the owner's request. M7 groundwork (widgets, course logic, math
+  drills) was committed first so the tree stayed green.
+
+### D-064 · OFL-1.1 allowed for bundled fonts
+**Decision:**
+- Inter Variable from `@fontsource-variable/inter` 5.3.0 (OFL-1.1) is bundled locally;
+  there is no font CDN.
+- OFL-1.1 permits bundling and redistribution with software as long as the license travels
+  with the font and the font isn't sold on its own. The package's `LICENSE` is kept, and the
+  license report lists it.
+- OFL-1.1 is allowed for font files only.
+
+### D-065 · Coaching card rules and tests
+- **Generation:** each card is built from the checked claims (D-053) of the decision. It
+  never reads anything else.
+- **Phrase variants:** chosen by a hash of (spot, hand, chosen action), so the same decision
+  always reads the same, and tests are stable.
+- **Detail level:** Simple, Standard and Detailed change how many "why" sentences appear.
+- **Tests:**
+  - the recommended action is a best action in the data;
+  - an action the reference plays 0% of the time is never praised;
+  - every number quoted (price, equity, EV loss, frequency) equals the computed value as
+    formatted;
+  - an action in the mix is never called a mistake;
+  - spots without a reference say "not graded" with the reason.

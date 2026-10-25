@@ -85,6 +85,13 @@ what's next).
   categories, explanations generated from computed features (with non-contradiction tests),
   spaced repetition per spot family, stats with minimum samples and confidence intervals.
 
+### M6.5 — Design and UX pass (inserted at the owner's request)
+- `docs/DESIGN.md`: tokens, components, information architecture
+  (Home · Learn · Train · Play · Solve · Stats · Settings).
+- Onboarding with Guided/Expert modes; the `<PokerTable>` with SVG cards and chips; action bar.
+- Coaching card after every decision (D-065); searchable settings with presets.
+- Premium lesson reader; accessibility checks (axe); screenshots in `docs/screenshots/`.
+
 ### M7 — Course, part 1
 - Lesson platform (Markdown + front-matter + widgets + KaTeX + glossary hovers + quizzes).
 - Levels 0–4 content, math drills, placement quiz, daily plan.
