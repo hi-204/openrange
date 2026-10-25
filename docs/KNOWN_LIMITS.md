@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-26 (M6): postflop solving and push/fold are validated; the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
+_Status 2026-10-25 (M6): postflop solving and push/fold are validated; the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
 
 ## By design
 

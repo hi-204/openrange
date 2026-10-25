@@ -2,7 +2,7 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
-## 2026-10-26 — M6 done: trainer
+## 2026-10-25 — M6 done: trainer
 
 **Works (verified):**
 - **Trainer page** (`#/trainer`) with Preflop, Postflop and Review tabs.
