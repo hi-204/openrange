@@ -30,3 +30,20 @@ The lesson lint (D-059) also guarantees, for every lesson:
 | Before the river, later betting changes the value of a call (implied odds, being bet off a draw) | reasoning; the lesson labels the price check "a first estimate" there |
 | Common mistake: a pot-sized bet needs 33%, not 50% | calc |
 | Quiz: pot 12 bb, bet 6 bb → 25% | calc |
+
+## Level 0
+
+The Level 0 claims are rules of No-Limit Hold'em, checked by hand (reasoning) unless marked
+otherwise. Hands quoted at showdown were also checked with the hand evaluator
+(`evaluateHand`, tested in solver-wasm and, for 133,784,560 seven-card hands, in solver-core).
+
+| Lesson | Key claims | Method |
+|---|---|---|
+| 0.1 How a hand flows | 2 hole cards; flop 3, turn 1, river 1; four betting rounds; a hand ends when all but one fold or at showdown; best 5 of 7 using 0–2 hole cards | reasoning; the worked hand's best five (Q♦Q♠Q♣A♦9♦) via the evaluator |
+| 0.2 Blinds, button and dealing | button moves clockwise; SB then BB to its left; preflop action starts after the BB, postflop after the button; heads-up the button is the SB | reasoning |
+| 0.3 The betting actions | check/bet with no bet, fold/call/raise facing one; minimum raise adds at least the last increment (1 → 2, 3 → 6, 3 → 10 → 17, 2.5 → 4); all-in for less, side pots | reasoning (arithmetic) |
+| 0.4 Hand rankings | category order; wheel and no wrap-around; suits don't rank; tie-break order within categories; KK99 beats QQJJA | reasoning + evaluator (ranker widget uses it) |
+| 0.5 Best five of seven | reading order; board plays and splits; KK88A beats KK88Q; 10♥ beats a 5–9 heart straight flush | evaluator |
+| 0.6 Showdown, kickers, split pots | kickers compared from the top; a board can counterfeit kickers (split); trips beat two pair; who shows first; odd chips by house rule | evaluator for the hands; reasoning for procedures |
+| 0.7 Game formats | cash vs tournament differences; think in big blinds (4,000 ÷ 400 = 10 bb) | reasoning + calc |
+| 0.8 Table etiquette | act in turn, binding verbal actions, string bets, protecting hands, angle shooting; most sites forbid real-time assistance | reasoning (common house rules; wording kept general because rules vary by room) |

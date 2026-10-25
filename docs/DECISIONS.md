@@ -726,3 +726,11 @@ default 5 s limit. It takes about 1–2 s alone; it was competing with the coach
 solve spots. This is the second time (see D-057).
 **Decision:** one suite-wide limit of 30 s (`web/vite.config.ts`) instead of patching tests
 one at a time. Tests that need more still set their own, longer limit. No assertion changed.
+
+### D-069 · Lesson lint: amounts in bb may be typed
+**Context:** D-059 bans every typed decimal in lesson prose. Writing Level 0 showed that this
+also bans scenario inputs such as "CO raises to 2.5 bb", which are stakes, not computed
+results.
+**Decision:** a decimal directly followed by "bb" is allowed, and so is a lesson number after
+the word "lesson(s)" (e.g. "lesson 0.3"). Percentages, other decimals and `$` stay banned.
+Results about money (EVs, prices) are still written with `{{calc}}`.

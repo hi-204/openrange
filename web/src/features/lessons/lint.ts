@@ -27,9 +27,15 @@ export function prose(body: string): string {
     .replace(/\]\([^)]*\)/g, ']');
 }
 
-/** Typed percentages, decimals and dollar signs (allowed: the blinds "0.5/1"). */
+/**
+ * Typed percentages, decimals and dollar signs. Allowed: the blinds "0.5/1" and amounts in big
+ * blinds such as "2.5 bb", which are inputs of a scenario, not results (D-069).
+ */
 export function bareNumbers(body: string): string[] {
-  const text = prose(body).replace(/\b0\.5\/1\b/g, ' ');
+  const text = prose(body)
+    .replace(/\b0\.5\/1\b/g, ' ')
+    .replace(/\b\d+\.\d+(?= ?bb\b)/g, ' ')
+    .replace(/\b([Ll]essons?|and) \d\.\d+\b/g, ' ');
   const found: string[] = [];
   for (const re of [/\d+(?:\.\d+)?\s?%/g, /\b\d+\.\d+\b/g, /\$/g, /\bper ?cent\b/gi]) for (const m of text.matchAll(re)) found.push(m[0]);
   return found;

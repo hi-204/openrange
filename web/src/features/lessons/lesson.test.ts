@@ -85,6 +85,10 @@ describe('lesson lint', () => {
     expect(bareNumbers('You need 25% here and {{calc 1/4 | pct}} there.')).toEqual(['25%']);
     expect(bareNumbers('A 0.75 ratio, $5, and 0.5/1 blinds; $\\frac{1}{4}$')).toEqual(['0.75', '$']);
     expect(bareNumbers('fifty per cent')).toEqual(['per cent']);
+    // Scenario amounts in big blinds are inputs, not results (D-069).
+    expect(bareNumbers('CO raises to 2.5 bb and you call 2.5bb')).toEqual([]);
+    expect(bareNumbers('equity 0.35 here')).toEqual(['0.35']);
+    expect(bareNumbers('see lesson 0.3 and lessons 2.6 and 2.7')).toEqual([]);
   });
 
   it('reports structural problems', () => {

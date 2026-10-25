@@ -16,3 +16,71 @@ range: >-
 showdown: >-
   The end of a hand when two or more players are left after the last bet: they show their cards
   and the best five-card hand wins.
+"6-max": >-
+  A table with at most six players, the most common online cash format and the one this course uses.
+all-in: >-
+  Betting all the chips you have in front of you. You can't be forced to put in more than that.
+angle shooting: >-
+  A move that may be within the letter of the rules but is meant to mislead, such as pretending to fold. Considered bad etiquette.
+bet: >-
+  Putting chips into the pot when nobody else has in this betting round. Others must match it, raise or fold.
+big blind: >-
+  The forced bet posted by the second player to the left of the button before the cards are dealt.
+"big blind (bb)": >-
+  The unit for amounts in this course: one big blind. Thinking in big blinds makes stakes comparable.
+blinds: >-
+  The two forced bets (small blind and big blind) posted before each hand so there is always something to win.
+board: >-
+  The shared cards dealt face up in the middle of the table, up to five, that every player can use.
+button: >-
+  The disc that marks the dealer position. It moves one seat clockwise every hand; the button acts last after the flop.
+buy-in: >-
+  The fixed price to enter a tournament, or the amount you sit down with in a cash game.
+call: >-
+  Putting in exactly enough chips to match the current bet.
+cash game: >-
+  A game where chips are real money, the blinds stay the same, and you can join or leave at any time.
+check: >-
+  Passing without betting when nobody has bet yet in the round. You stay in the hand.
+flop: >-
+  The first three shared cards, dealt together after the preflop betting.
+flush: >-
+  Five cards of the same suit, not in sequence. It beats a straight and loses to a full house.
+fold: >-
+  Giving up the hand and any chips already put in.
+full house: >-
+  Three cards of one rank and two of another. It beats a flush and loses to four of a kind.
+hole cards: >-
+  Your two private cards, dealt face down.
+kicker: >-
+  A card that isn't part of the pair (or other combination) but breaks ties between equal hands.
+muck: >-
+  To throw your cards away face down without showing them, or the pile of discarded cards.
+no-limit: >-
+  A betting structure where you may bet or raise any amount up to all your chips.
+playing the board: >-
+  When the five board cards are a player's best hand, so their hole cards don't play.
+pot: >-
+  All the chips bet in the hand so far, won by the last player left or the best hand at showdown.
+preflop: >-
+  The first betting round, after the hole cards are dealt and before the flop.
+raise: >-
+  Putting in more than the current bet, so the others must match the larger amount.
+river: >-
+  The fifth and last shared card, followed by the last betting round.
+side pot: >-
+  A separate pot that forms when a player is all-in: only the players who put chips into it can win it.
+small blind: >-
+  The forced bet posted by the player directly to the left of the button, usually half the big blind.
+split pot: >-
+  A pot shared equally between players whose best five cards are equal.
+stack: >-
+  The chips a player has in front of them, usually counted in big blinds.
+straight: >-
+  Five cards in sequence of mixed suits. The ace can be high or low, but a straight can't wrap around.
+string bet: >-
+  Putting chips forward in several motions without announcing the amount first. Dealers may count only the first part.
+tournament: >-
+  A format where everyone buys in for the same amount, blinds rise over time, and prizes are paid by finishing place.
+turn: >-
+  The fourth shared card, dealt after the flop betting.
