@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-25 (M5, in progress): postflop solving and push/fold are validated; the cash-game preflop charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050)._
+_Status 2026-10-26 (M6): postflop solving and push/fold are validated; the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
 
 ## By design
 
@@ -63,6 +63,33 @@ _Status 2026-10-25 (M5, in progress): postflop solving and push/fold are validat
     of 3-bets, rake-free.
 - **Charts are per class.** Within a class, suits can matter slightly (card removal); the
   exact heads-up charts average their combos.
+
+## Trainer
+
+- **Preflop grading is per hand class.** The dealt combo shows real suits, but the charts
+  (and so the grade) don't distinguish them.
+- **What gets graded:** heads-up push/fold (exact) and 3–6-handed push/fold (approximate,
+  with a sampling allowance, D-052). Cash charts are **practice only** (D-050): you see the
+  answer, but it isn't graded, counted in stats or scheduled.
+- **Explanations for 3–6-handed and cash spots** stop at the EVs, the mix and the sampling
+  note. The pot-odds and shove breakdowns are only given heads-up, where they are exact.
+- **Postflop spots are a small fixed set.** The ranges and bet sizes are example inputs (one
+  or a few sizes, limited raises), solved in the browser. The flop spot takes about 30 s to
+  solve.
+- **Postflop decisions off the solution's path are not graded.** With your hand, the solution
+  reaches the point less than 1% as often as it holds the hand there. Its numbers at such
+  points aren't a reliable reference.
+- **Before the river, the pot-odds sentence uses only your current equity.** It ignores the
+  betting still to come; the grade always uses the solver's EVs.
+- **Category thresholds are conventions** (D-052), not facts about poker. They can be changed
+  on the Review tab.
+- **Scheduling is simple SM-2 per spot family** (D-054). No placement quiz or daily plan
+  yet (M7).
+- **Stats need at least 30 graded answers per group** before showing numbers. A leak is only
+  reported when the intervals separate (D-055).
+- **No lessons yet.** The "related lesson" line names the topic; lessons arrive in M7.
+- **Trainer data stays in this browser.** Clearing site data deletes it. Use Export on the
+  Review tab to keep a copy.
 
 ## Not yet verified
 

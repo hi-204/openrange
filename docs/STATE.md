@@ -2,6 +2,37 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-26 — M6 done: trainer
+
+**Works (verified):**
+- **Trainer page** (`#/trainer`) with Preflop, Postflop and Review tabs.
+- **Preflop drill:**
+  - Filters by chart set, position, situation, stack and difficulty. Hands are dealt in
+    proportion to how often the player reaches the decision with them.
+  - Spot families are scheduled by SM-2. Keyboard shortcuts: F/C/R, 1–9, Enter/N.
+  - Heads-up and 3–6-handed push/fold are graded; cash charts are practice only.
+- **Postflop drill:** solves a spot in the browser (river 0.4 s, turn about 0.5 s, flop about
+  30 s), then plays hands against the solution. Real turn and river cards are mapped onto the
+  solver's suit-isomorphic cards; tested against a solve without isomorphism, with identical
+  EVs. Decisions off the solution's path aren't graded.
+- **Grading:** EV loss in bb or % of the pot. Sampled references get an allowance, mixed
+  actions are never marked wrong, and thresholds are tunable (D-052).
+- **Explanations are checked claims (D-053).** Over every class and stack of the exact
+  heads-up charts, the pot-odds and shove breakdowns match the chart EVs within 7.8e-5 bb.
+  On 190 randomly played postflop hands every claim passes its predicate, and on the river
+  the pot-odds identity holds within 8.1e-5 bb.
+- **Review tab:** 95% intervals, "not enough data yet" below 30 answers, leaks only when
+  intervals separate. Also the review schedule, recent answers, threshold settings, and
+  export/import/reset.
+- **Tests:** Vitest 47 tests; Playwright 14 tests (3 new for the trainer); `npm run check`
+  passes.
+
+**Not done / known issues:** see KNOWN_LIMITS → Trainer. Placement quiz, daily plan, math
+drills and lessons come in M7. Cash charts stay practice only (D-050). The GitHub push and
+Linux CI (item 8) still wait for the repo URL.
+
+**Next:** M7 — lesson platform, Levels 0–4, math drills, placement quiz, daily plan.
+
 ## 2026-10-25 — M5 in progress: EQR v2 and cash charts
 
 **Works (verified):**
