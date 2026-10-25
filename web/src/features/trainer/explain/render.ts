@@ -67,9 +67,9 @@ export function renderClaim(c: Claim): string[] {
 }
 
 /** The lesson that matches the strongest claim (lessons themselves arrive in M7). */
-export function lessonFor(claims: Claim[]): MessageKey {
+export function lessonFor(claims: Claim[], fallback: MessageKey): MessageKey {
   if (claims.some((c) => c.kind === 'callMath')) return 'trainer.lesson.potOdds';
   if (claims.some((c) => c.kind === 'shoveMath')) return 'trainer.lesson.pushFold';
   if (claims.some((c) => c.kind === 'verdict' && c.lowerFrequency)) return 'trainer.lesson.mixed';
-  return 'trainer.lesson.ranges';
+  return fallback;
 }

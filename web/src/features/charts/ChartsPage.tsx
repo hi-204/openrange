@@ -8,7 +8,7 @@ import { ClassGrid, UNREACHED } from './ClassGrid';
 
 const COMBOS = (name: string) => (name.length === 2 ? 6 : name[2] === 's' ? 4 : 12);
 
-function familyLabel(e: ChartIndexEntry): string {
+export function familyLabel(e: ChartIndexEntry): string {
   if (e.family === 'pushfold-hu') return t('charts.family.pushfoldHu');
   if (e.family.startsWith('pushfold-')) return t('charts.family.pushfoldMulti', { n: e.players });
   if (e.family === 'cash-6max') return t('charts.family.cash', { stacks: e.stacks.join('/') });
