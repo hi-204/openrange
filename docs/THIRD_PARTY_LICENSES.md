@@ -47,11 +47,11 @@ Allowed licenses (D-004): MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, IS
 | @jridgewell/trace-mapping | 0.3.31 | MIT | yes |
 | @oxc-project/types | 0.155.0 | MIT | yes |
 | @playwright/test | 1.64.1 | Apache-2.0 | yes |
-| @rolldown/binding-win32-x64-msvc | 1.2.15 | MIT | yes |
+| @rolldown/binding-<platform> | 1.2.15 | MIT | yes |
 | @rolldown/pluginutils | 1.0.1 | MIT | yes |
 | @tailwindcss/node | 4.3.3 | MIT | yes |
 | @tailwindcss/oxide | 4.3.3 | MIT | yes |
-| @tailwindcss/oxide-win32-x64-msvc | 4.3.3 | MIT | yes |
+| @tailwindcss/oxide-<platform> | 4.3.3 | MIT | yes |
 | @tailwindcss/vite | 4.3.3 | MIT | yes |
 | @types/chai | 5.2.3 | MIT | yes |
 | @types/deep-eql | 4.0.2 | MIT | yes |
@@ -59,7 +59,7 @@ Allowed licenses (D-004): MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, IS
 | @types/node | 24.19.2 | MIT | yes |
 | @types/react | 19.3.0 | MIT | no |
 | @types/react-dom | 19.3.0 | MIT | yes |
-| @typescript/typescript-win32-x64 | 7.0.2 | Apache-2.0 | yes |
+| @typescript/typescript-<platform> | 7.0.2 | Apache-2.0 | yes |
 | @vitejs/plugin-react | 6.1.2 | MIT | yes |
 | @vitest/mocker | 5.0.5 | MIT | yes |
 | @vitest/spy | 5.0.5 | MIT | yes |
@@ -82,8 +82,8 @@ Allowed licenses (D-004): MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, IS
 | katex | 0.19.1 | MIT | no |
 | lightningcss | 1.32.0 | MPL-2.0 | yes |
 | lightningcss | 1.33.0 | MPL-2.0 | yes |
-| lightningcss-win32-x64-msvc | 1.32.0 | MPL-2.0 | yes |
-| lightningcss-win32-x64-msvc | 1.33.0 | MPL-2.0 | yes |
+| lightningcss-<platform> | 1.32.0 | MPL-2.0 | yes |
+| lightningcss-<platform> | 1.33.0 | MPL-2.0 | yes |
 | linkify-it | 6.1.0 | MIT | no |
 | magic-string | 1.4.3 | MIT | yes |
 | magic-string | 0.30.21 | MIT | yes |

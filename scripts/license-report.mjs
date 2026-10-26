@@ -45,8 +45,12 @@ function npmPackages() {
   for (const p of all) {
     if (!p.location || p.location === 'web') continue; // our own workspace packages
     const license = typeof p.license === 'string' ? p.license : (p.license?.type ?? '');
-    const key = `${p.name}@${p.version}`;
-    if (!seen.has(key)) seen.set(key, { name: p.name, version: p.version, license, dev: !!p.dev });
+    // npm installs a native binary per OS and CPU (e.g. lightningcss-win32-x64-msvc on Windows,
+    // lightningcss-linux-x64-gnu on Linux). List them under one platform-neutral name so the
+    // report is the same on every OS; their licenses are still checked.
+    const name = p.name.replace(/-(win32|linux|darwin|freebsd|openbsd|android|sunos|aix)(-[a-z0-9]+)*$/, '-<platform>');
+    const key = `${name}@${p.version}`;
+    if (!seen.has(key)) seen.set(key, { name, version: p.version, license, dev: !!p.dev });
   }
   return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
