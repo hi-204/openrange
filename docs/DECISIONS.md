@@ -877,3 +877,19 @@ strategies where available and clearly labelled simple bots otherwise, with opti
 - **Coaching and replay:** coaching after each of your decisions, and the end-of-hand replay,
   reuse the hand-review references, so play and review grade the same way.
 - **Stacks** reset each hand to the stack in Settings → Game.
+
+### D-080 · Offline and installable without a plugin
+**Context:** M10 asks for a PWA. Plugins like vite-plugin-pwa bring a large dependency tree
+(Workbox) for what OpenRange needs: cache one static build.
+**Decision:**
+- **Service worker:** a 40-line Vite plugin (`web/offline.ts`) writes `dist/sw.js` after each
+  production build, listing every built file (about 9 MB: code, fonts, WASM, charts, equities,
+  reports).
+- **Caching:** the worker pre-caches them under a version hash. It answers same-origin GETs
+  cache-first, ignoring `Vary` (static files; matching on it broke offline page loads), and
+  deletes older caches when a new build activates.
+- **Install:** a web manifest with PNG icons rendered from the SVG icon makes the app
+  installable.
+- **Dev:** the dev server registers no worker.
+- **Test:** an e2e test goes offline after the first visit and opens a lesson, the charts, a
+  trainer question (WASM in its worker) and the reports, then reloads.

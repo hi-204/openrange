@@ -13,6 +13,20 @@ import { solverClient } from '../lib/wasm/client';
 import type { HelloResult } from '../lib/wasm/protocol';
 import { href } from './route';
 
+/** Whether the service worker has cached the app for offline use (production builds, D-080). */
+function OfflineStatus() {
+  const sw = typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined;
+  const [ready, setReady] = useState(!!sw?.controller);
+  useEffect(() => {
+    if (!sw) return;
+    const on = () => setReady(!!sw.controller);
+    sw.addEventListener('controllerchange', on);
+    return () => sw.removeEventListener('controllerchange', on);
+  }, [sw]);
+  if (!sw || !import.meta.env.PROD) return null;
+  return <p data-testid="offline-status">{t(ready ? 'about.offlineReady' : 'about.offlinePending')}</p>;
+}
+
 type Data = { answers: AnswerRecord[]; families: Map<string, FamilyState>; lessons: Map<string, LessonProgress>; math: MathAttempt[]; placement: PlacementResult | null; course: Lesson[] };
 
 // The course text is large, so it loads in its own chunk rather than with the home page.
@@ -177,6 +191,7 @@ export function HomePage() {
         </h2>
         <p>{t('about.studyOnly')}</p>
         <p>{t('about.offline')}</p>
+        <OfflineStatus />
         <p role="status" aria-live="polite" data-testid="solver-status" className="text-xs">
           {engine ? (
             <>

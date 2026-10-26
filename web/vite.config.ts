@@ -2,6 +2,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { offline } from './offline';
 
 // Production builds get a strict Content-Security-Policy so the app physically cannot talk to
 // another origin (principle 6: offline and private). Dev is exempt because Vite's HMR needs
@@ -33,7 +34,7 @@ function contentSecurityPolicy(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), contentSecurityPolicy()],
+  plugins: [react(), tailwindcss(), contentSecurityPolicy(), offline()],
   worker: { format: 'es' },
   // Never inline fonts as data: URLs: the CSP allows fonts from 'self' only (small font subsets
   // were inlined and blocked).
