@@ -170,3 +170,18 @@ test('flop report: groups by texture with provenance', async ({ page }) => {
   await expect(page.getByTestId('report-groups')).toContainText('By highest card');
   await expect(page.getByTestId('report-flops').locator('tbody tr')).toHaveCount(48);
 });
+
+test('errors: a beginner-friendly message with "Copy diagnostics" (no personal data)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.route('**/data/charts/index.json', (r) => r.abort());
+  await open(page, '/#/train/preflop');
+  const err = page.getByTestId('error-state');
+  await expect(err).toBeVisible({ timeout: 15_000 });
+  await err.getByTestId('copy-diagnostics').click();
+  await expect(err.getByTestId('copy-diagnostics')).toContainText('Copied');
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain('OpenRange diagnostics');
+  expect(text).toContain('page: #/train/preflop');
+  expect(text).toMatch(/error: /);
+  expect(text).not.toMatch(/answers|hand history|Dealt to/i);
+});

@@ -2,7 +2,17 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { execSync } from 'node:child_process';
 import { offline } from './offline';
+
+/** Short commit of the build, for "Copy diagnostics" (D-082). */
+function gitCommit(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 // Production builds get a strict Content-Security-Policy so the app physically cannot talk to
 // another origin (principle 6: offline and private). Dev is exempt because Vite's HMR needs
@@ -35,6 +45,7 @@ function contentSecurityPolicy(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), contentSecurityPolicy(), offline()],
+  define: { __GIT_COMMIT__: JSON.stringify(gitCommit()) },
   worker: { format: 'es' },
   // Never inline fonts as data: URLs: the CSP allows fonts from 'self' only (small font subsets
   // were inlined and blocked).

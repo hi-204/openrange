@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { create } from 'zustand';
+import { diagnostics } from '../diagnostics';
 import { t } from '../i18n';
 import { Icon, type IconName } from './Icon';
 
@@ -76,15 +77,43 @@ export function EmptyState({ icon = 'spark', title, children, action }: { icon?:
   );
 }
 
-export function ErrorState({ title, message, next }: { title: string; message: string; next?: ReactNode }) {
+export function ErrorState({ title, message, next, error }: { title: string; message: string; next?: ReactNode; error?: unknown }) {
   return (
     <div role="alert" className="card space-y-2 border-bad" data-testid="error-state">
       <p className="flex items-center gap-2 font-semibold text-bad">
         <Icon name="warning" /> {title}
       </p>
       <p className="text-sm text-ink-muted">{message}</p>
-      {next}
+      <div className="flex flex-wrap items-center gap-2">
+        {next}
+        <CopyDiagnostics error={error ?? message} />
+      </div>
     </div>
+  );
+}
+
+/** Copies technical details for a bug report (no personal data, D-082). */
+export function CopyDiagnostics({ error }: { error?: unknown }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'shown'>('idle');
+  const [text, setText] = useState('');
+  const copy = async () => {
+    const mode = document.querySelector('main')?.getAttribute('data-mode') ?? undefined;
+    const d = diagnostics({ error, mode });
+    setText(d);
+    try {
+      await navigator.clipboard.writeText(d);
+      setState('copied');
+    } catch {
+      setState('shown');
+    }
+  };
+  return (
+    <>
+      <button type="button" className="btn-quiet" onClick={() => void copy()} data-testid="copy-diagnostics">
+        {state === 'copied' ? t('diag.copied') : t('diag.copy')}
+      </button>
+      {state === 'shown' && <textarea readOnly aria-label={t('diag.label')} className="field h-32 w-full font-mono text-xs" value={text} />}
+    </>
   );
 }
 

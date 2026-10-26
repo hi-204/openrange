@@ -3,8 +3,8 @@ import { t } from './index';
 
 describe('t()', () => {
   it('fills placeholders', () => {
-    expect(t('status.ready', { version: '1.2.3' })).toBe(
-      'Solver core v1.2.3 is running in a background worker.',
+    expect(t('status.ready', { app: '1.0.0', version: '1.2.3' })).toBe(
+      'OpenRange 1.0.0. The solver core (v1.2.3) is running in a background worker.',
     );
   });
 

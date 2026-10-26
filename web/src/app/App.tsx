@@ -4,6 +4,7 @@ import { t, type MessageKey } from '../lib/i18n';
 import { useSettings } from '../lib/settings/useSettings';
 import { Icon, type IconName } from '../lib/ui/Icon';
 import { SegmentedControl, Skeleton, Toaster } from '../lib/ui/components';
+import { ErrorBoundary } from './ErrorBoundary';
 import { HomePage } from './HomePage';
 import { parseRoute, redirect, type Route } from './route';
 
@@ -119,9 +120,11 @@ export function App() {
         </header>
 
         <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 md:px-8 md:pb-10" data-mode={settings.mode}>
-          <Suspense fallback={<Skeleton className="h-96" />}>
-            <Page key={current.path} route={route} />
-          </Suspense>
+          <ErrorBoundary resetKey={current.path}>
+            <Suspense fallback={<Skeleton className="h-96" />}>
+              <Page key={current.path} route={route} />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
 

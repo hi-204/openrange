@@ -113,7 +113,7 @@ function CourseMap({ progress, placement }: { progress: Map<string, LessonProgre
             </div>
             {ls.length > 0 && <ProgressBar value={done / ls.length} label={t('learn.levelProgress', { level })} />}
             {ls.length === 0 ? (
-              <p className="text-sm text-ink-muted">{t(level <= 4 ? 'learn.levelSoonM7' : 'learn.levelSoonM8')}</p>
+              <p className="text-sm text-ink-muted">{t('learn.levelEmpty')}</p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {ls.map((l) => {

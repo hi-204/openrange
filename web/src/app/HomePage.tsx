@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import pkg from '../../package.json';
 import type { Lesson } from '../features/lessons/lessonMeta';
 import { drillHref } from '../features/lessons/links';
 import { dailyPlan, startOfDay, type PlanItem } from '../features/lessons/plan';
@@ -195,7 +196,7 @@ export function HomePage() {
         <p role="status" aria-live="polite" data-testid="solver-status" className="text-xs">
           {engine ? (
             <>
-              {t('status.ready', { version: engine.version })} <span data-testid="combo-count">{t('status.combos', { count: engine.combos })}</span>
+              {t('status.ready', { app: pkg.version, version: engine.version })} <span data-testid="combo-count">{t('status.combos', { count: engine.combos })}</span>
             </>
           ) : engineError ? (
             t('status.error', { message: engineError })
