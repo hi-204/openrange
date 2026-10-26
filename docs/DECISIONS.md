@@ -905,3 +905,38 @@ stand-in for a mid-range laptop) and fails if any of these is over budget:
 - longest main-thread task while solving and showing the result: under 200 ms (81 ms).
 The main-thread figure uses the browser's long-task API: a first attempt with timer drift
 over-reported it.
+The test runs as its own Playwright project after all other browser tests, alone: run in
+parallel with them, start-up once measured 3.9 s (alone: 1.9–2.2 s over three runs). The
+budgets are unchanged.
+
+### D-082 · Errors: a plain message, "Copy diagnostics", no personal data
+**Context:** the spec asks for errors a beginner can understand, with a "copy diagnostics"
+button that contains no personal data. Error screens had a message but no button, and a crash
+inside a page left a blank screen.
+**Decision:**
+- **Every error screen** has "Copy diagnostics". It copies:
+  - the app version and build commit;
+  - the time, the page (query string dropped) and the display mode;
+  - the browser, language and screen size;
+  - whether the offline cache is active;
+  - the error, with stack lines reduced to file names and positions (no URLs or local paths).
+- **Never copied:** answers, hands, notes, lesson progress or settings.
+- **Fallback:** if the clipboard isn't available, the text is shown to select.
+- **Crashes:** an error boundary around every page shows a plain explanation and a reload
+  button. It clears when you navigate, so the other pages keep working.
+
+### D-083 · Release: a zip with the built app and a tiny local server
+**Context:** M10 asks for something a non-developer can run without `npm install` or a build.
+**Decision:**
+- **`npm run release`** builds the app and writes `release/openrange-<version>/` plus a zip:
+  - `app/`, the production build (service worker included);
+  - `serve.mjs`, a static server with no dependencies, bound to 127.0.0.1 (port 8080, or
+    `--port`), serving `.wasm` as `application/wasm` and refusing paths outside `app/`;
+  - `start.cmd` for Windows (double-click: starts the server and opens the browser);
+  - `START-HERE.txt`, LICENSE, NOTICE, the user guide, known limits and third-party licenses.
+- **Only Node.js is needed** to run it. A packaged desktop app (Electron, Tauri) would avoid
+  that but adds a large runtime, signing and an update channel; not worth it for 1.0.
+- **Zipping** uses the system `tar` (bsdtar, in Windows 10+); on Windows the script calls
+  `C:/Windows/System32/tar.exe` directly, because Git's GNU tar can come first on the PATH and
+  can't write zips. Without tar, the folder is still written.
+- **Version 1.0.0** in both `package.json` files; `release/` is gitignored.

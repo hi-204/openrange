@@ -2,6 +2,41 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-10-25 — M10 done: version 1.0 (offline, accessibility, performance, guide, release)
+
+**Works (verified):**
+- **Offline and install (D-080):** a service worker generated at build time pre-caches every
+  built file. An e2e test goes offline after the first visit and opens a lesson, the charts, a
+  trainer question (WASM) and the reports, then reloads. A web manifest and icons make it
+  installable; Home says when it is saved for offline use.
+- **Accessibility:** axe checks on every main page in both themes, plus error, empty, loading,
+  dialog and onboarding states; a keyboard-only walk through the main flows.
+- **Performance (D-081):** with the CPU slowed 4×, latest run: start 2.0 s (budget 3 s), lesson
+  0.5 s (2 s), river solve 1.6 s (5 s), longest main-thread task 127 ms (200 ms). The test runs
+  alone after the other browser tests.
+- **Errors (D-082):** every error screen has "Copy diagnostics" (version, build, page without
+  query, browser, offline state, cleaned error; no personal data); an error boundary per page.
+- **User guide** rewritten for 1.0 (first hour, every page, trust levels, shortcuts,
+  troubleshooting).
+- **Release (D-083):** `npm run release` writes `release/openrange-1.0.0/` and a zip: the built
+  app, a dependency-free server bound to 127.0.0.1, `start.cmd`, START-HERE.txt and the docs.
+  Checked by listing the zip (130 entries) and by serving the folder: `.wasm` as
+  `application/wasm`, paths outside the app refused, service worker active with 114 cached
+  entries.
+- **Final audit:** KNOWN_LIMITS brought up to date (stale "not yet" items removed, an
+  offline/release section added); stale milestone wording removed from app strings; Home shows
+  the app version beside the solver core's; README for 1.0; docs/NEXT.md lists what to build
+  next.
+- **Tests:** Vitest 203, Rust, VALIDATION 112/112, Playwright 69 (offline, a11y states,
+  keyboard, perf, diagnostics), visual 6/6, `npm run check` passing; screenshots regenerated.
+
+**Not done / known issues:** see KNOWN_LIMITS (cash charts below their bands for early
+positions, single-threaded browser solver, drill answers don't link back to lessons, browser
+storage can be cleared). Linux CI wasn't re-run after the license-report fix (not needed, per
+the user).
+
+**Next:** docs/NEXT.md.
+
 ## 2026-10-25 — M9 done: node-locking, workbench polish, flop report, hand review, play mode
 
 **Works (verified):**

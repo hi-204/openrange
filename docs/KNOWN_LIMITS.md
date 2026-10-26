@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-25 (M6): postflop solving and push/fold are validated; the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
+_Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are validated (docs/VALIDATION.md); the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
 
 ## By design
 
@@ -83,15 +83,16 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
   betting still to come; the grade always uses the solver's EVs.
 - **Category thresholds are conventions** (D-052), not facts about poker. They can be changed
   on the Review tab.
-- **Scheduling is simple SM-2 per spot family** (D-054). No placement quiz or daily plan
-  yet (M7).
+- **Scheduling is simple SM-2 per spot family** (D-054). The daily plan on Home (D-061) is
+  a fixed recipe (next lesson, due review, one drill), not a personalised study programme.
 - **Stats need at least 30 graded answers per group** before showing numbers. A leak is only
   reported when the intervals separate (D-055).
-- **No lessons yet.** The "related lesson" line names the topic; lessons arrive in M7.
+- **Drill answers don't link back to lessons.** Lessons and the daily plan link to drills,
+  but the coaching card after an answer doesn't name a lesson.
 - **Trainer data stays in this browser.** Clearing site data deletes it. Use Export on the
   Review tab to keep a copy.
 
-## Interface (M6.5)
+## Interface
 
 - **Play mode bots are practice opponents.** Before the flop they play from the charts when the
   spot is in the chart tree (approximate cash charts, exact heads-up push/fold); after the
@@ -133,8 +134,8 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 - **The placement quiz shows right or wrong after each answer** (it reuses the lesson quiz).
 - **The toy game is one small river** (a set or air against one bluff catcher, one size). It
   shows the theory exactly, but real ranges have many hand strengths.
-- **The locked-caller view is computed from the game's rules**, not by node-locking the
-  solver (the engine has no node-locking yet).
+- **The locked-caller view is computed from the game's rules**, not with the solver's
+  node-locking (added later, in the workbench).
 - **ICM ignores skill, position and future blinds**; bubble factors assume an all-in for the
   smaller stack with no other money in the pot.
 - **Variance uses a normal approximation** per 100 hands and the infinite-horizon risk-of-ruin
@@ -143,7 +144,7 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 - **Range-building drill:** only exact heads-up push/fold charts are graded; cash opens are
   practice. Painting is one cell at a time (no drag).
 
-## Not yet verified
+## Solver
 
 - **River solver:** heads-up only; one bet-size list per player per street (no separate
   donk or probe sizes yet); strategies are stored as 32-bit floats. A solve stops at the
@@ -159,9 +160,9 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
   equivalent cards (marked +N); browsing a specific suit of a merged card isn't possible yet.
 - **No separate donk/probe sizes**, and the same bet-size list applies on every node of a
   street for a player.
-- **Node browser:** strategies are shown for the acting player only; there is no "opponent
-  range at this node" view yet (M9 workbench).
-- Browser performance has only been checked informally on one machine (Ryzen AI 9 HX 370).
+- **Performance budgets are measured on one machine** (Ryzen AI 9 HX 370) with the CPU slowed
+  4× as a stand-in for a mid-range laptop (D-081). Slower machines, and phones, can take
+  longer.
 
 ## Advanced features (M9)
 
@@ -181,3 +182,18 @@ _Status 2026-10-25 (M6): postflop solving and push/fold are validated; the train
 - **Hand-history positions** follow the seats clockwise from the button. Seats sitting out are
   treated as in the hand if the history lists them.
 
+## Offline, install and release (M10)
+
+- **The first visit needs the server.** OpenRange saves itself for offline use only after it
+  has loaded once (from `npm run dev` it never does: offline is for builds). Home says when it
+  is saved.
+- **Updates arrive on the next visit.** A new version installs in the background and takes over
+  at once; the open tab keeps its old code until you reload. If a page fails right after an
+  update, reload.
+- **Browser storage can be cleared.** Progress lives in this browser's storage. Clearing site
+  data, a private window, or the browser freeing space when the disk is nearly full deletes
+  it; OpenRange doesn't ask for persistent storage. Export from Settings → Data to keep a copy.
+- **The release needs Node.js.** `serve.mjs` is a small static server that only answers this
+  computer (127.0.0.1); there is no stand-alone installer or signed app.
+- **"Copy diagnostics"** needs clipboard access; where the browser refuses, the text is shown
+  to select and copy.
