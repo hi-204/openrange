@@ -940,3 +940,15 @@ inside a page left a blank screen.
   `C:/Windows/System32/tar.exe` directly, because Git's GNU tar can come first on the PATH and
   can't write zips. Without tar, the folder is still written.
 - **Version 1.0.0** in both `package.json` files; `release/` is gitignored.
+
+### D-084 · D-038's solver speed-ups were not done in M10
+**Context:** D-038 deferred three things to the M10 performance pass:
+- rayon parallelism over chance children for the CLI;
+- 16-bit regret and strategy storage;
+- revisiting WASM threads (D-010).
+**What happened:** M10's performance pass set and tested page-level budgets (D-081), which
+the default river solve meets. It did none of the three solver items. This was missed when M10
+was reported done, and was found while writing the roadmap.
+**Decision:** they move to docs/NEXT.md, items 1 (every CPU core) and 7 (16-bit storage),
+first in the suggested order. Until then KNOWN_LIMITS already states the effect
+(single-threaded, 32-bit storage, slow flop solves).
