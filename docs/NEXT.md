@@ -56,5 +56,5 @@ Flop solves in the browser are slow and single-threaded (D-010, D-038).
   to a file.
 - A packaged desktop app (for example Tauri) with an installer, so Node.js isn't needed; it needs
   code signing and an update channel (D-083).
-- CI on Linux and macOS: visual baselines exist only for Windows, and the Linux run's last
-  known failure (the license check) has a fix that hasn't been confirmed in CI.
+- Visual checks on Linux and macOS: CI already passes on Windows and Linux, but the visual
+  baselines exist only for Windows, and macOS isn't tested at all.

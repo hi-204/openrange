@@ -32,8 +32,8 @@ Newest entry first. Each entry: date, milestone, what works, what doesn't, next 
 
 **Not done / known issues:** see KNOWN_LIMITS (cash charts below their bands for early
 positions, single-threaded browser solver, drill answers don't link back to lessons, browser
-storage can be cleared). Linux CI wasn't re-run after the license-report fix (not needed, per
-the user).
+storage can be cleared). GitHub CI passed on Windows and Linux (with coverage) for the last
+pre-M10 commit `c157388`.
 
 **Next:** docs/NEXT.md.
 
