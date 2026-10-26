@@ -1,6 +1,6 @@
 {
   "name": "openrange",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Offline No-Limit Hold'em study suite: solver, trainer and course.",
   "license": "MIT",
@@ -22,6 +22,7 @@
     "validate": "cargo run --release --locked -p solver-cli -- validate",
     "licenses": "node scripts/license-report.mjs",
     "facts": "node scripts/gen-lesson-facts.mjs",
-    "screenshots": "npm --workspace web run screenshots"
+    "screenshots": "npm --workspace web run screenshots",
+    "release": "node scripts/release.mjs"
   }
 }
