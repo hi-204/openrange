@@ -40,3 +40,22 @@ test('a11y: onboarding dialog', async ({ page }) => {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(' ')} — ${v.help}`)).toEqual([]);
 });
+
+test('keyboard: skip link, menu, and the text-size setting', async ({ page }) => {
+  await open(page, '/');
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skip).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#main|#\/$/);
+  // The menu is reachable and works with Enter.
+  const learn = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Learn' });
+  await learn.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('course-map')).toBeVisible();
+  // Larger text scales the root font size.
+  await page.goto('/#/settings');
+  const before = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize);
+  await page.getByRole('radio', { name: 'Larger', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).not.toBe(before);
+});
