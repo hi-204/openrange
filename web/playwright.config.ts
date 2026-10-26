@@ -14,6 +14,12 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     ...(useBundled ? {} : { channel: 'msedge' }),
   },
+  // The performance budgets (D-081) run after everything else, alone: sharing the CPU with
+  // parallel test workers made the start-up time vary by more than a second.
+  projects: [
+    { name: 'e2e', testIgnore: /perf\.spec\.ts/ },
+    { name: 'perf', testMatch: /perf\.spec\.ts/, dependencies: ['e2e'] },
+  ],
   // Smoke tests run against the production build, so the CSP is exercised too.
   webServer: {
     command: 'npm run build && npm run preview -- --strictPort',
