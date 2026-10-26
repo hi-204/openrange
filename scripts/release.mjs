@@ -33,7 +33,7 @@ writeFileSync(
   join(out, 'serve.mjs'),
   `// OpenRange ${version}: serves ./app on this computer only (127.0.0.1). No dependencies.
 // Usage: node serve.mjs [--port 8080] [--open]
-import { createServer } from 'node:http';
+import { createServer, get } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { exec } from 'node:child_process';
@@ -49,7 +49,7 @@ const TYPES = {
   '.ttf': 'font/ttf', '.ts': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
 };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
     const file = normalize(join(root, path.endsWith('/') ? path + 'index.html' : path));
@@ -61,15 +61,54 @@ createServer(async (req, res) => {
     res.writeHead(e.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/plain' });
     res.end(e.code === 'ENOENT' ? 'Not found' : 'Error');
   }
-}).listen(port, '127.0.0.1', () => {
-  const url = 'http://localhost:' + port + '/';
+});
+const url = 'http://localhost:' + port + '/';
+const open = () => args.includes('--open') && exec(process.platform === 'win32' ? 'start "" "' + url + '"' : (process.platform === 'darwin' ? 'open ' : 'xdg-open ') + url);
+
+server.on('error', (e) => {
+  if (e.code !== 'EADDRINUSE') throw e;
+  // Something already listens on the port: if it's OpenRange (started earlier), just open it.
+  get('http://127.0.0.1:' + port + '/manifest.webmanifest', (r) => {
+    let body = '';
+    r.on('data', (c) => (body += c));
+    r.on('end', () => {
+      if (!body.includes('OpenRange')) return busy();
+      console.log('OpenRange is already running at ' + url + ' (opening it).');
+      open();
+    });
+  }).on('error', busy);
+});
+function busy() {
+  console.log('Port ' + port + ' is used by another program. Close it, or start OpenRange on another port:');
+  console.log('  node serve.mjs --open --port 8090');
+  console.log('Progress is saved per address, so on another port OpenRange starts empty');
+  console.log('(Settings > Data: Export, then Import, moves it).');
+  process.exitCode = 2;
+}
+
+server.listen(port, '127.0.0.1', () => {
   console.log('OpenRange ${version} is running at ' + url + '  (close this window or press Ctrl+C to stop)');
-  if (args.includes('--open')) exec(process.platform === 'win32' ? 'start "" "' + url + '"' : (process.platform === 'darwin' ? 'open ' : 'xdg-open ') + url);
+  open();
 });
 `,
 );
 
-writeFileSync(join(out, 'start.cmd'), `@echo off\r\nrem OpenRange ${version}: starts the local server and opens your browser.\r\nnode "%~dp0serve.mjs" --open\r\nif errorlevel 1 (\r\n  echo.\r\n  echo Node.js is needed: install it from https://nodejs.org and try again.\r\n  pause\r\n)\r\n`);
+writeFileSync(
+  join(out, 'start.cmd'),
+  [
+    '@echo off',
+    `rem OpenRange ${version}: starts the local server and opens your browser.`,
+    'where node >nul 2>nul',
+    'if errorlevel 1 (',
+    '  echo Node.js is needed: install the LTS version from https://nodejs.org and try again.',
+    '  pause',
+    '  exit /b 1',
+    ')',
+    'node "%~dp0serve.mjs" --open',
+    'if errorlevel 1 pause',
+    '',
+  ].join('\r\n'),
+);
 
 writeFileSync(
   join(out, 'START-HERE.txt'),

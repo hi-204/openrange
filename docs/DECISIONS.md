@@ -932,7 +932,10 @@ inside a page left a blank screen.
   - `app/`, the production build (service worker included);
   - `serve.mjs`, a static server with no dependencies, bound to 127.0.0.1 (port 8080, or
     `--port`), serving `.wasm` as `application/wasm` and refusing paths outside `app/`;
-  - `start.cmd` for Windows (double-click: starts the server and opens the browser);
+  - `start.cmd` for Windows (double-click: starts the server and opens the browser; says so
+    if Node.js is missing);
+  - if the port is busy, `serve.mjs` opens the running OpenRange when that's what holds it,
+    and otherwise explains the port and that progress is saved per address;
   - `START-HERE.txt`, LICENSE, NOTICE, the user guide, known limits and third-party licenses.
 - **Only Node.js is needed** to run it. A packaged desktop app (Electron, Tauri) would avoid
   that but adds a large runtime, signing and an update channel; not worth it for 1.0.
