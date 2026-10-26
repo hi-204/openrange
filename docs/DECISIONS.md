@@ -893,3 +893,15 @@ strategies where available and clearly labelled simple bots otherwise, with opti
 - **Dev:** the dev server registers no worker.
 - **Test:** an e2e test goes offline after the first visit and opens a lesson, the charts, a
   trainer question (WASM in its worker) and the reports, then reloads.
+
+### D-081 · Performance budgets, measured with a 4× slower CPU
+**Context:** the spec asks for a first load under a few seconds on a mid-range laptop,
+interactive river solves, and long tasks that never block the UI.
+**Decision:** `tests/e2e/perf.spec.ts` slows the CPU 4× (Chromium's CPU throttling, as a
+stand-in for a mid-range laptop) and fails if any of these is over budget:
+- start to the daily plan: under 3 s (measured 1.9 s);
+- opening a lesson: under 2 s (0.5 s);
+- the default river solve, to its result: under 5 s (0.9 s);
+- longest main-thread task while solving and showing the result: under 200 ms (81 ms).
+The main-thread figure uses the browser's long-task API: a first attempt with timer drift
+over-reported it.
