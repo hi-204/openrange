@@ -2,7 +2,8 @@
 //! solves (EQR v2, D-048).
 //!
 //! For four representative lines taken from a cash chart file (single-raised: BTN vs BB and
-//! CO vs BTN; 3-bet: BB vs BTN and BTN vs CO), a seeded sample of flops is solved with the
+//! CO vs BTN; 3-bet: BB vs BTN and BTN vs CO), plus with `--model v3` four lines against early
+//! openers (D-085), a seeded sample of flops is solved with the
 //! postflop solver on a small tree. For every hand, realization = (EV at the flop ÷ pot) ÷
 //! (all-in equity against the opponent's range on that flop). Per hand class and role
 //! (pot type × in position × preflop aggressor) the factor is Σ share ÷ Σ equity over the
@@ -31,6 +32,11 @@ use solver_core::rng::Rng;
 use std::time::Instant;
 
 pub const OUT: &str = "data/eqr/eqr-v2.json";
+pub const OUT_V3: &str = "data/eqr/eqr-v3.json";
+
+/// Opener groups of EQR v3 (D-085): pots opened from CO, BTN or SB, and pots opened from UTG
+/// or HJ.
+pub const GROUPS: [&str; 2] = ["late", "early"];
 
 /// One side of a matchup: its role and its range at the flop.
 pub(crate) struct Side {
@@ -45,6 +51,8 @@ pub(crate) struct Matchup {
     pub(crate) name: &'static str,
     /// 0 single-raised pot, 1 three-bet pot.
     pot_type: usize,
+    /// Opener group (index into [`GROUPS`]).
+    group: usize,
     pub(crate) oop: Side,
     pub(crate) ip: Side,
     pub(crate) pot: f64,
@@ -136,6 +144,7 @@ pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
         Matchup {
             name: "single-raised pot: BTN opens, BB calls",
             pot_type: 0,
+            group: 0,
             oop: side("BB", false, &bb_vs_btn.1),
             ip: side("BTN", true, &btn_open),
             pot: 2.0 * open_size + 0.5,
@@ -144,6 +153,7 @@ pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
         Matchup {
             name: "single-raised pot: CO opens, BTN calls",
             pot_type: 0,
+            group: 0,
             oop: side("CO", true, &co_open),
             ip: side("BTN", false, &btn_vs_co.1),
             pot: 2.0 * open_size + 1.5,
@@ -152,6 +162,7 @@ pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
         Matchup {
             name: "3-bet pot: BTN opens, BB 3-bets, BTN calls",
             pot_type: 1,
+            group: 0,
             oop: side("BB", true, &bb_vs_btn.2),
             ip: side(
                 "BTN",
@@ -164,6 +175,7 @@ pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
         Matchup {
             name: "3-bet pot: CO opens, BTN 3-bets, CO calls",
             pot_type: 1,
+            group: 0,
             oop: side(
                 "CO",
                 false,
@@ -172,6 +184,65 @@ pub(crate) fn matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
             ip: side("BTN", true, &btn_vs_co.2),
             pot: 2.0 * btn_3bet + 1.5,
             stack: stack - btn_3bet,
+        },
+    ])
+}
+
+/// EQR v3's lines against early openers (D-085): single-raised UTG / BB and HJ / BB (pooled
+/// into the same roles), and 3-bet pots where BTN or BB 3-bets UTG's open and UTG calls.
+pub(crate) fn early_matchups(doc: &Value) -> Result<Vec<Matchup>, String> {
+    let stack = doc["stack"].as_f64().ok_or("chart file has no stack")?;
+    let open = |seat: &str| column(doc, &format!("first-in-{seat}"), 1);
+    let utg_open = open("UTG")?;
+    let hj_open = open("HJ")?;
+    let utg_size = raise_size(doc, "first-in-UTG")?;
+    let hj_size = raise_size(doc, "first-in-HJ")?;
+    let btn_3bet = raise_size(doc, "vs-open-BTN-vs-UTG")?;
+    let bb_3bet = raise_size(doc, "vs-open-BB-vs-UTG")?;
+    Ok(vec![
+        Matchup {
+            name: "single-raised pot: UTG opens, BB calls",
+            pot_type: 0,
+            group: 1,
+            oop: side("BB", false, &column(doc, "vs-open-BB-vs-UTG", 1)?),
+            ip: side("UTG", true, &utg_open),
+            pot: 2.0 * utg_size + 0.5,
+            stack: stack - utg_size,
+        },
+        Matchup {
+            name: "single-raised pot: HJ opens, BB calls",
+            pot_type: 0,
+            group: 1,
+            oop: side("BB", false, &column(doc, "vs-open-BB-vs-HJ", 1)?),
+            ip: side("HJ", true, &hj_open),
+            pot: 2.0 * hj_size + 0.5,
+            stack: stack - hj_size,
+        },
+        Matchup {
+            name: "3-bet pot: UTG opens, BTN 3-bets, UTG calls",
+            pot_type: 1,
+            group: 1,
+            oop: side(
+                "UTG",
+                false,
+                &product(&utg_open, &column(doc, "vs-3bet-UTG-vs-BTN", 1)?),
+            ),
+            ip: side("BTN", true, &column(doc, "vs-open-BTN-vs-UTG", 2)?),
+            pot: 2.0 * btn_3bet + 1.5,
+            stack: stack - btn_3bet,
+        },
+        Matchup {
+            name: "3-bet pot: UTG opens, BB 3-bets, UTG calls",
+            pot_type: 1,
+            group: 1,
+            oop: side("BB", true, &column(doc, "vs-open-BB-vs-UTG", 2)?),
+            ip: side(
+                "UTG",
+                false,
+                &product(&utg_open, &column(doc, "vs-3bet-UTG-vs-BB", 1)?),
+            ),
+            pot: 2.0 * bb_3bet + 0.5,
+            stack: stack - bb_3bet,
         },
     ])
 }
@@ -304,9 +375,15 @@ pub fn run(
     max_iterations: u32,
     memory_gb: f64,
     seed: u64,
+    model: &str,
     out: &str,
 ) -> Result<(), String> {
     let started = Instant::now();
+    let v3 = match model {
+        "v2" => false,
+        "v3" => true,
+        _ => return Err(format!("unknown --model {model} (v2 or v3)")),
+    };
     // Provenance describes the code as it is when the run starts (a long run must not pick up
     // edits made while it was solving).
     let solver =
@@ -314,7 +391,8 @@ pub fn run(
     let mut prov = provenance(
         Source::SolverApprox,
         &format!(
-            "solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --raises {raises} --seed {seed}"
+            "solver-cli calibrate-eqr --charts {charts_path} --flops {flops} --raises {raises} --seed {seed}{}",
+            if v3 { " --model v3" } else { "" }
         ),
         solver,
         "Equity-realization factors measured from postflop solves (one bet size per street, no \
@@ -325,7 +403,10 @@ pub fn run(
     prov["seed"] = json!(seed);
     let text = std::fs::read_to_string(charts_path).map_err(|e| format!("{charts_path}: {e}"))?;
     let doc: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let matchups = matchups(&doc)?;
+    let mut matchups = matchups(&doc)?;
+    if v3 {
+        matchups.extend(early_matchups(&doc)?);
+    }
     let boards = flop_sample(flops, seed);
     let jobs: Vec<(usize, usize)> = (0..matchups.len())
         .flat_map(|m| (0..boards.len()).map(move |b| (m, b)))
@@ -372,7 +453,7 @@ pub fn run(
     });
 
     // Collect each role's per-flop sums in a fixed order (deterministic).
-    let mut per_flop: [[[Vec<Sums>; 2]; 2]; 2] = Default::default();
+    let mut per_flop: [[[[Vec<Sums>; 2]; 2]; 2]; 2] = Default::default();
     let mut solves = Vec::new();
     let mut worst_pot_check: f64 = 0.0;
     for (&(m, b), r) in jobs.iter().zip(results) {
@@ -383,7 +464,7 @@ pub fn run(
             .into_iter()
             .enumerate()
         {
-            per_flop[mu.pot_type][p][usize::from(side.aggressor)].push(sums);
+            per_flop[mu.group][mu.pot_type][p][usize::from(side.aggressor)].push(sums);
         }
         worst_pot_check = worst_pot_check.max(r.pot_check);
         solves.push(json!({
@@ -395,41 +476,58 @@ pub fn run(
 
     // Factors per class with jackknife standard errors over flops; classes with no data fall
     // back to the role average.
-    let mut factors: ClassFactors = [[[[1.0; NUM_CLASSES]; 2]; 2]; 2];
+    let mut factors: [ClassFactors; 2] = [[[[[1.0; NUM_CLASSES]; 2]; 2]; 2]; 2];
     let mut roles = Vec::new();
     let round = |x: f64| (x * 1e4).round() / 1e4;
-    for pot in 0..2 {
-        for ip in 0..2 {
-            for aggr in 0..2 {
-                let flops_data = &per_flop[pot][ip][aggr];
-                if flops_data.is_empty() {
-                    return Err(format!(
-                        "no data for role pot {pot} ip {ip} aggressor {aggr}"
-                    ));
-                }
-                let mean = jackknife(flops_data, |s| (s.chart_share, s.chart_equity));
-                let mut fallback = Vec::new();
-                let mut errors = Vec::with_capacity(NUM_CLASSES);
-                for (c, factor) in factors[pot][ip][aggr].iter_mut().enumerate() {
-                    let (f, se) = jackknife(flops_data, |s| (s.share[c], s.equity[c]));
-                    if f.is_finite() {
-                        *factor = f;
-                        errors.push(round(se));
-                    } else {
-                        fallback.push(HandClass::from_index(c).to_string());
-                        *factor = mean.0;
-                        errors.push(round(mean.1));
+    for group in 0..if v3 { 2 } else { 1 } {
+        for pot in 0..2 {
+            for ip in 0..2 {
+                for aggr in 0..2 {
+                    let flops_data = &per_flop[group][pot][ip][aggr];
+                    let pot_name = ["single-raised", "3-bet"][pot];
+                    if flops_data.is_empty() {
+                        if group == 0 {
+                            return Err(format!(
+                                "no data for role pot {pot} ip {ip} aggressor {aggr}"
+                            ));
+                        }
+                        // Not measured against early openers: reuse the late-opener factors (D-085).
+                        factors[1][pot][ip][aggr] = factors[0][pot][ip][aggr];
+                        roles.push(json!({
+                        "openers": GROUPS[group],
+                        "potType": pot_name, "inPosition": ip == 1, "aggressor": aggr == 1,
+                        "reusedFrom": GROUPS[0],
+                        "factors": factors[1][pot][ip][aggr].iter().map(|&x| round(x)).collect::<Vec<_>>(),
+                    }));
+                        continue;
                     }
+                    let mean = jackknife(flops_data, |s| (s.chart_share, s.chart_equity));
+                    let mut fallback = Vec::new();
+                    let mut errors = Vec::with_capacity(NUM_CLASSES);
+                    for (c, factor) in factors[group][pot][ip][aggr].iter_mut().enumerate() {
+                        let (f, se) = jackknife(flops_data, |s| (s.share[c], s.equity[c]));
+                        if f.is_finite() {
+                            *factor = f;
+                            errors.push(round(se));
+                        } else {
+                            fallback.push(HandClass::from_index(c).to_string());
+                            *factor = mean.0;
+                            errors.push(round(mean.1));
+                        }
+                    }
+                    let mut role = json!({
+                        "potType": pot_name, "inPosition": ip == 1, "aggressor": aggr == 1,
+                        "meanFactor": round(mean.0),
+                        "meanFactorStdError": round(mean.1),
+                        "factors": factors[group][pot][ip][aggr].iter().map(|&x| round(x)).collect::<Vec<_>>(),
+                        "stdErrors": errors,
+                        "fallbackClasses": fallback,
+                    });
+                    if v3 {
+                        role["openers"] = json!(GROUPS[group]);
+                    }
+                    roles.push(role);
                 }
-                let pot_name = ["single-raised", "3-bet"][pot];
-                roles.push(json!({
-                    "potType": pot_name, "inPosition": ip == 1, "aggressor": aggr == 1,
-                    "meanFactor": round(mean.0),
-                    "meanFactorStdError": round(mean.1),
-                    "factors": factors[pot][ip][aggr].iter().map(|&x| round(x)).collect::<Vec<_>>(),
-                    "stdErrors": errors,
-                    "fallbackClasses": fallback,
-                }));
             }
         }
     }
@@ -437,7 +535,8 @@ pub fn run(
         "provenance": prov,
         "input": { "charts": charts_path, "chartsCommit": doc["provenance"]["gitCommit"], "chartsModel": doc["provenance"]["model"]["name"] },
         "classes": HandClass::all().map(|c| c.to_string()).collect::<Vec<_>>(),
-        "index": "[potType][inPosition][aggressor][class]",
+        "index": if v3 { "[openers][potType][inPosition][aggressor][class]" } else { "[potType][inPosition][aggressor][class]" },
+        "model": if v3 { "eqr-v3" } else { "eqr-v2" },
         "probeWeight": PROBE,
         "tree": { "flop": "33% pot", "turn": "66% pot", "river": "75% pot", "raisePctPot": RAISE, "maxRaisesPerStreet": raises, "allInThreshold": 0.67 },
         "matchups": matchups.iter().map(|m| json!({ "name": m.name, "potBb": m.pot, "stackBb": m.stack,
@@ -489,12 +588,20 @@ fn jackknife(flops: &[Sums], part: impl Fn(&Sums) -> (f64, f64)) -> (f64, f64) {
     (n / d, var.sqrt())
 }
 
+/// Factors read from a calibration file: the late-opener (v2: only) table and, for v3 files,
+/// the early-opener table.
+pub type LoadedFactors = (ClassFactors, Option<ClassFactors>, Value);
+
 /// Read the factors from a calibration file.
-pub fn load_factors(path: &str) -> Result<(ClassFactors, Value), String> {
+pub fn load_factors(path: &str) -> Result<LoadedFactors, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let v: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let mut f: ClassFactors = [[[[1.0; NUM_CLASSES]; 2]; 2]; 2];
+    let mut tables: [ClassFactors; 2] = [[[[[1.0; NUM_CLASSES]; 2]; 2]; 2]; 2];
+    let mut has_early = false;
     for role in v["roles"].as_array().ok_or("no roles")? {
+        let group = usize::from(role["openers"] == "early");
+        has_early |= group == 1;
+        let f = &mut tables[group];
         let pot = usize::from(role["potType"] == "3-bet");
         let ip = usize::from(role["inPosition"] == true);
         let aggr = usize::from(role["aggressor"] == true);
@@ -506,7 +613,8 @@ pub fn load_factors(path: &str) -> Result<(ClassFactors, Value), String> {
             f[pot][ip][aggr][c] = x.as_f64().ok_or("bad factor")?;
         }
     }
-    Ok((f, v))
+    let [late, early] = tables;
+    Ok((late, has_early.then_some(early), v))
 }
 
 #[cfg(test)]

@@ -459,18 +459,43 @@ pub fn cash_family(
     // EQR v2 (factors measured from postflop solves, read from a file) or v1 (authored).
     let (eqr, model_info) = match eqr_file {
         Some(path) => {
-            let (factors, doc) = crate::calibrate_eqr::load_factors(path)?;
+            let (factors, early, doc) = crate::calibrate_eqr::load_factors(path)?;
+            let v3 = early.is_some();
+            let reused: Vec<Value> = doc["roles"]
+                .as_array()
+                .map(|roles| {
+                    roles
+                        .iter()
+                        .filter(|r| r.get("reusedFrom").is_some())
+                        .map(|r| json!({ "potType": r["potType"], "inPosition": r["inPosition"], "aggressor": r["aggressor"] }))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let mut extrapolations = String::from(
+                "4-bet+ pots use the 3-bet factors; multiway flops use single-raised factors with 'in position' = last to act",
+            );
+            if v3 {
+                extrapolations.push_str("; flops with a UTG or HJ player use early-opener factors, and roles not measured against early openers reuse the late-opener factors (see earlyRolesReused)");
+            }
             let info = json!({
-                "name": "eqr-v2",
+                "name": if v3 { "eqr-v3" } else { "eqr-v2" },
                 "source": "measured from OpenRange postflop solves (solver-cli calibrate-eqr)",
                 "file": path,
                 "fileCommit": doc["provenance"]["gitCommit"],
                 "fileDirty": doc["provenance"]["gitDirty"],
                 "flops": doc["flops"].as_array().map(|a| a.len()),
                 "inputCharts": doc["input"],
-                "extrapolations": "4-bet+ pots use the 3-bet factors; multiway flops use single-raised factors with 'in position' = last to act",
+                "extrapolations": extrapolations,
             });
-            (EqrModel::with_class_factors(factors), info)
+            let mut info = info;
+            if v3 {
+                info["earlyRolesReused"] = json!(reused);
+            }
+            let model = match early {
+                Some(e) => EqrModel::with_opener_groups(factors, e),
+                None => EqrModel::with_class_factors(factors),
+            };
+            (model, info)
         }
         None => {
             let m = EqrModel::v1();

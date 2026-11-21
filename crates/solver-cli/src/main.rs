@@ -26,11 +26,12 @@ commands:
   gen-goldens [--out <file>]   regression goldens (default: data/goldens/river.json)
   gen-charts pushfold-hu [--stacks 2,3,...]
   gen-charts pushfold-multi --players N [--stacks 5,10] [--iterations N] [--samples N]
-  gen-charts cash [--stacks 100] [--iterations N] [--samples N] [--eqr data/eqr/eqr-v2.json]
+  gen-charts cash [--stacks 100] [--iterations N] [--samples N] [--eqr data/eqr/eqr-v2.json] [--out-dir data/charts]
                                preflop chart files in data/charts/
   calibrate-eqr [--charts <cash chart file>] [--flops 60] [--raises 0] [--target 1]
                                measure equity realization from postflop solves
-                               (default output: data/eqr/eqr-v2.json)
+                               (default output: data/eqr/eqr-v2.json; with --model v3,
+                               also lines against UTG/HJ openers, data/eqr/eqr-v3.json)
   report [--charts <cash chart file>] [--flops 48] [--raises 0] [--target 1]
                                aggregated flop report: BTN vs BB single-raised pot
                                (default output: data/reports/flop-srp-btn-bb.json)
@@ -82,7 +83,12 @@ fn main() -> ExitCode {
                 number(&args, "--max-iterations", 400u32)?,
                 number(&args, "--memory-gb", 24.0f64)?,
                 number(&args, "--seed", 2026u64)?,
-                opt(&args, "--out").unwrap_or(calibrate_eqr::OUT),
+                opt(&args, "--model").unwrap_or("v2"),
+                opt(&args, "--out").unwrap_or(if opt(&args, "--model") == Some("v3") {
+                    calibrate_eqr::OUT_V3
+                } else {
+                    calibrate_eqr::OUT
+                }),
             )
         })(),
         Some("report") => (|| {
@@ -153,7 +159,7 @@ fn gen_charts_cmd(args: &[String]) -> Result<(), String> {
             )
         }
         Some("cash") => gen_charts::cash_family(
-            "data/charts",
+            opt(args, "--out-dir").unwrap_or("data/charts"),
             &list(args, "--stacks", &[100.0])?,
             number(args, "--iterations", 2_000_000u64)?,
             number(args, "--samples", 2_000_000u64)?,

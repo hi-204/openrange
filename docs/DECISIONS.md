@@ -955,3 +955,37 @@ was reported done, and was found while writing the roadmap.
 **Decision:** they move to docs/NEXT.md, items 1 (every CPU core) and 7 (16-bit storage),
 first in the suggested order. Until then KNOWN_LIMITS already states the effect
 (single-threaded, 32-bit storage, slow flop solves).
+
+### D-085 · EQR v3: realization measured against early openers too (protocol fixed before running)
+**Context:** the expansion prompt asks to recalibrate the cash model so the 100 bb charts land
+in their sanity bands, without loosening the bands. EQR v2 (D-048–D-050) left UTG, HJ and CO
+1.4–1.9 points below their bands. D-050 named two extrapolations as the likely cause: the big
+blind's factors are measured against a button range and reused against every opener, and
+3-bet pots against early openers reuse factors measured in BB-vs-BTN and BTN-vs-CO 3-bet pots.
+**Method (new model, not a tuning of v2):**
+- **Opener groups.** Heads-up flops where either player is UTG or HJ use "early opener"
+  factors; all others use "late opener" factors (in a heads-up raised pot under this tree, a UTG
+  or HJ player is always the opener or calls an earlier opener, so this is exactly "the opener
+  is UTG or HJ"). Multiway flops use the single-raised table of the same group (the same
+  extrapolation as v2).
+- **Lines.** The four v2 lines (late openers) plus four new lines from the same chart file:
+  single-raised UTG opens / BB calls and HJ opens / BB calls (pooled into the same roles), 3-bet
+  UTG opens / BTN 3-bets / UTG calls, and 3-bet UTG opens / BB 3-bets / UTG calls.
+- **Roles not measured for early openers** (single-raised: the opener out of position against a
+  cold caller in position, and that cold caller) reuse the late-opener factors and are flagged
+  in the file. The tree's cold-calling ranges against early opens are nearly empty, which made
+  the comparable v2 role unstable (D-050).
+- **Unchanged from v2:** 60 seeded flops, the one-size tree without raises (D-049), probe hands,
+  ≤ 1% of the pot per solve, factors as Σ EV share ÷ Σ equity per class and role, measurement at
+  100 bb only.
+**Rounds and stopping rule (fixed now, before any v3 result exists):** round 1 calibrates from
+the committed v2 100 bb chart; rounds 2 and 3 each calibrate from the previous round's 100 bb
+chart. Round 3's factors are final whatever they show: no further rounds and no tuning toward
+the bands. The final factors generate all four depths.
+**Grading rule (fixed now):** a cash chart file is graded only if it has sanity bands and all of
+them pass. Files without bands (20/40/60 bb, whose depth isn't calibrated) stay practice only,
+and the trainer says why. If 100 bb still misses a band, it stays practice only, with the
+measured number and the band in the message.
+**Compute:** eight lines × 60 flops per round, about 2–3 hours per round on this machine with a
+16 GB memory allowance (leaving room for other work), so about 8–10 hours in total. It runs in
+the background while the expansion continues; the outcome is recorded as D-086.

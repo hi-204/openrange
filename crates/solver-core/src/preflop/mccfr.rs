@@ -16,7 +16,7 @@
 #![allow(clippy::needless_range_loop)]
 
 use super::pairs::PairEquity;
-use super::tree::{PNode, PreflopTree, Terminal, postflop_rank};
+use super::tree::{PNode, PreflopTree, Terminal, postflop_rank, seat_name};
 use crate::cards::Combo;
 use crate::eval::{Evaluator, HandKey, Strength};
 use crate::hands::{HandClass, NUM_CLASSES};
@@ -37,6 +37,9 @@ pub struct EqrModel {
     /// EQR v2: hand-dependent factors measured from OpenRange's own postflop solves, replacing
     /// `heads_up` and the multiway scalars when present (see [`ClassFactors`]).
     pub class_factors: Option<Box<ClassFactors>>,
+    /// EQR v3: factors for pots whose opener is UTG or HJ (D-085). When present, flops with a
+    /// UTG or HJ player use these and `class_factors` covers every other pot.
+    pub early_factors: Option<Box<ClassFactors>>,
 }
 
 /// Realization factor per hand class, indexed
@@ -63,6 +66,7 @@ impl EqrModel {
             multi_other: 0.88,
             multi_aggressor: 0.04,
             class_factors: None,
+            early_factors: None,
         }
     }
 
@@ -75,7 +79,10 @@ impl EqrModel {
             }
         }
         m.multi_other *= scale;
-        if let Some(cf) = m.class_factors.as_mut() {
+        for cf in [m.class_factors.as_mut(), m.early_factors.as_mut()]
+            .into_iter()
+            .flatten()
+        {
             for pot in cf.iter_mut() {
                 for aggr in pot[0].iter_mut() {
                     for r in aggr.iter_mut() {
@@ -94,6 +101,24 @@ impl EqrModel {
             ..EqrModel::v1()
         }
     }
+
+    /// EQR v3: separate factors for pots whose opener is UTG or HJ (D-085).
+    pub fn with_opener_groups(late: ClassFactors, early: ClassFactors) -> EqrModel {
+        EqrModel {
+            class_factors: Some(Box::new(late)),
+            early_factors: Some(Box::new(early)),
+            ..EqrModel::v1()
+        }
+    }
+}
+
+/// True if a flop between these seats belongs to the "early opener" group of EQR v3: some
+/// player is UTG or HJ. In a raised pot of this tree such a player is always the opener or
+/// calls an earlier opener, so this is the same as "the opener is UTG or HJ" (D-085).
+pub fn early_opener_pot(players: usize, seats: &[usize]) -> bool {
+    seats
+        .iter()
+        .any(|&s| matches!(seat_name(players, s), "UTG" | "HJ"))
 }
 
 pub struct Engine<'a> {
@@ -304,6 +329,10 @@ impl<'a> Engine<'a> {
         let m = self.eqr.as_ref().expect("checked in new");
         let n = self.tree.players;
         let seats: Vec<usize> = (0..n).filter(|&i| players & (1 << i) != 0).collect();
+        let table = match &m.early_factors {
+            Some(early) if early_opener_pot(n, &seats) => Some(early),
+            _ => m.class_factors.as_ref(),
+        };
         if seats.len() == 2 {
             let (a, b) = (seats[0], seats[1]);
             let e = eq.equity(deal.combos[a], deal.combos[b]) as f64;
@@ -312,7 +341,7 @@ impl<'a> Engine<'a> {
                 let other = if s == a { b } else { a };
                 let ip = usize::from(postflop_rank(n, s) > postflop_rank(n, other));
                 let aggr = usize::from(s == aggressor);
-                match &m.class_factors {
+                match table {
                     Some(cf) => cf[lvl.min(1)][ip][aggr][deal.classes[s]],
                     None => m.heads_up[lvl][ip][aggr],
                 }
@@ -341,7 +370,7 @@ impl<'a> Engine<'a> {
                     p *= eq.equity(deal.combos[s], deal.combos[o]) as f64;
                 }
             }
-            let r = match &m.class_factors {
+            let r = match table {
                 // Single-raised table, "in position" = last to act (extrapolation, D-048).
                 Some(cf) => {
                     cf[0][usize::from(s == last)][usize::from(s == aggressor)][deal.classes[s]]
@@ -590,6 +619,17 @@ impl<'a> Engine<'a> {
 mod tests {
     use super::super::tree::push_fold;
     use super::*;
+
+    #[test]
+    fn early_opener_pots_are_the_ones_with_utg_or_hj() {
+        // 6-max seats: 0 UTG, 1 HJ, 2 CO, 3 BTN, 4 SB, 5 BB.
+        assert!(early_opener_pot(6, &[0, 5])); // UTG vs BB
+        assert!(early_opener_pot(6, &[1, 3])); // HJ vs BTN
+        assert!(!early_opener_pot(6, &[2, 3])); // CO vs BTN
+        assert!(!early_opener_pot(6, &[3, 4, 5])); // BTN, SB, BB
+        assert!(early_opener_pot(6, &[0, 3, 5])); // multiway with UTG
+        assert!(!early_opener_pot(2, &[0, 1])); // heads-up has no UTG or HJ
+    }
 
     #[test]
     fn deterministic_for_a_seed() {
