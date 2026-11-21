@@ -5,6 +5,9 @@
 
 import type { Category, Unit } from '../grading';
 
+/** A sanity band the chart file misses (from its `sanityBands`): why it's practice only. */
+export type OutOfBand = { seat: string; measured: number; low: number; high: number };
+
 /** "call" / "fold" verdict of a simple equity-vs-price comparison, or "even" when too close. */
 export type Verdict = 'continue' | 'fold' | 'even';
 
@@ -56,7 +59,7 @@ export type Claim =
   /** The reference is sampled: EVs carry standard errors. */
   | { kind: 'sampled'; largestStdError: number }
   /** Practice spot: shown for reference, not graded. */
-  | { kind: 'practice'; reason: 'outOfBand' }
+  | { kind: 'practice'; reason: 'outOfBand'; bands?: OutOfBand[] }
   /** Postflop: how accurately the reference was solved. */
   | { kind: 'accuracy'; exploitabilityPct: number }
   /** Postflop: the hero reached this node with an action the solution doesn't take with this hand. */

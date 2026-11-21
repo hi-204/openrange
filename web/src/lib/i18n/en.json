@@ -265,6 +265,7 @@
   "trainer.difficulty.medium": "Medium",
   "trainer.difficulty.hard": "Close or mixed",
   "trainer.filters.none": "No spots match these filters. Widen them to keep drilling.",
+  "trainer.practice.band": "{seat} opens {measured} of hands in this chart set; the sanity check expects {low} to {high}.",
   "trainer.filters.practiceNote": "Cash charts are practice only: they're outside their sanity checks.",
   "trainer.scenario.first-in": "First in",
   "trainer.scenario.vs-all-in": "Facing an all-in",

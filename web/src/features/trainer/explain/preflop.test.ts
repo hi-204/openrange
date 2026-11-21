@@ -83,6 +83,26 @@ function rng(seed: number) {
   };
 }
 
+describe('practice reasons on the committed cash charts', () => {
+  type Band = { seat: string; low: number; high: number; measured: number; inBand: boolean };
+  const cash = JSON.parse(readFileSync(root('data/charts/cash-6max-100bb.json'), 'utf8')) as { charts: Chart[]; sanityBands?: Band[] };
+  const missed = (cash.sanityBands ?? []).filter((b) => !b.inBand);
+
+  it('quote exactly the bands the file misses, and the checker catches a band quoted wrongly', () => {
+    const chart = cash.charts[0]!;
+    const input: DecisionInput = { ev: chart.ev[0]!, strategy: chart.strategy[0]!, chosen: 0, unit: 'bb' };
+    const claims = preflopClaims({ actions: chart.actions, ev: input.ev, evStdError: null, strategy: input.strategy, chosen: 0, grade: null, outOfBand: missed });
+    const practice = claims.find((c) => c.kind === 'practice');
+    expect(practice).toBeDefined();
+    expect(practice && practice.kind === 'practice' ? practice.bands ?? [] : []).toEqual(missed);
+    expect(checkClaims({ actions: chart.actions, input }, claims, false)).toEqual([]);
+    if (missed.length) {
+      const inside = claims.map((c) => (c.kind === 'practice' ? { ...c, bands: [{ ...missed[0]!, measured: (missed[0]!.low + missed[0]!.high) / 2 }] } : c));
+      expect(checkClaims({ actions: chart.actions, input }, inside, false)).not.toEqual([]);
+    }
+  });
+});
+
 describe('preflop explanations on synthetic decisions', () => {
   it('stay consistent for random EVs, mixes and standard errors', () => {
     const r = rng(2026);

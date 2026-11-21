@@ -4,7 +4,10 @@
 import { pct } from '../../../lib/format';
 import { t, type MessageKey } from '../../../lib/i18n';
 import { MIX_THRESHOLD, type Unit } from '../grading';
-import type { Claim } from './claims';
+import type { Claim, OutOfBand } from './claims';
+
+/** "UTG opens 12.6% of hands in this chart set; the sanity check expects 14 to 18%." */
+export const bandText = (b: OutOfBand) => t('trainer.practice.band', { seat: b.seat, measured: pct(b.measured, 1), low: pct(b.low, 0), high: pct(b.high, 0) });
 
 export const fmtBb = (x: number) => t('trainer.bb', { x: x.toFixed(2) });
 export const fmtLoss = (x: number, unit: Unit) => (unit === 'bb' ? fmtBb(x) : t('trainer.pctPot', { x: x.toFixed(1) }));
@@ -48,7 +51,7 @@ export function renderClaim(c: Claim): string[] {
     case 'sampled':
       return [t('trainer.sampled', { se: c.largestStdError.toFixed(2) })];
     case 'practice':
-      return [t('trainer.practice')];
+      return [t('trainer.practice'), ...(c.bands ?? []).map(bandText)];
     case 'callMath': {
       const key: MessageKey = c.verdict === 'continue' ? 'trainer.callMath.continue' : c.verdict === 'fold' ? 'trainer.callMath.fold' : 'trainer.callMath.even';
       const out = [

@@ -117,7 +117,7 @@ equity, combos, board textures and hand reading.
 **How answers are graded.**
 - **By EV loss:** how much your choice gives up compared with the best play, in big blinds
   preflop and % of the pot postflop. Categories: Best, Acceptable, Inaccuracy, Mistake,
-  Blunder (the thresholds are in Stats → Review).
+  Blunder (the thresholds are in Settings → Training).
 - **Mixed strategies:** if the solution plays your action at least 10% of the time, it counts
   as Best.
 - **Approximate references:** they carry sampling error, and differences within it aren't held
@@ -201,8 +201,7 @@ payouts, ICM.
 - **Leaks:** a group is only called a leak when its interval clearly separates from the rest of
   your answers.
 
-**Your data** stays in this browser on this computer. Under Settings → Data (or Stats →
-Review):
+**Your data** stays in this browser on this computer. Under Settings → Data:
 - **Export as JSON:** a backup of your answers, review schedule, lesson progress and settings;
 - **Import a JSON export:** restore it, here or on another computer;
 - **Delete all trainer data:** start over.

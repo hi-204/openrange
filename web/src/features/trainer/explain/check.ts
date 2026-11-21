@@ -54,6 +54,8 @@ export function checkClaims(raw: RawDecision, claims: Claim[], graded: boolean):
         break;
       case 'practice':
         if (graded) bad.push('practice note on a graded spot');
+        // A quoted band must really be missed, or the reason would contradict the file.
+        for (const b of c.bands ?? []) if (b.measured >= b.low && b.measured <= b.high) bad.push(`band ${b.seat} quoted as missed but is inside it`);
         break;
       case 'callMath': {
         const [fold, call] = [ev[0], ev[1]];

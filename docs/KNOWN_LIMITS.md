@@ -82,15 +82,15 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **Before the river, the pot-odds sentence uses only your current equity.** It ignores the
   betting still to come; the grade always uses the solver's EVs.
 - **Category thresholds are conventions** (D-052), not facts about poker. They can be changed
-  on the Review tab.
+  under Settings → Training.
 - **Scheduling is simple SM-2 per spot family** (D-054). The daily plan on Home (D-061) is
   a fixed recipe (next lesson, due review, one drill), not a personalised study programme.
 - **Stats need at least 30 graded answers per group** before showing numbers. A leak is only
   reported when the intervals separate (D-055).
 - **Drill answers don't link back to lessons.** Lessons and the daily plan link to drills,
   but the coaching card after an answer doesn't name a lesson.
-- **Trainer data stays in this browser.** Clearing site data deletes it. Use Export on the
-  Review tab to keep a copy.
+- **Trainer data stays in this browser.** Clearing site data deletes it. Use Export under
+  Settings → Data to keep a copy.
 
 ## Interface
 

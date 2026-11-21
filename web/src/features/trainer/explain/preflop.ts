@@ -1,7 +1,7 @@
 // Claims for preflop decisions (D-053).
 
 import type { Grade } from '../grading';
-import { verdictOf, type Claim } from './claims';
+import { verdictOf, type Claim, type OutOfBand } from './claims';
 
 /** Exact matchup rows for the hero's combos (solver-wasm `preflopMatchup`). */
 export type MatchupRow = { combo: string; share: number; equity: number | null };
@@ -15,6 +15,8 @@ export type PreflopContext = {
   grade: Grade | null;
   /** Heads-up push/fold (chip EV, blinds 0.5/1, no ante): who decides and the exact matchup. */
   headsUp?: { stack: number; role: 'shove' | 'call'; matchup: MatchupRow[] };
+  /** For practice charts: the sanity bands their file misses. */
+  outOfBand?: OutOfBand[];
 };
 
 /**
@@ -28,7 +30,7 @@ const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 export function preflopClaims(ctx: PreflopContext): Claim[] {
   const claims: Claim[] = [];
   const { actions, ev, evStdError: se, strategy, grade } = ctx;
-  if (!grade) claims.push({ kind: 'practice', reason: 'outOfBand' });
+  if (!grade) claims.push({ kind: 'practice', reason: 'outOfBand', ...(ctx.outOfBand?.length ? { bands: ctx.outOfBand } : {}) });
   else
     claims.push({
       kind: 'verdict',
