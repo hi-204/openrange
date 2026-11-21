@@ -33,7 +33,19 @@ export type TrainerSettings = { thresholds: Record<Unit, Thresholds> | null };
 
 export type LessonProgress = { id: string; completedAt: number; lastScore: number; bestScore: number; questions: number; attempts: number };
 
-export type MathAttempt = { id?: number; at: number; drill: string; correct: boolean; given: string; answer: string };
+export type MathAttempt = {
+  id?: number;
+  at: number;
+  drill: string;
+  correct: boolean;
+  given: string;
+  answer: string;
+  /** Math Lab (D-087): each part right or wrong. */
+  parts?: boolean[];
+  /** Equity estimates (Math Lab): the learner's estimate and the exact equity, as shares. */
+  estimate?: number;
+  exact?: number;
+};
 
 export type PlacementResult = { at: number; perLevel: { level: number; correct: number; total: number }[]; startLevel: number; chosen: boolean };
 

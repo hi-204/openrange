@@ -10,6 +10,7 @@ const SCREENS: [string, string, string | null][] = [
   ['lesson', '/#/learn/2.3', 'lesson'],
   ['train', '/#/train', 'preflop-question'],
   ['math', '/#/train/math', 'math-problem'],
+  ['lab', '/#/lab/potodds', 'lab-topic'],
   ['ranges', '/#/train/ranges', 'range-task'],
   ['lesson-games', '/#/learn/6.4', 'icm-result'],
   ['stats', '/#/stats', 'course-progress'],

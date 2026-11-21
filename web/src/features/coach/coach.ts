@@ -188,4 +188,21 @@ export function mathCoach(correct: boolean, drill: string, given: string, answer
   };
 }
 
+/** Coaching card for a multi-part Math Lab problem (D-087): every part graded, the worked solution as the why. */
+export function labCoach(right: number, total: number, drill: string, steps: string[], answers: string[]): CoachCard {
+  const all = right === total;
+  return {
+    tone: all ? 'best' : right > 0 ? 'small' : 'mistake',
+    category: all ? 'best' : right > 0 ? 'inaccuracy' : 'mistake',
+    verdict: all ? t('lab.verdict.all') : right > 0 ? t('lab.verdict.some', { right, total }) : t('lab.verdict.none'),
+    why: steps,
+    keyIdea: t(`coach.lab.idea.${drill}` as MessageKey),
+    lookFor: t(`coach.lab.look.${drill}` as MessageKey),
+    recommended: answers,
+    learnMore: { topic: t(`math.drill.lab.${drill}` as MessageKey), href: `#/learn/${LAB_LESSON[drill] ?? '2.3'}` },
+  };
+}
+
+const LAB_LESSON: Record<string, string> = { potdecision: '2.3', rule24: '2.2', estimate: '2.4', ev: '2.5', implied: '2.6', blockers: '2.8', spr: '4.5' };
+
 const MATH_LESSON: Record<string, string> = { potodds: '2.3', outs: '2.1', equity: '2.4', mdf: '5.2', bluff: '5.3', combos: '2.7', texture: '4.2', reading: '2.7' };

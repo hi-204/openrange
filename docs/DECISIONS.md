@@ -989,3 +989,35 @@ measured number and the band in the message.
 **Compute:** eight lines × 60 flops per round, about 2–3 hours per round on this machine with a
 16 GB memory allowance (leaving room for other work), so about 8–10 hours in total. It runs in
 the background while the expansion continues; the outcome is recorded as D-086.
+
+### D-087 · Math Lab: one screen for decision math, multi-part drills checked against the engine
+**Context:** Phase 1 of the expansion asks for math tools and graded drills with coaching after
+every answer, every number computed and every answer key tested against the engine.
+**Decision:**
+- **A new top-level page, Math Lab (`#/lab/<topic>`).** Nine topics: pot odds, outs and the rule
+  of 2 and 4, equity estimation, EV, implied odds, MDF and bluff share, blockers, SPR, bet
+  sizing. Each shows the formula, a plain-English explanation, a tool (the lesson widgets where
+  one exists, plus a new implied-odds tool) and a drill. The quick math drills stay under
+  Train → Math, unchanged.
+- **Multi-part problems** (`features/lab/labDrills.ts`): pot odds grades the price and the
+  call/fold decision; rule of 2 and 4 grades the outs and the estimate, then shows exact equity,
+  the error, tied and tainted outs (cards that improve your hand category but still lose); EV
+  grades the sum and bet-or-check; implied odds grades the price and the break-even extra
+  winnings; blockers grade the value combos left and the value share; SPR grades the ratio, the
+  all-in price and the decision. Decisions within two points of break-even (0.1 bb for EV)
+  accept either answer.
+- **Inputs are random, outputs computed.** Pots, bets and fold/win shares are random problem
+  inputs, not strategy claims. Opponent ranges are stated templates ("top pair or better",
+  "any pair or better") built from the board's ranks. Equities are exact engine enumerations.
+- **Equity estimates are scored by absolute error** (within five points counts as right) and
+  stored with the exact value. The calibration panel shows the average error and the bias once
+  there are 20 estimates, and only calls a bias "clear" beyond two standard errors.
+- **Solved-spot panels** (the solver page's river example, solved in its own worker): MDF and
+  B ÷ (P + 2B) next to the solution's defence (share of the range that calls or raises) and bluff
+  share (share of the betting range with under 50% equity against the hands that continue), for
+  each size and both players; and a sizing trainer that grades an action by its EV loss for one
+  hand, with the trainer's postflop thresholds.
+- **Tests** recompute every answer key independently (engine equity and outs, hand categories,
+  combos counted from the deck, defence from raw strategies, bluff share from hand strengths).
+- **Small fix to existing behaviour:** the quick "hand reading" drill labelled top pair with an
+  ace on board as "KA"; it now says "AK" (the counts were already right).

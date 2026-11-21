@@ -3,6 +3,7 @@ import { pct } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { LESSONS } from '../lessons/content';
 import { ReviewPage } from '../trainer/ReviewPage';
+import { LAB_DRILLS } from '../lab/labDrills';
 import { MATH_DRILLS } from '../trainer/math/drills';
 import { MIN_SAMPLE, wilson } from '../trainer/stats';
 import { trainerStore, type LessonProgress, type MathAttempt } from '../trainer/store';
@@ -32,7 +33,7 @@ export function StatsPage() {
             <p className="text-sm text-ink-muted">{t('stats.mathNone')}</p>
           ) : (
             <ul className="space-y-1 text-sm">
-              {MATH_DRILLS.map((d) => {
+              {[...MATH_DRILLS.map((d) => d.id as string), ...LAB_DRILLS.map((d) => `lab.${d}`)].map((id) => ({ id })).map((d) => {
                 const mine = math.filter((m) => m.drill === d.id);
                 if (!mine.length) return null;
                 const right = mine.filter((m) => m.correct).length;

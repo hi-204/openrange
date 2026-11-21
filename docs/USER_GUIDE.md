@@ -14,6 +14,7 @@ workbench, and play against bots. See [README.md](../README.md) for how to insta
 - [Getting around](#getting-around)
 - [Course](#course-learn-in-the-menu)
 - [Trainer](#trainer-train-in-the-menu)
+- [Math Lab](#math-lab-math-lab-in-the-menu)
 - [Play](#play-play-in-the-menu)
 - [Solve](#solve-solve-in-the-menu)
 - [Stats and your data](#stats-and-your-data)
@@ -128,6 +129,28 @@ equity, combos, board textures and hand reading.
 
 **Spaced repetition.** Spots you get wrong come back after about 10 minutes; spots you get
 right come back after 1, then 6 days, then longer.
+
+## Math Lab (Math Lab in the menu)
+
+Math Lab is one place for the arithmetic behind decisions. Pick a topic: pot
+odds, outs and the rule of 2 and 4, equity estimation, expected value, implied odds, MDF and
+bluff share, blockers, SPR or bet sizing. Each topic shows:
+
+- **the formula** and **what it means in plain English**;
+- **a tool** to move the numbers and watch the result;
+- **a drill**: "Start the drill" gives problems in several parts. Fill in every part and press
+  Check; each part is marked right or wrong, and the worked solution explains every step.
+  Close decisions (within two points of break-even) accept either answer.
+
+Extras:
+- **Equity estimation** tracks your calibration: after 20 estimates it shows your average error
+  and whether you tend to guess high or low.
+- **MDF and bluff share** can be compared with a solved river spot ("Solve the example river
+  spot"): for each bet size, how often the solution defends and bluffs next to the formulas.
+- **Bet sizing** is a trainer on that solved spot: pick an action for your hand and see the EV of
+  every size and how often the solution plays each.
+
+The quick one-question math drills are still under Train → Math.
 
 ## Play (`Play` in the menu)
 

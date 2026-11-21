@@ -71,16 +71,16 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 
 | Item | Status | Notes |
 |---|---|---|
-| Pot-odds trainer | partial | Drill asks for the required equity only. Missing: the decision against an equity estimate, "1 in N" price display, draw variants. |
-| Outs and rule of 2 and 4 | partial | Exact outs against a known hand (ahead / tied / behind) and the rule's estimate exist. Missing: comparing the estimate with exact equity and showing the error as a drill step. |
-| Equity estimation | partial | Band choice only. Missing: numeric estimate scored by absolute error, calibration over time. |
-| EV calculator and decision trees | partial | Lesson widget `EvCalculator` exists. Missing: a tree builder and a drill. |
-| Implied and reverse-implied odds | missing | |
-| MDF and bluff share | partial | Formula drills exist. Missing: comparison with solved river spots. |
-| Combinatorics and blockers | partial | Combo counting exists. Missing: blocker removal drills. |
-| SPR drills | partial | `SprCalculator` widget exists; no drill. |
-| Bet-sizing trainer | partial | `SizingExplorer` widget exists; no graded drill in solved spots. |
-| Math Lab screen | partial | Math drills live under Train → Math; tools are spread across lessons. |
+| Pot-odds trainer | done (Phase 1) | Math Lab: price and call/fold graded separately, "1 in N", draw / no-draw variants, two range templates. |
+| Outs and rule of 2 and 4 | done (Phase 1) | Clean outs, tied and tainted outs, rule estimate vs exact equity with the error. |
+| Equity estimation | done (Phase 1) | Numeric estimate scored by absolute error; calibration panel (bias with a 2-SE rule). |
+| EV calculator and decision trees | done (Phase 1) | EV tool and a drill (fold / call-win / call-lose branches vs checking). |
+| Implied and reverse-implied odds | done (Phase 1) | Adjustable tool and a drill (break-even extra winnings, tainted outs). |
+| MDF and bluff share | done (Phase 1) | Compared with a solved river spot, per size and player. |
+| Combinatorics and blockers | done (Phase 1) | Blocker drill: value combos left and value share. |
+| SPR drills | done (Phase 1) | SPR, all-in price and commit decision. |
+| Bet-sizing trainer | done (Phase 1) | On a solved river spot, graded by EV loss. |
+| Math Lab screen | done (Phase 1) | `#/lab`, nine topics. |
 
 ### Phase 2: deeper training modes
 

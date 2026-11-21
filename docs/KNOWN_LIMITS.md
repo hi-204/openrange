@@ -182,6 +182,21 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **Hand-history positions** follow the seats clockwise from the button. Seats sitting out are
   treated as in the hand if the history lists them.
 
+## Math Lab (expansion Phase 1)
+
+- **Opponent ranges in the drills are simple templates** ("top pair or better", "any pair or
+  better") built from the board's ranks, not solved ranges. They make the arithmetic concrete;
+  real ranges also contain draws and bluffs.
+- **Equity in the pot-odds and SPR drills counts only the cards to come**, as if no more money
+  went in. On the flop that flatters drawing hands; the solution says so.
+- **Implied odds use a known opponent hand** and the river card only; real implied odds depend on
+  whether the opponent can and will pay.
+- **The solved-spot panels use one example river** (the solver page's preset): example ranges
+  and sizes, solved in the browser. Defence and bluff share are measured with the definitions
+  shown on the panel; other spots can differ.
+- **Calibration needs 20 estimates** before showing numbers, and the bias is a simple average
+  over everything you've estimated (no weighting by recency or difficulty).
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it

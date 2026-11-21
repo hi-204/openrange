@@ -56,6 +56,14 @@ const SCREENS: Screen[] = [
       await expect(p.getByTestId('math-answer')).toBeVisible();
     },
   },
+  {
+    name: 'lab',
+    path: '/#/lab/potodds',
+    prepare: async (p) => {
+      await p.getByTestId('lab-start').click();
+      await expect(p.getByTestId('lab-problem')).toBeVisible();
+    },
+  },
   { name: 'stats', path: '/#/stats', prepare: async (p) => void (await expect(p.getByTestId('course-progress')).toBeVisible()) },
   {
     name: 'solve-workbench',

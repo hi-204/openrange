@@ -15,6 +15,7 @@ const PlayPage = lazy(() => import('../features/play/PlayPage').then((m) => ({ d
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const SolvePage = lazy(() => import('../features/solve/SolvePage').then((m) => ({ default: m.SolvePage })));
 const StatsPage = lazy(() => import('../features/stats/StatsPage').then((m) => ({ default: m.StatsPage })));
+const LabPage = lazy(() => import('../features/lab/LabPage').then((m) => ({ default: m.LabPage })));
 const TrainerPage = lazy(() => import('../features/trainer/TrainerPage').then((m) => ({ default: m.TrainerPage })));
 const GlossaryPage = lazy(() => import('../features/lessons/GlossaryPage').then((m) => ({ default: m.GlossaryPage })));
 
@@ -25,6 +26,7 @@ const PAGES: Page[] = [
   { path: '', label: 'nav.home', icon: 'home', page: HomePage, mobile: true },
   { path: 'learn', label: 'nav.learn', icon: 'learn', page: LearnPage, mobile: true },
   { path: 'train', label: 'nav.train', icon: 'train', page: TrainerPage, mobile: true },
+  { path: 'lab', label: 'nav.lab', icon: 'lab', page: LabPage, mobile: false },
   { path: 'play', label: 'nav.play', icon: 'play', page: PlayPage, mobile: false },
   { path: 'solve', label: 'nav.solve', icon: 'solve', page: SolvePage, mobile: true },
   { path: 'stats', label: 'nav.stats', icon: 'stats', page: StatsPage, mobile: true },

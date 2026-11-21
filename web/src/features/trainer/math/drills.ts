@@ -227,7 +227,7 @@ export async function generate(drill: MathDrillId, rnd: () => number, engine: En
         const kicker = top === 'A' ? 'K' : 'A';
         const over = RANK_ORDER[Math.max(0, RANK_ORDER.indexOf(top) - 1)]!;
         // Hands an opponent might bet with here: sets, two pair, top pair with a top kicker, an overpair.
-        const candidates = [...new Set([top + top, mid + mid, low + low, top + mid, top + low, kicker + top, ...(over !== top ? [over + over] : [])])];
+        const candidates = [...new Set([top + top, mid + mid, low + low, top + mid, top + low, top === 'A' ? 'AK' : kicker + top, ...(over !== top ? [over + over] : [])])];
         const [a, b] = shuffle(candidates, rnd) as [string, string];
         const known = [...board, ...hero];
         const left = (h: string) => combosOf(h).filter((c) => !known.some((k) => c.includes(k))).length;
