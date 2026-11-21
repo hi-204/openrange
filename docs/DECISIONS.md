@@ -1021,3 +1021,10 @@ every answer, every number computed and every answer key tested against the engi
   combos counted from the deck, defence from raw strategies, bluff share from hand strengths).
 - **Small fix to existing behaviour:** the quick "hand reading" drill labelled top pair with an
   ace on board as "KA"; it now says "AK" (the counts were already right).
+
+### D-088 · Focus returns to the top of the app after onboarding
+**Context:** the keyboard test (Tab → "Skip to content") started failing after the system Edge
+updated to 158; it fails at the 1.0 commit too, so the browser changed, not the app. The welcome
+dialog unmounts while open, which leaves keyboard focus nowhere: Tab did nothing.
+**Decision:** when onboarding finishes, focus moves to the app's root container (`#app-top`,
+`tabIndex={-1}`, no outline), so the next Tab reaches the skip link. The test is unchanged.

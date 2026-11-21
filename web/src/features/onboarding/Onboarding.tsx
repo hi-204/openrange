@@ -11,8 +11,12 @@ export function Onboarding() {
   const display = useSettings((s) => s.settings.display);
   const [experience, setExperience] = useState<Experience>('new');
   const [interest, setInterest] = useState<AppSettings['interest']>('both');
-  const finish = (skip: boolean) =>
+  const finish = (skip: boolean) => {
     void update((s) => (skip ? { ...s, onboarded: true } : fromOnboarding(s, experience, interest)));
+    // The dialog unmounts while open, which would leave keyboard focus nowhere: start again at
+    // the top of the app, so the next Tab reaches "Skip to content" (D-088).
+    requestAnimationFrame(() => document.getElementById('app-top')?.focus({ preventScroll: true }));
+  };
   const setDisplay = (d: Partial<AppSettings['display']>) => void update((s) => ({ ...s, display: { ...s.display, ...d } }));
 
   return (

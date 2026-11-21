@@ -76,7 +76,7 @@ export function App() {
   const dark = document.documentElement.dataset.theme === 'dark';
 
   return (
-    <div className="min-h-screen bg-canvas text-ink md:grid md:grid-cols-[15rem_1fr]">
+    <div id="app-top" tabIndex={-1} className="min-h-screen bg-canvas text-ink outline-none md:grid md:grid-cols-[15rem_1fr]">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">
         {t('nav.skip')}
       </a>
