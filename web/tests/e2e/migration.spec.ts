@@ -4,13 +4,11 @@ import { expect, test } from '@playwright/test';
 // answers, families, settings) opens in the current app without losing anything; Dexie adds the
 // newer tables (lessons, math, placement, notes, journal) around it.
 test('a version-1 database upgrades to the current schema with its data intact', async ({ page }) => {
-  await page.goto('/#/stats');
-  // Replace whatever the app created with a fresh version-1 database (Dexie version v ⇒ IndexedDB version 10 × v).
+  // Write a version-1 database (Dexie version v => IndexedDB version 10 x v) before the app ever
+  // runs: a static file on the same origin gives the page IndexedDB without loading the app, so
+  // no open connection can block or race the seeding (it did on CI).
+  await page.goto('/favicon.svg');
   await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      const del = indexedDB.deleteDatabase('openrange-trainer');
-      del.onsuccess = del.onerror = del.onblocked = () => resolve();
-    });
     await new Promise<void>((resolve, reject) => {
       const req = indexedDB.open('openrange-trainer', 10);
       req.onupgradeneeded = () => {
@@ -37,7 +35,7 @@ test('a version-1 database upgrades to the current schema with its data intact',
       req.onerror = () => reject(req.error);
     });
   });
-  await page.reload();
+  await page.goto('/#/stats');
   // The old answer and settings are there (no onboarding: it was already done).
   await expect(page.getByTestId('review-summary')).toContainText('1 answers on this device');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
