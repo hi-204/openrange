@@ -252,6 +252,17 @@ and dead cards; exact when small enough, otherwise sampled with its error.
 **Push/fold calculator.** Exact heads-up push/fold for any stacks, with antes and, if you enter
 payouts, ICM.
 
+### More study tools (Solve)
+
+- **Compare:** two charts side by side from any chart set and stack, with a grid of where they
+  differ and the hands that differ most.
+- **ICM:** each player's share of the prize pool for any stacks and payouts, and bubble factors.
+- **Notes:** write a note on any chart, postflop spot or workbench spot ("Your notes on this
+  spot"). Notes show in the spot library and are part of your backup.
+- **Spot files:** in the workbench, "Save spot file" downloads the spot; "Open spot file" loads
+  one (yours or a friend's).
+- **Images:** on the Charts page, "Save as image" downloads the chart as a PNG.
+
 ## Stats and your data
 
 **Stats.**

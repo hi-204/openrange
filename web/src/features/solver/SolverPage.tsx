@@ -6,6 +6,16 @@ import type { RunResult, SolverInfo, SolverNode } from '../../lib/wasm/protocol'
 import { NodeBrowser, type Step } from './NodeBrowser';
 import { RangePainter } from './WorkbenchParts';
 import { activeStreets, PRESETS, STREETS, toSpot, type Form, type StreetForm, type StreetName } from './spotForm';
+import { SpotNotes, spotKey } from '../notes/SpotNotes';
+import { parseSpotFile, spotFileText } from './spotFile';
+
+function downloadText(name: string, text: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 
 type Status =
   | { kind: 'idle' }
@@ -60,6 +70,7 @@ export function SolverPage() {
   const [baseline, setBaseline] = useState<[number, number] | null>(null);
   const client = useRef<SolverClient | null>(null);
   const simplifyId = useId();
+  const [spotError, setSpotError] = useState<string | null>(null);
   const set = (k: keyof Form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // Each page owns its worker; leaving the page frees the solver's memory.
@@ -246,6 +257,30 @@ export function SolverPage() {
           <button type="submit" className="btn-primary" disabled={running}>
             {t('solver.solve')}
           </button>
+          <button type="button" className="btn-quiet" onClick={() => downloadText('openrange-spot.json', spotFileText(form))} data-testid="spot-save">
+            {t('solver.saveSpot')}
+          </button>
+          <label className="btn-quiet cursor-pointer">
+            {t('solver.openSpot')}
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="sr-only"
+              data-testid="spot-open"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                void f.text().then((text) => {
+                  const r = parseSpotFile(text);
+                  if ('error' in r) setSpotError(r.error);
+                  else {
+                    setSpotError(null);
+                    setForm(r.form);
+                  }
+                });
+              }}
+            />
+          </label>
           {status.kind === 'running' && (
             <button type="button" className="btn-secondary" onClick={() => void client.current?.call('solverPause', {})}>
               {t('solver.pause')}
@@ -349,6 +384,14 @@ export function SolverPage() {
         </section>
       )}
 
+      {spotError && (
+        <p className="text-sm text-amber-700 dark:text-amber-400" role="alert">
+          {t('solver.spotFileError', { reason: spotError })}
+        </p>
+      )}
+      <section className="card">
+        <SpotNotes noteKey={spotKey(toSpot(form))} />
+      </section>
       {browsable && info && node && (
         <NodeBrowser
           info={info}

@@ -234,6 +234,15 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **ICM references** need exactly the heads-up push/fold situation with every remaining player at
   the table; otherwise the hint says why there's none.
 
+## Study tools (expansion Phase 4)
+
+- **Compare works on charts** (preflop). Two postflop solutions can be compared only through the
+  workbench's lock panel (before and after a lock).
+- **Notes live in this browser** like the rest of your data; export a backup to keep them. A
+  workbench note belongs to the exact spot (any change to the spot is a different spot).
+- **Range images are drawn from the chart data**, not screenshots: per-combo detail and EVs aren't
+  in the image.
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it

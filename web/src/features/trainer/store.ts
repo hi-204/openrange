@@ -47,10 +47,16 @@ export type MathAttempt = {
   exact?: number;
 };
 
+/** A study note attached to a spot (D-091), e.g. key "chart:cash-6max-100bb.json:first-in-BTN". */
+export type SpotNote = { key: string; text: string; updatedAt: number };
+
 export type PlacementResult = { at: number; perLevel: { level: number; correct: number; total: number }[]; startLevel: number; chosen: boolean };
 
+/** Export format version; imports also accept /1 and /2 (D-091). */
+export const EXPORT_SCHEMA = 'openrange.trainer/3';
+
 export type TrainerExport = {
-  schema: 'openrange.trainer/2';
+  schema: typeof EXPORT_SCHEMA;
   exportedAt: string;
   answers: AnswerRecord[];
   families: FamilyState[];
@@ -60,6 +66,8 @@ export type TrainerExport = {
   placement: PlacementResult | null;
   /** App settings (display, modes, coaching…); absent in exports made before M6.5. */
   app?: unknown;
+  /** Study notes (schema 3). */
+  notes: SpotNote[];
 };
 
 export interface TrainerStore {
@@ -78,6 +86,9 @@ export interface TrainerStore {
   /** App settings as stored (normalised by lib/settings). */
   appSettings(): Promise<unknown>;
   putAppSettings(s: unknown): Promise<void>;
+  notes(): Promise<SpotNote[]>;
+  putNote(n: SpotNote): Promise<void>;
+  deleteNote(key: string): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -91,6 +102,16 @@ export class MemoryStore implements TrainerStore {
   private m: MathAttempt[] = [];
   private pl: PlacementResult | null = null;
   private app: unknown = null;
+  private n = new Map<string, SpotNote>();
+  async notes() {
+    return [...this.n.values()];
+  }
+  async putNote(n: SpotNote) {
+    this.n.set(n.key, n);
+  }
+  async deleteNote(key: string) {
+    this.n.delete(key);
+  }
   async appSettings() {
     return this.app;
   }
@@ -141,6 +162,7 @@ export class MemoryStore implements TrainerStore {
     this.m = [];
     this.pl = null;
     this.app = null;
+    this.n.clear();
   }
 }
 
@@ -152,11 +174,14 @@ class TrainerDb extends Dexie {
   lessons!: Table<LessonProgress, string>;
   math!: Table<MathAttempt, number>;
   placement!: Table<{ key: string; value: PlacementResult }, string>;
+  notes!: Table<SpotNote, string>;
   constructor() {
     super('openrange-trainer');
     this.version(1).stores({ answers: '++id, at, drill, family', families: 'family', settings: 'key' });
     // Schema 2 (M7): course progress. Adding tables keeps existing data.
     this.version(2).stores({ lessons: 'id', math: '++id, at, drill', placement: 'key' });
+    // Schema 3 (expansion Phase 4): study notes. Adding a table keeps existing data.
+    this.version(3).stores({ notes: 'key' });
   }
 }
 
@@ -208,17 +233,26 @@ export class DexieStore implements TrainerStore {
   async putPlacement(p: PlacementResult) {
     await this.db.placement.put({ key: 'placement', value: p });
   }
+  async notes() {
+    return this.db.notes.toArray();
+  }
+  async putNote(n: SpotNote) {
+    await this.db.notes.put(n);
+  }
+  async deleteNote(key: string) {
+    await this.db.notes.delete(key);
+  }
   async reset() {
     const db = this.db;
-    await db.transaction('rw', [db.answers, db.families, db.settings, db.lessons, db.math, db.placement], async () => {
-      await Promise.all([db.answers.clear(), db.families.clear(), db.settings.clear(), db.lessons.clear(), db.math.clear(), db.placement.clear()]);
+    await db.transaction('rw', [db.answers, db.families, db.settings, db.lessons, db.math, db.placement, db.notes], async () => {
+      await Promise.all([db.answers.clear(), db.families.clear(), db.settings.clear(), db.lessons.clear(), db.math.clear(), db.placement.clear(), db.notes.clear()]);
     });
   }
 }
 
 export async function exportAll(store: TrainerStore): Promise<TrainerExport> {
   return {
-    schema: 'openrange.trainer/2',
+    schema: EXPORT_SCHEMA,
     exportedAt: new Date().toISOString(),
     answers: await store.answers(),
     families: [...(await store.families()).values()],
@@ -227,20 +261,24 @@ export async function exportAll(store: TrainerStore): Promise<TrainerExport> {
     math: await store.math(),
     placement: await store.placement(),
     app: await store.appSettings(),
+    notes: await store.notes(),
   };
 }
 
 /**
- * Replace everything in the store with an export (schema 2, or schema 1 from before the
+ * Replace everything in the store with an export: schema 3, 2 (before notes) or 1 (before the
  * course existed). Validates the shape before touching data.
  */
 export async function importAll(store: TrainerStore, data: unknown): Promise<number> {
   const d = data as Partial<Omit<TrainerExport, 'schema'>> & { schema?: string };
-  const known = d?.schema === 'openrange.trainer/1' || d?.schema === 'openrange.trainer/2';
-  if (!d || !known || !Array.isArray(d.answers) || !Array.isArray(d.families)) {
+  const version = d?.schema === 'openrange.trainer/1' ? 1 : d?.schema === 'openrange.trainer/2' ? 2 : d?.schema === EXPORT_SCHEMA ? 3 : 0;
+  if (!d || !version || !Array.isArray(d.answers) || !Array.isArray(d.families)) {
     throw new Error('this file is not an OpenRange trainer export');
   }
-  if (d.schema === 'openrange.trainer/2' && (!Array.isArray(d.lessons) || !Array.isArray(d.math))) {
+  if (version >= 2 && (!Array.isArray(d.lessons) || !Array.isArray(d.math))) {
+    throw new Error('this trainer export is incomplete');
+  }
+  if (version >= 3 && !Array.isArray(d.notes)) {
     throw new Error('this trainer export is incomplete');
   }
   await store.reset();
@@ -251,6 +289,7 @@ export async function importAll(store: TrainerStore, data: unknown): Promise<num
   for (const m of d.math ?? []) await store.addMath(m);
   if (d.placement) await store.putPlacement(d.placement);
   if (d.app) await store.putAppSettings(d.app);
+  for (const n of d.notes ?? []) await store.putNote(n);
   return d.answers.length;
 }
 

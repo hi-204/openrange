@@ -19,6 +19,7 @@ import { trainerStore, type TrainerSettings } from '../store';
 import { decide, type DecisionResult } from './decision';
 import { price, remainingStack, texture } from './features';
 import { PostflopHand, type ActionNode } from './hand';
+import { SpotNotes } from '../../notes/SpotNotes';
 import { DRILL_SPOTS, SITUATIONS, situationPath, type DrillSpot } from './spots';
 
 type Solve =
@@ -313,6 +314,11 @@ export function PostflopDrill({ spot: initialSpot, focus, practice = false }: { 
 
       {(error || solve.kind === 'error') && <ErrorState title={t('flow.errorTitle')} message={t('trainer.post.error', { message: error ?? (solve.kind === 'error' ? solve.message : '') })} next={<button type="button" className="btn-secondary" onClick={() => void prepare(spot)}>{t('flow.tryAgain')}</button>} />}
 
+      {solve.kind === 'ready' && (
+        <section className="card">
+          <SpotNotes noteKey={`postflop:${spotId}${situation ? `:${situation}` : ''}`} />
+        </section>
+      )}
       {showSummary && (
         <SessionSummary
           answers={session}

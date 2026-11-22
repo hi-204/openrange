@@ -6,6 +6,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { loadJson, type ChartFile, type ChartIndexEntry } from '../../lib/provenance/types';
 import { Badge, ErrorState, Skeleton } from '../../lib/ui/components';
 import { CardRow } from '../table/Card';
+import { trainerStore } from '../trainer/store';
 import { filterItems, NO_FILTERS, postflopItems, preflopItems, type LibraryFilters, type LibraryItem, type PotType, type Street, type TextureTag } from './library';
 
 const STREETS: Street[] = ['preflop', 'flop', 'turn', 'river'];
@@ -49,7 +50,8 @@ export function LibraryPage() {
       const index = await loadJson<ChartIndexEntry[]>('data/charts/index.json');
       const docs = new Map<string, ChartFile>();
       await Promise.all(index.map(async (e) => docs.set(e.file, await loadJson<ChartFile>(`data/charts/${e.file}`))));
-      setItems([...postflopItems(), ...preflopItems(index, docs)]);
+      const notes = new Map((await trainerStore().notes()).map((n) => [n.key, n.text]));
+      setItems([...postflopItems(), ...preflopItems(index, docs)].map((it) => (notes.has(it.noteKey) ? { ...it, note: notes.get(it.noteKey)!, search: `${it.search} ${notes.get(it.noteKey)!.toLowerCase()}` } : it)));
     })().catch((e: Error) => setError(e.message));
   }, []);
   useEffect(() => setShown(PAGE), [f]);
@@ -107,6 +109,11 @@ export function LibraryPage() {
               <Badge tone={it.graded ? 'good' : 'warn'}>{t(it.graded ? 'library.graded' : 'library.practice')}</Badge>
             </div>
             {it.board && <CardRow cards={it.board.split(' ')} size="sm" />}
+            {it.note && (
+              <p className="text-xs" data-testid="library-note">
+                {t('library.note', { text: it.note.length > 80 ? `${it.note.slice(0, 80)}…` : it.note })}
+              </p>
+            )}
             <p className="text-xs text-ink-muted">
               {[t(`library.street.${it.street}` as MessageKey), it.position === 'any' ? t('library.anySeat') : it.position, t(`library.pot.${it.pot}` as MessageKey), t('library.stack', { n: it.stack }), ...(it.spr !== undefined ? [t('library.spr', { spr: it.spr.toFixed(1) })] : []), ...it.textures.map((x) => t(`library.texture.${x}` as MessageKey))].join(' · ')}
             </p>

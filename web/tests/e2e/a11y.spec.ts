@@ -22,6 +22,8 @@ const SCREENS: [string, string, string | null][] = [
   ['session', '/#/play/session', 'session-setup'],
   ['review', '/#/play/review', 'hand-review'],
   ['reports', '/#/solve/reports', 'report-flops'],
+  ['compare', '/#/solve/compare', 'compare-largest'],
+  ['icm', '/#/solve/icm', 'widget-icm'],
   ['settings', '/#/settings', 'settings'],
 ];
 

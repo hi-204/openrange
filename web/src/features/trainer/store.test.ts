@@ -37,7 +37,7 @@ describe('trainer store', () => {
     await a.addMath({ at: 6, drill: 'potodds', correct: true, given: '25', answer: '25%' });
     await a.putPlacement({ at: 7, perLevel: [{ level: 0, correct: 3, total: 3 }], startLevel: 1, chosen: false });
     const dump = JSON.parse(JSON.stringify(await exportAll(a)));
-    expect(dump.schema).toBe('openrange.trainer/2');
+    expect(dump.schema).toBe('openrange.trainer/3');
     const b = new MemoryStore();
     await importAll(b, dump);
     expect((await b.lessons()).get('2.3')!.bestScore).toBe(4);
@@ -54,5 +54,24 @@ describe('trainer store', () => {
     await s.addAnswer(answer);
     await expect(importAll(s, { schema: 'something-else' })).rejects.toThrow(/not an OpenRange trainer export/);
     expect(await s.answers()).toHaveLength(1);
+  });
+
+  it('carries study notes, and imports schema-2 files (before notes) unchanged', async () => {
+    const a = new MemoryStore();
+    await a.putNote({ key: 'chart:pushfold-hu.json:sb-shove-10', text: 'shove all aces', updatedAt: 9 });
+    await a.addAnswer(answer);
+    const dump = JSON.parse(JSON.stringify(await exportAll(a)));
+    expect(dump.notes).toHaveLength(1);
+    const b = new MemoryStore();
+    await importAll(b, dump);
+    expect(await b.notes()).toEqual([{ key: 'chart:pushfold-hu.json:sb-shove-10', text: 'shove all aces', updatedAt: 9 }]);
+    // A schema-2 export has no notes: it imports, and existing notes are replaced by none.
+    const v2 = { ...dump, schema: 'openrange.trainer/2', notes: undefined };
+    expect(await importAll(b, v2)).toBe(1);
+    expect(await b.notes()).toEqual([]);
+    // A schema-3 export without its notes list is incomplete and leaves the data alone.
+    await b.putNote({ key: 'k', text: 't', updatedAt: 1 });
+    await expect(importAll(b, { ...dump, notes: undefined })).rejects.toThrow(/incomplete/);
+    expect(await b.notes()).toHaveLength(1);
   });
 });

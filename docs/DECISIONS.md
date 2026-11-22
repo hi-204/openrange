@@ -1100,3 +1100,23 @@ three coaching levels, a richer review and a session summary, with proper rules.
 - **Rules tests:** full-ring seating, three all-ins with two side pots, a tie inside a side pot,
   and a folded player's chips staying in the pots they reached.
 - **The quick-play table is unchanged**, apart from sharing the action panel.
+
+### D-091 · Study tools: compare, ICM calculator, notes, spot files, range images
+**Context:** Phase 4 of the expansion. The workbench, node-locking, reports and the equity
+calculator already met the prompt; these were missing.
+**Decision:**
+- **Compare** (Solve → Compare): any two charts from any chart set and stack, with a difference
+  grid (per class: how much more often A plays, or raises, than B) and the biggest differences.
+- **ICM calculator** (Solve → ICM): the lesson's ICM widget as a tool (prize shares and bubble
+  factors for any stacks and payouts).
+- **Study notes** on spots (charts, postflop drill spots and situations, workbench spots keyed by a
+  hash of the spot), saved in the browser and shown and searchable in the spot library.
+- **Data migration:** notes are a new table (database version 3, which Dexie adds without
+  touching existing data) and a new export schema, `openrange.trainer/3`. Imports accept schemas
+  1, 2 and 3; a schema-3 file without its notes list is rejected as incomplete before anything is
+  changed. **Test changes:** the store test and the backup browser test expected the export
+  schema `openrange.trainer/2`; they now expect `/3` because the schema changed on purpose, and a
+  new test imports a schema-2 file.
+- **Spot files** (workbench "Save spot file" / "Open spot file"): the spot form as JSON
+  (`openrange.spot/1`), validated on opening with a readable reason when it can't be used.
+- **Range images:** the Charts page saves the chart as a PNG (grid, legend, source and commit).

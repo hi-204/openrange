@@ -121,10 +121,10 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 | Node-locking and presets | done | One node at a time. |
 | Aggregated flop reports | done | One spot, 48 flops, no raises. |
 | Equity calculator (multiway, board, dead) | done | |
-| ICM calculator | partial | Lesson widget only; no tool page. |
-| Compare views | missing | |
-| Study notes, custom spot builder, spot files | partial | Custom spots exist in the workbench. Missing: notes, saving and loading spot JSON files. |
-| Exports: PNG, CSV, JSON | partial | CSV and JSON exist. Missing: range images. |
+| ICM calculator | done (Phase 4) | Solve → ICM. |
+| Compare views | done (Phase 4) | Solve → Compare: any two charts, difference grid. |
+| Study notes, custom spot builder, spot files | done (Phase 4) | Notes on spots (in backups), spot files in the workbench. |
+| Exports: PNG, CSV, JSON | done (Phase 4) | Range images from the Charts page. |
 
 ### Phase 5: course and content
 

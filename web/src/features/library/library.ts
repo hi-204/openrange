@@ -30,6 +30,9 @@ export type LibraryItem = {
   href: string;
   /** Lower-case text for search. */
   search: string;
+  /** Key of the study note for this spot (D-091), and the note when there is one. */
+  noteKey: string;
+  note?: string;
 };
 
 /** Pot type of a preflop chart decision from its scenario. */
@@ -69,6 +72,7 @@ export function preflopItems(index: ChartIndexEntry[], docs: Map<string, ChartFi
         stack,
         graded: src.graded,
         href: href('train', ['preflop'], { files: src.file, chart: chart.id }),
+        noteKey: `chart:${src.file}:${chart.id}`,
         search: `${chart.title} ${chart.seat} ${scenario} ${doc.family} ${stack}bb`.toLowerCase(),
       });
     }
@@ -88,6 +92,7 @@ export function postflopItems(): LibraryItem[] {
       title: { key: 'library.title.postflop', params: { spot: d.id } },
       position: 'any',
       href: href('train', ['postflop'], { spot: d.id }),
+      noteKey: `postflop:${d.id}`,
       search: `${d.id} ${d.street} ${d.spot.board} ${base.textures.join(' ')}`.toLowerCase(),
     });
     for (const s of SITUATIONS.filter((x) => x.spot === d.id)) {
@@ -98,6 +103,7 @@ export function postflopItems(): LibraryItem[] {
         title: { key: 'library.title.situation', params: { spot: d.id, situation: s.id } },
         position: s.hero === 0 ? 'OOP' : 'IP',
         href: href('train', ['postflop'], { spot: d.id, focus: s.id }),
+        noteKey: `postflop:${d.id}:${s.id}`,
         search: `${d.id} ${s.id} ${d.street} ${d.spot.board} ${base.textures.join(' ')}`.toLowerCase(),
       });
     }

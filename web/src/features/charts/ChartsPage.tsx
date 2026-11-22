@@ -4,7 +4,9 @@ import { t } from '../../lib/i18n';
 import { ProvenanceBadge } from '../../lib/provenance/ProvenanceBadge';
 import { loadJson, type Chart, type ChartFile, type ChartIndexEntry } from '../../lib/provenance/types';
 import { actionColors } from '../solver/colors';
+import { SpotNotes } from '../notes/SpotNotes';
 import { ClassGrid, UNREACHED } from './ClassGrid';
+import { downloadRangeImage } from './rangeImage';
 
 const COMBOS = (name: string) => (name.length === 2 ? 6 : name[2] === 's' ? 4 : 12);
 
@@ -235,6 +237,29 @@ export function ChartsPage() {
             <div className="grid gap-6 lg:grid-cols-2">
               <CellDetail doc={doc} chart={chart!} cell={cell} />
               <CellDetail doc={doc} chart={compare} cell={cell} />
+            </div>
+          )}
+          {chart && file && (
+            <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
+              <button
+                type="button"
+                className="btn-secondary self-start"
+                data-testid="chart-image"
+                onClick={() =>
+                  void downloadRangeImage(`openrange-${chart.id}.png`, {
+                    classes: doc.classes,
+                    strategy: chart.strategy,
+                    colors: actionColors(chart.actions, chart.actions.map((a) => /^(Raise|All-in)/.test(a))),
+                    actions: chart.actions,
+                    reach: chart.reach,
+                    title: chart.title,
+                    subtitle: t('charts.imageSubtitle', { source: doc.provenance.source, commit: doc.provenance.gitCommit.slice(0, 7) }),
+                  })
+                }
+              >
+                {t('charts.saveImage')}
+              </button>
+              <SpotNotes noteKey={`chart:${file}:${chart.id}`} />
             </div>
           )}
         </section>

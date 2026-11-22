@@ -27,7 +27,7 @@ test('backup: export, delete everything, import, and the data is back', async ({
   const [download] = await Promise.all([page.waitForEvent('download'), data.getByRole('button', { name: 'Export as JSON' }).click()]);
   const file = await download.path();
   const backup = JSON.parse(readFileSync(file, 'utf8')) as { schema: string; answers: unknown[]; app: unknown };
-  expect(backup.schema).toBe('openrange.trainer/2');
+  expect(backup.schema).toBe('openrange.trainer/3');
   expect(backup.answers).toHaveLength(2);
   expect(JSON.stringify(backup.app)).toContain('"theme":"dark"');
 
