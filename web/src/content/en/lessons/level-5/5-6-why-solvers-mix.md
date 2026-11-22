@@ -51,7 +51,7 @@ small, and even then don't read meaning into tiny differences.
 
 ## Worked hand
 
-In lesson 3.6's chart the big blind squeezes KQo almost always but mixes T9s. In a solved
+In lesson 3.6's chart the big blind squeezes KQo most of the time but mixes T9s. In a solved
 river spot you see a hand called half the time.
 
 1. **Check the EVs:** if they're within the margin, the mix is noise-level close.

@@ -48,13 +48,13 @@ price.
 
 ## Worked hand
 
-You are in the big blind with K♠2♦ (K2o).
+You are in the big blind with T♠7♦ (T7o).
 
 - **The small blind opens to 3 bb.** You'll have position; the chart calls.
 - **The button opens to 2.5 bb.** Better price, but you'll be out of position after the flop:
   the chart folds.
 
-Click K2o on this chart and on the big blind's chart in lesson 3.1.
+Click T7o on this chart and on the big blind's chart in lesson 3.1.
 
 ## Common mistakes
 

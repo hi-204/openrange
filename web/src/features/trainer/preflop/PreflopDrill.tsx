@@ -21,7 +21,7 @@ import { grade } from '../grading';
 import { handType } from '../session';
 import { useDrillKeys } from '../shortcuts';
 import { trainerStore, type AnswerRecord, type TrainerSettings } from '../store';
-import { candidates, deal, drillSources, mulberry32, scenarioOf, stackBand, type Candidate, type Dealt, type Difficulty, type Filters } from './deal';
+import { candidates, deal, drillSources, mulberry32, practiceReason, scenarioOf, stackBand, type Candidate, type Dealt, type Difficulty, type Filters } from './deal';
 
 const SEATS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const SCENARIOS = ['first-in', 'vs-all-in', 'vs-open', 'squeeze', 'vs-3bet', 'vs-4bet', 'vs-5bet'];
@@ -155,7 +155,7 @@ export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: 
           }
         }
         const outOfBand = source.graded ? undefined : doc.sanityBands?.filter((b) => !b.inBand);
-        const claims = preflopClaims({ actions: chart.actions, ev, evStdError: se, strategy, chosen, grade: g, headsUp, outOfBand });
+        const claims = preflopClaims({ actions: chart.actions, ev, evStdError: se, strategy, chosen, grade: g, headsUp, outOfBand, practiceReason: practiceReason(doc) });
         setAnswered({ chosen, card: buildCoach(claims, coachContext(dealt, chosen)), details: claims.flatMap(renderClaim) });
         setSession((s) => [...s, { family: dealt.family, label: chart.title, hand: dealt.handClass, category: g?.category ?? null, loss: g?.loss ?? null, unit: 'bb', hints: hintsUsed }]);
         saveAnswer(
@@ -236,7 +236,9 @@ export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: 
               {familyLabel(index.find((e) => e.file === s.file)!)}
             </label>
           ))}
-          <p className="mt-1 text-xs text-ink-muted">{t('trainer.filters.practiceNote')}</p>
+          {sources.some((s) => !s.graded) && (
+            <p className="mt-1 text-xs text-ink-muted">{t('trainer.filters.practiceNote', { list: sources.filter((s) => !s.graded).map((s) => familyLabel(index.find((e) => e.file === s.file)!)).join('; ') })}</p>
+          )}
         </fieldset>
         <fieldset>
           <legend className="mb-1 text-sm font-medium">{t('trainer.filters.seats')}</legend>

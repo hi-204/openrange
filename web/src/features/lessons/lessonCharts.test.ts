@@ -28,10 +28,11 @@ const raised = (id: string) => new Set(doc.classes.filter((_, i) => chart(id).st
 const SEATS = ['UTG', 'HJ', 'CO', 'BTN'];
 
 describe('lesson 1.5: open-raise ranges', () => {
-  it('the raise share grows from UTG to the button, more than threefold', () => {
+  it('the raise share grows from UTG to the button, about threefold', () => {
     const s = SEATS.map((p) => share(`first-in-${p}`, 1));
     for (let i = 1; i < s.length; i++) expect(s[i]!).toBeGreaterThan(s[i - 1]!);
-    expect(s[3]! / s[0]!).toBeGreaterThan(3);
+    expect(s[3]! / s[0]!).toBeGreaterThan(2.5);
+    expect(s[3]! / s[0]!).toBeLessThan(3.5);
     expect(share('first-in-SB', 1)).toBeLessThan(s[3]!); // SB wide, but not as wide as BTN
     expect(share('first-in-SB', 1)).toBeGreaterThan(s[2]!);
   });
@@ -46,14 +47,15 @@ describe('lesson 1.5: open-raise ranges', () => {
   it('what each seat adds', () => {
     const utg = raised('first-in-UTG');
     for (const h of ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AQs', 'AKo', 'AQo', 'KQs', 'KQo', 'QJs']) expect(utg.has(h), h).toBe(true);
+    for (const h of ['A5s', '76s', '65s']) expect(utg.has(h), h).toBe(true); // a few suited aces and connectors
     const hj = raised('first-in-HJ');
-    for (const h of ['66', '55', '44']) expect(hj.has(h) && !utg.has(h), h).toBe(true);
+    for (const h of ['55', '44', 'A7s', 'A4s', '98s', 'J9s', 'T8s', '86s']) expect(hj.has(h) && !utg.has(h), h).toBe(true);
     const co = raised('first-in-CO');
-    for (const h of ['A7s', 'A6s', 'A5s', 'A4s', '76s', '65s', '98s']) expect(co.has(h) && !hj.has(h), h).toBe(true);
+    for (const h of ['A9o', 'A8o', 'A7o', 'A6o', 'A5o']) expect(co.has(h) && !hj.has(h), h).toBe(true);
     const btn = raised('first-in-BTN');
     const added = [...btn].filter((h) => !co.has(h));
     expect(added.filter((h) => /^[KQ].s$/.test(h)).length).toBeGreaterThanOrEqual(8);
-    expect(added.filter((h) => h.endsWith('o')).length).toBeGreaterThanOrEqual(15);
+    expect(added.filter((h) => h.endsWith('o')).length).toBeGreaterThanOrEqual(10);
   });
 
   it('worked hand: A9o folds from UTG and raises from the cutoff and button', () => {
@@ -118,9 +120,13 @@ describe('Level 3: preflop in depth', () => {
   it('3.1: the big blind defends far more against the button than against UTG', () => {
     expect(defend('vs-open-BB-vs-BTN')).toBeGreaterThan(0.5);
     expect(defend('vs-open-BB-vs-UTG')).toBeLessThan(defend('vs-open-BB-vs-BTN') / 2);
+    // Against UTG it 3-bets pairs from 99 up and A-K, and otherwise only hands with two broadway cards.
     const threeBets = doc.classes.filter((h) => at('vs-open-BB-vs-UTG', h)[2]! > 0.5);
-    for (const h of threeBets) expect(['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo'], h).toContain(h);
-    expect(share('vs-open-BTN-vs-CO', 1)).toBeLessThan(0.02); // the button almost never calls
+    for (const h of ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', 'AKs', 'AKo']) expect(threeBets, h).toContain(h);
+    const broadway = (h: string) => 'AKQJT'.includes(h[0]!) && 'AKQJT'.includes(h[1]!);
+    for (const h of threeBets) expect(['AA', 'KK', 'QQ', 'JJ', 'TT', '99'].includes(h) || broadway(h), h).toBe(true);
+    expect(threeBets.filter((h) => broadway(h) && h[0] !== h[1] && !h.startsWith('AK')).length).toBeLessThanOrEqual(6); // "a few"
+    expect(share('vs-open-BTN-vs-CO', 1)).toBeLessThan(0.03); // the button almost never calls
     expect(share('vs-open-SB-vs-BTN', 1)).toBeLessThan(0.05);
     expect(share('vs-open-SB-vs-BTN', 2)).toBeGreaterThan(share('vs-open-SB-vs-BTN', 1));
     expect(at('vs-open-BB-vs-BTN', 'K9o')[1]!).toBeGreaterThan(0.9); // worked hand
@@ -130,13 +136,12 @@ describe('Level 3: preflop in depth', () => {
   it('3.2: AA, KK, QQ and A-K 3-bet in every chart facing an open; two range shapes', () => {
     for (const c of doc.charts.filter((x) => x.id.startsWith('vs-open-')))
       for (const h of ['AA', 'KK', 'QQ', 'AKs', 'AKo']) expect(at(c.id, h)[last(c.id)]!, `${c.id} ${h}`).toBeGreaterThan(0.5);
-    for (const h of ['A5s', '76s', '65s']) {
+    for (const h of ['A4s', '98s', '76s', '54s']) {
       expect(at('vs-open-BTN-vs-CO', h)[2]!, h).toBeGreaterThan(0.5);
       expect(at('vs-open-BB-vs-BTN', h)[1]!, h).toBeGreaterThan(0.5);
     }
-    const suitedAces = ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'];
-    for (const h of suitedAces) expect(at('vs-open-BB-vs-BTN', h)[1]!, h).toBeGreaterThan(0.5);
-    expect(suitedAces.filter((h) => at('vs-open-BTN-vs-CO', h)[2]! > 0.5).length).toBeGreaterThanOrEqual(4);
+    // The big blind calls far more often than it 3-bets.
+    expect(share('vs-open-BB-vs-BTN', 1)).toBeGreaterThan(3 * share('vs-open-BB-vs-BTN', 2));
     expect(at('vs-open-BTN-vs-CO', '65s')[2]!).toBeGreaterThan(0.9); // worked hand
   });
 
@@ -149,13 +154,17 @@ describe('Level 3: preflop in depth', () => {
 
   it('3.4: who gets it in', () => {
     const calls = reached('vs-5bet-BTN-vs-BB').filter((h) => at('vs-5bet-BTN-vs-BB', h)[1]! > 0.5);
-    expect(calls.sort()).toEqual(['99', 'AA', 'AKo', 'AKs', 'JJ', 'KK', 'QQ', 'TT'].sort());
-    for (const h of ['AA', 'KK', 'AKs', 'AKo']) expect(at('vs-4bet-BB-vs-BTN', h)[2]!, h).toBeGreaterThan(0.5);
-    const qq = at('vs-4bet-BB-vs-BTN', 'QQ');
-    expect(qq[1]! > 0.1 && qq[2]! > 0.1).toBe(true); // QQ mixes
-    // A small pair goes all-in, but its all-in and call EVs are within the sampling margin.
-    expect(at('vs-4bet-BB-vs-BTN', '44')[2]!).toBeGreaterThan(0.5);
-    expect(clearlyBetter('vs-4bet-BB-vs-BTN', '44', 2, 1) || clearlyBetter('vs-4bet-BB-vs-BTN', '44', 1, 2)).toBe(false);
+    expect(calls.sort()).toEqual(['88', '99', 'AA', 'AKo', 'AKs', 'JJ', 'KK', 'QQ'].sort());
+    // "The few 99 and 88 it 4-bets": they reach the spot far less often than AA-JJ.
+    const reach = (h: string) => chart('vs-5bet-BTN-vs-BB').reach![doc.classes.indexOf(h)]!;
+    for (const h of ['99', '88']) expect(reach(h), h).toBeLessThan(0.1);
+    for (const h of ['AA', 'KK', 'QQ', 'JJ']) expect(reach(h), h).toBeGreaterThan(0.9);
+    for (const h of ['AA', 'KK', 'QQ', 'AKs']) expect(at('vs-4bet-BB-vs-BTN', h)[2]!, h).toBeGreaterThan(0.5);
+    const ako = at('vs-4bet-BB-vs-BTN', 'AKo');
+    expect(ako[1]! > 0.1 && ako[2]! > 0.1).toBe(true); // A-K offsuit mixes
+    // A weaker ace goes all-in, but its all-in and call EVs are within the sampling margin.
+    expect(at('vs-4bet-BB-vs-BTN', 'A8s')[2]!).toBeGreaterThan(0.5);
+    expect(clearlyBetter('vs-4bet-BB-vs-BTN', 'A8s', 2, 1) || clearlyBetter('vs-4bet-BB-vs-BTN', 'A8s', 1, 2)).toBe(false);
     // "Mostly AA, KK and A-K": their share of the all-in combos.
     const c = chart('vs-4bet-BB-vs-BTN');
     let top = 0;
@@ -167,7 +176,9 @@ describe('Level 3: preflop in depth', () => {
     });
     expect(top / all).toBeGreaterThan(0.6);
     expect(at('vs-5bet-BTN-vs-BB', 'JJ')[1]!).toBeGreaterThan(0.9); // worked hand
-    expect(clearlyBetter('vs-5bet-BTN-vs-BB', 'JJ', 1, 0)).toBe(true);
+    // Call EV above fold EV, but by less than the sampling margin: a close call.
+    expect(evOf('vs-5bet-BTN-vs-BB', 'JJ', 1)).toBeGreaterThan(evOf('vs-5bet-BTN-vs-BB', 'JJ', 0));
+    expect(clearlyBetter('vs-5bet-BTN-vs-BB', 'JJ', 1, 0)).toBe(false);
   });
 
   it('3.5: blind vs blind', () => {
@@ -176,31 +187,35 @@ describe('Level 3: preflop in depth', () => {
     const ratio = share('vs-open-BB-vs-SB', 2) / share('vs-open-BB-vs-BTN', 2);
     expect(ratio).toBeGreaterThan(1.7);
     expect(ratio).toBeLessThan(2.5);
-    expect(at('vs-open-BB-vs-SB', 'K2o')[1]!).toBeGreaterThan(0.5); // worked hand
-    expect(at('vs-open-BB-vs-BTN', 'K2o')[0]!).toBeGreaterThan(0.9);
+    expect(at('vs-open-BB-vs-SB', 'T7o')[1]!).toBeGreaterThan(0.9); // worked hand
+    expect(at('vs-open-BB-vs-BTN', 'T7o')[0]!).toBeGreaterThan(0.9);
   });
 
   it('3.6: squeezes', () => {
     for (const h of ['AA', 'KK', 'QQ', 'AKs', 'AKo']) expect(at('vs-open-SB-vs-BTN', h)[1]!, h).toBeLessThan(0.1); // capped caller
     expect(share('squeeze-BB-vs-BTN-SB', 2)).toBeGreaterThan(share('vs-open-BB-vs-BTN', 2));
     expect(share('squeeze-BB-vs-BTN-SB', 1)).toBeLessThan(share('vs-open-BB-vs-BTN', 1) / 2);
-    expect(at('squeeze-BB-vs-BTN-SB', 'KQo')[2]!).toBeGreaterThan(0.9); // worked hand
-    expect(clearlyBetter('squeeze-BB-vs-BTN-SB', 'KQo', 2, 1)).toBe(true);
+    // Worked hand: KQo squeezes most of the time and sometimes calls; squeeze EV ahead, within the margin.
+    const kqo = at('squeeze-BB-vs-BTN-SB', 'KQo');
+    expect(kqo[2]!).toBeGreaterThan(0.6);
+    expect(kqo[1]!).toBeGreaterThan(0.05);
+    expect(evOf('squeeze-BB-vs-BTN-SB', 'KQo', 2)).toBeGreaterThan(evOf('squeeze-BB-vs-BTN-SB', 'KQo', 1));
+    expect(clearlyBetter('squeeze-BB-vs-BTN-SB', 'KQo', 2, 1)).toBe(false);
   });
 
   it('3.7: calling vs raising EVs', () => {
-    for (const h of ['77', 'KQo', 'KJs']) expect(clearlyBetter('vs-open-BTN-vs-CO', h, 2, 1), h).toBe(true);
+    for (const h of ['77', 'AJo', 'KJs']) expect(clearlyBetter('vs-open-BTN-vs-CO', h, 2, 1), h).toBe(true);
     const raisedHands = doc.classes.filter((h) => at('vs-open-BTN-vs-CO', h)[2]! > 0.5);
     const better = raisedHands.filter((h) => evOf('vs-open-BTN-vs-CO', h, 2) > evOf('vs-open-BTN-vs-CO', h, 1));
     expect(better.length / raisedHands.length).toBeGreaterThan(0.8);
-    expect(clearlyBetter('vs-open-BB-vs-BTN', 'A5s', 1, 2)).toBe(true);
+    expect(clearlyBetter('vs-open-BB-vs-BTN', 'QJo', 1, 2)).toBe(true);
     expect(evOf('vs-open-BB-vs-BTN', 'K2o', 0)).toBe(-1); // folding the big blind
   });
 });
 
 describe('Level 5: chart facts', () => {
-  it('5.6: the big blind squeezes KQo almost always but mixes T9s', () => {
-    expect(at('squeeze-BB-vs-BTN-SB', 'KQo')[2]!).toBeGreaterThan(0.9);
+  it('5.6: the big blind squeezes KQo most of the time but mixes T9s', () => {
+    expect(at('squeeze-BB-vs-BTN-SB', 'KQo')[2]!).toBeGreaterThan(0.6);
     const t9 = at('squeeze-BB-vs-BTN-SB', 'T9s');
     expect(t9.filter((f) => f > 0.1).length).toBeGreaterThanOrEqual(2);
   });

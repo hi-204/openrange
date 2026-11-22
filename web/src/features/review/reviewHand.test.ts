@@ -1,4 +1,5 @@
 // Review references for imported hands, against the real chart files.
+import { fileGraded } from '../trainer/preflop/deal';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -34,10 +35,12 @@ describe('review references', () => {
     expect(cashFileFor(22)).toBe('cash-6max-20bb.json');
   });
 
-  it('PokerStars sample: CO first in at 100 bb is a practice reference; postflop is not graded', () => {
+  it('PokerStars sample: CO first in at 100 bb uses the cash chart; postflop is not graded', () => {
     const h = parseHand(STARS);
     const d = reviewHand(h, docs);
-    expect(d[0]).toMatchObject({ status: 'practice', ref: { chart: 'first-in-CO', file: 'cash-6max-100bb.json' } });
+    // Graded only if the 100 bb file passes all its sanity bands (D-085).
+    const status = fileGraded(docs.get('cash-6max-100bb.json')!) ? 'graded' : 'practice';
+    expect(d[0]).toMatchObject({ status, ref: { chart: 'first-in-CO', file: 'cash-6max-100bb.json', graded: status === 'graded' } });
     expect(d[0]!.actions![d[0]!.chosen!]).toMatch(/^Raise/);
     expect(d[0]!.strategy).toHaveLength(2);
     // AKo opens from the cutoff in the chart: the raise is the model's play.
@@ -46,6 +49,13 @@ describe('review references', () => {
       expect(x.status).toBe('none');
       expect(x.reason).toMatch(/postflop/);
     }
+  });
+
+  it('a cash file outside one of its sanity bands is a practice reference (D-085)', () => {
+    const doc = docs.get('cash-6max-100bb.json')!;
+    const missed = { ...doc, sanityBands: (doc.sanityBands ?? []).map((x, i) => (i === 0 ? { ...x, inBand: false } : x)) };
+    const d = reviewHand(parseHand(STARS), new Map([...docs, ['cash-6max-100bb.json', missed]]));
+    expect(d[0]).toMatchObject({ status: 'practice', ref: { graded: false } });
   });
 
   it('GGPoker sample (3 players at 100 bb): button first in, then facing a 3-bet from the big blind', () => {

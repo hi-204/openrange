@@ -1,7 +1,8 @@
 // Range-building drill (D-075): paint a range on the grid, then compare it with a chart.
-// Exact heads-up push/fold charts are graded references; the 6-max cash opens are approximate
-// and shown as practice.
+// Exact heads-up push/fold charts are exact references; the 6-max cash opens are approximate,
+// and the note says whether their file passes its sanity bands.
 
+import { bandsPass } from '../preflop/deal';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '../../../lib/i18n';
 import { cellName, cellOf } from '../../../lib/poker/hands';
@@ -167,7 +168,7 @@ export function RangeDrill() {
                 {evDiff.perHand < 0.0005 ? t('ranges.evNone') : t('ranges.ev', { ev: evDiff.perHand.toFixed(3), hands: evDiff.worst.slice(0, 3).map((w) => w.name).join(', ') })}
               </p>
             )}
-            {task.source === 'cash' && <p className="text-xs text-ink-muted">{t('ranges.practice')}</p>}
+            {task.source === 'cash' && <p className="text-xs text-ink-muted">{t(doc && bandsPass(doc.sanityBands) ? 'ranges.approx' : 'ranges.practice')}</p>}
           </div>
         )}
         <div className="flex gap-2">

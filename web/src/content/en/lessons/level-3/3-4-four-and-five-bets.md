@@ -39,7 +39,7 @@ pot will be {{calc 100 + 100 + 0.5 | dec1 | show}} bb. The price is {{calc 77 / 
 ```
 
 Most cells are grey: the button only gets here with the hands it 4-bet. Of those, it calls
-with AA through 99 and A-K, and folds its 4-bet bluffs.
+with AA through JJ and A-K (and the few 99 and 88 it 4-bets), and folds its 4-bet bluffs.
 
 ## Who goes all-in
 
@@ -47,9 +47,10 @@ with AA through 99 and A-K, and folds its 4-bet bluffs.
 {"file": "cash-6max-100bb.json", "chart": "vs-4bet-BB-vs-BTN"}
 ```
 
-Facing the 4-bet, the big blind goes all-in with AA, KK and A-K; QQ mixes between calling and
-all-in. A few small hands also go all-in in this approximate model. Click 44: its all-in and
-call EVs are inside each other's sampling margins, so the model can't tell them apart. Don't
+Facing the 4-bet, the big blind goes all-in with AA, KK, QQ and A-K suited; A-K offsuit mixes
+between calling and all-in. A few weaker hands also go all-in in this approximate model. Click
+A8s: its all-in and call EVs are inside each other's sampling margins, so the model can't tell
+them apart. Don't
 copy edge hands from an approximate chart.
 
 ```callout key
@@ -62,12 +63,12 @@ hands that are happy to get it all in should continue.
 You 4-bet the button with J♠J♦ and the big blind goes all-in.
 
 1. **Price:** {{calc 77 / 200.5 | pct1}}.
-2. **Their range:** mostly AA, KK and A-K, plus a few others.
+2. **Their range:** mostly AA, KK, QQ and A-K, plus a few others.
 3. **Your equity:** against QQ+ JJ has {{eq JsJd vs QQ+}}; against A-K {{eq JsJd vs AKs, AKo}}.
    Against only those two, it has {{eq JsJd vs QQ+, AKs, AKo}}: a little short of the price.
-4. **The model's range is wider.** The big blind's all-in range in the chart above also has
-   some smaller pairs (click 44), which JJ beats. The chart calls with JJ, and its call EV is
-   far above the fold EV.
+4. **The model's range is a little wider.** The big blind's all-in range in the chart above
+   also has a few weaker aces (click A8s), which JJ beats. The chart calls with JJ, but its call
+   EV is above the fold EV by less than the sampling margin: in this model it's a close call.
 
 Close calls like this depend on the exact range, so check what the opponent really shoves.
 

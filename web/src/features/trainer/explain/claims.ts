@@ -59,7 +59,7 @@ export type Claim =
   /** The reference is sampled: EVs carry standard errors. */
   | { kind: 'sampled'; largestStdError: number }
   /** Practice spot: shown for reference, not graded. */
-  | { kind: 'practice'; reason: 'outOfBand'; bands?: OutOfBand[] }
+  | { kind: 'practice'; reason: 'outOfBand' | 'noBands'; bands?: OutOfBand[] }
   /** Postflop: how accurately the reference was solved. */
   | { kind: 'accuracy'; exploitabilityPct: number }
   /** Postflop: the hero reached this node with an action the solution doesn't take with this hand. */

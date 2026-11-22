@@ -63,7 +63,7 @@ typed.
 | 1.2 The 169 hands | 1326 combos; 13 pairs × 6, 78 suited × 4, 78 offsuit × 12; pair ≈ 5.9%, suited ≈ 23.5%, aces once per 221 hands; AK with an ace removed: 16 → 12; quiz KK with two kings out: 1 | calc + reasoning |
 | 1.3 Hand categories | set or better on the flop with a pair ≈ 11.8% (one minus C(48,3)/C(50,3)), "one flop in eight or nine"; AhKh vs 7c7d 47.9%, AhKd vs 7c7d 45.0% ("a few points"); Ad7h vs AcKs 26.7% | calc + engine; family descriptions are reasoning |
 | 1.4 Raise, don't limp | a limp can't win the blinds at once because the BB may check; worst-case raise to 2.5 bb breaks even at 2.5 ÷ (2.5 + 1.5) = 62.5% folds; EV widget numbers are labelled illustrative assumptions; OpenRange's tree has no limps | calc + reasoning; tree fact from DECISIONS (cash tree) and KNOWN_LIMITS |
-| 1.5 Open-raise ranges | raise share grows UTG < HJ < CO < BTN, BTN more than three times UTG; SB between CO and BTN; each seat keeps the previous range; HJ adds 66–44, CO adds A7s–A4s, 76s, 65s, 98s, BTN adds suited kings/queens and many offsuit hands; A9o folds UTG, raises CO and BTN; BTN in its sanity band, UTG/HJ/CO below; charts approximate | charts |
+| 1.5 Open-raise ranges | raise share grows UTG < HJ < CO < BTN, BTN about three times UTG; SB between CO and BTN; each seat keeps the previous range; UTG also opens a few suited aces and connectors (A5s, 76s, 65s); HJ adds 55, 44, A7s, A4s, 98s, J9s, T8s, 86s; CO adds A9o–A5o; BTN adds suited kings/queens and more offsuit hands; A9o folds UTG, raises CO and BTN; BTN in its sanity band, UTG/HJ/CO below; charts approximate (re-checked against the EQR v3 charts, D-086) | charts |
 | 1.6 Reading the grid | BB vs BTN has mixed cells; T9s mixes call and 3-bet; BTN facing a 3-bet has greyed hands and every one is a first-in fold; the trainer counts any action in the mix as correct | charts; grading rule from `grading.ts` (MIX_THRESHOLD) |
 
 ## Level 2 (2.1, 2.2, 2.4–2.8)
@@ -91,13 +91,13 @@ file's tree. Pot arithmetic is `{{calc}}`.
 
 | Lesson | Key claims | Method |
 |---|---|---|
-| 3.1 Defending | BB price vs a 2.5 bb BTN open 1.5 ÷ 5.5 = 27.3%; BB defends over half vs BTN, under half that vs UTG; BB 3-bets only TT+/AK vs UTG; BTN calls < 2% vs CO, SB < 5% vs BTN; K9o calls vs BTN, folds vs UTG | calc + charts; "calling invites squeezes" is reasoning |
-| 3.2 3-betting | AA, KK, QQ, A-K 3-bet in every facing-an-open chart; pure-bluff 3-bet to 10 needs 9 ÷ 13 = 69.2%; BTN vs CO 3-bets A5s, 76s, 65s, which BB vs BTN calls; BB calls A9s–A2s; BTN 3-bets at least four of them | calc + charts |
+| 3.1 Defending | BB price vs a 2.5 bb BTN open 1.5 ÷ 5.5 = 27.3%; BB defends over half vs BTN, under half that vs UTG; BB 3-bets vs UTG only 99+, A-K and a few two-broadway hands; BTN calls < 3% vs CO, SB < 5% vs BTN; K9o calls vs BTN, folds vs UTG | calc + charts; "calling invites squeezes" is reasoning |
+| 3.2 3-betting | AA, KK, QQ, A-K 3-bet in every facing-an-open chart; pure-bluff 3-bet to 10 needs 9 ÷ 13 = 69.2%; BTN vs CO 3-bets A4s, 98s, 76s, 54s, which BB vs BTN calls; BB vs BTN calls more than three times as often as it 3-bets | calc + charts |
 | 3.3 Facing 3-bets | BTN price vs 3-bet to 10: 7.5 ÷ 20.5 = 36.6%; UTG vs 3-bet to 7.5: 5 ÷ 16.5 = 30.3%; UTG, HJ and CO fold less to the BTN's 3-bet than to the BB's; BTN folds under half to the BB; AA/KK 4-bet; AJo calls | calc + charts |
-| 3.4 4-bets and 5-bets | pot 46.5 after a called 4-bet, 77 behind, SPR 1.7; all-in price 77 ÷ 200.5 = 38.4%; BTN calls the all-in with exactly AA–99 and A-K; BB all-in with AA, KK, A-K (over 60% of its all-in combos), QQ mixes, 44 all-in within EV noise; JJ 18.4% vs QQ+, 56.1% vs AK, 36.2% vs both (short of the price), yet the chart calls and call EV is clearly above fold | calc + engine + charts |
-| 3.5 Blind vs blind | SB opens 3 bb, over 30% of hands; BB price 2 ÷ 6 = 33.3% vs 27.3% against BTN; BB defends more vs SB and 3-bets 1.7–2.5× as often; K2o calls vs SB, folds vs BTN | calc + charts; position as the reason is reasoning |
-| 3.6 Squeezes | squeeze to 12.5 into 6; pure bluff needs 11.5 ÷ 17.5 = 65.7%; SB's calls vs BTN contain no AA, KK, QQ, AK; with a caller BB raises more and calls under half as often; KQo squeezes, clearly above calling | calc + charts |
-| 3.7 Calling vs raising | 77, KQo, KJs: 3-bet clearly above call for BTN vs CO; for over 80% of the hands BTN 3-bets there, 3-bet EV > call EV; BB vs BTN: A5s call clearly above 3-bet; BB fold EV −1 bb | charts |
+| 3.4 4-bets and 5-bets | pot 46.5 after a called 4-bet, 77 behind, SPR 1.7; all-in price 77 ÷ 200.5 = 38.4%; BTN calls the all-in with exactly AA–JJ, A-K, and 99 and 88 (which rarely reach it); BB all-in with AA, KK, QQ, A-K suited (AA, KK, A-K over 60% of its all-in combos), A-K offsuit mixes, A8s all-in within EV noise; JJ 18.4% vs QQ+, 56.1% vs AK, 36.2% vs both (short of the price); the chart calls, call EV above fold but within the sampling margin | calc + engine + charts |
+| 3.5 Blind vs blind | SB opens 3 bb, over 30% of hands; BB price 2 ÷ 6 = 33.3% vs 27.3% against BTN; BB defends more vs SB and 3-bets 1.7–2.5× as often; T7o calls vs SB, folds vs BTN | calc + charts; position as the reason is reasoning |
+| 3.6 Squeezes | squeeze to 12.5 into 6; pure bluff needs 11.5 ÷ 17.5 = 65.7%; SB's calls vs BTN contain no AA, KK, QQ, AK; with a caller BB raises more and calls under half as often; KQo squeezes most of the time and sometimes calls, squeeze EV ahead within the margin | calc + charts |
+| 3.7 Calling vs raising | 77, AJo, KJs: 3-bet clearly above call for BTN vs CO; for over 80% of the hands BTN 3-bets there, 3-bet EV > call EV; BB vs BTN: QJo call clearly above 3-bet; BB fold EV −1 bb | charts |
 
 ## Level 4
 
@@ -135,7 +135,7 @@ within 0.2–0.5 points, bettor EV within 0.01 bb). Other solver claims are in
 | 5.3 Bluff-to-value | bluff share and value : bluff ratio for a third, half, pot, twice pot (20%/4.0, 25%/3.0, 33.3%/2.0, 40%/1.5); with 2 air per value the engine follows the formula at every slider size; 12 value combos → 6 bluffs at a pot bet | calc + test |
 | 5.4 Polarized vs merged | small river bets merged, big polarized (4.9 tests); J♦T♦ is medium, bets a third every time and never big; K♥Q♦ is strong against this range and bets three quarters 50–80% | test (solver) |
 | 5.5 Blockers | on K♥9♥4♥7♣2♦ high-card hands with a heart bet over twice as often as those without, also at three quarters alone; Q♥J♣ bets more than Q♠J♣; on the dry river, zero-equity weak hands bluff more than weak hands with some showdown value | test (solver) |
-| 5.6 Mixing | mixing at indifference; frequencies far from theory after few iterations and settled after 3,000; the BB squeezes KQo over 90% and mixes T9s; the trainer counts any action in the mix as correct | test (engine, chart) + grading rule |
+| 5.6 Mixing | mixing at indifference; frequencies far from theory after few iterations and settled after 3,000; the BB squeezes KQo most of the time (over 60%) and mixes T9s; the trainer counts any action in the mix as correct | test (engine, chart) + grading rule |
 | 5.7 Exploitability | definition; the postflop drills widen the grading allowance by the solve's exploitability (`noiseFloorPct`); a caller locked at 40% (below the MDF) makes bluffing all air the best response; 1% of a 20 bb pot = 0.2 bb | test + code + calc |
 
 ## Level 6

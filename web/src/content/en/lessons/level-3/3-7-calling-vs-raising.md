@@ -36,7 +36,7 @@ margin; differences inside it are noise.
 {"file": "cash-6max-100bb.json", "chart": "vs-open-BTN-vs-CO"}
 ```
 
-Click 77, KQo or KJs: 3-betting is worth clearly more than calling. For most hands the button
+Click 77, AJo or KJs: 3-betting is worth clearly more than calling. For most hands the button
 plays here, the model's 3-bet EV is above its call EV, which is why it almost never calls.
 
 ## Where calling is right
@@ -46,7 +46,7 @@ plays here, the model's 3-bet EV is above its call EV, which is why it almost ne
 ```
 
 The big blind closes the action and gets a good price (lesson 3.1), so calling is its main
-defence. Click A5s: here a call is worth more than a 3-bet.
+defence. Click QJo: here a call is worth clearly more than a 3-bet.
 
 ```callout key
 Call where you close the action at a good price. Elsewhere, ask whether a raise or a fold beats

@@ -216,7 +216,7 @@ export function ChartsPage() {
                   <li key={b.seat}>{t('charts.bandRow', { seat: b.seat, measured: pct(b.measured, 1), low: pct(b.low, 0), high: pct(b.high, 0) })}</li>
                 ))}
               </ul>
-              <p className="mt-1">{t(doc.provenance.model?.name === 'eqr-v2' ? 'charts.bandNoteV2' : 'charts.bandNote')}</p>
+              <p className="mt-1">{typeof doc.provenance.model?.name === 'string' && doc.provenance.model.name !== 'eqr-v1' ? t('charts.bandNoteMeasured', { model: doc.provenance.model.name.toUpperCase().replace('-', ' ') }) : t('charts.bandNote')}</p>
             </div>
           )}
           {chart && (

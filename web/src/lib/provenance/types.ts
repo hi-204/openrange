@@ -59,6 +59,8 @@ export type ChartIndexEntry = {
   gitDirty: boolean | null;
   charts: number;
   outOfBand: boolean;
+  /** Has sanity bands and passes all of them (D-085). */
+  bandsPass?: boolean;
 };
 
 export async function loadJson<T>(path: string): Promise<T> {

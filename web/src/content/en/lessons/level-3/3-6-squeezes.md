@@ -58,7 +58,8 @@ The button opens, the small blind calls, and you hold K♦Q♣ (KQo) in the big 
 
 1. **Calling** makes a three-way pot out of position with a hand that is often dominated.
 2. **Squeezing** to 12.5 bb often wins 6 bb at once, and KQo is ahead of much of what calls.
-3. The chart squeezes. Click KQo to compare the EVs.
+3. The chart squeezes most of the time and sometimes calls. Click KQo to compare the EVs: the
+   squeeze is ahead, but by less than the sampling margin, so both are close in this model.
 
 ## Common mistakes
 

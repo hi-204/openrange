@@ -1,12 +1,14 @@
 // Post-session review of an imported hand (D-078): find a reference for each of the hero's
-// decisions. Exact heads-up push/fold decisions are graded; 6-max cash decisions get the
-// approximate chart as a practice reference (as in the trainer); everything else is shown as
-// "not graded" with the reason. Nothing is guessed.
+// decisions. Exact heads-up push/fold decisions are graded; 6-max cash decisions are graded
+// against the approximate chart when its file passes its sanity bands and are practice otherwise
+// (as in the trainer, D-085); everything else is shown as "not graded" with the reason. Nothing
+// is guessed.
 
 import { cellOf } from '../../lib/poker/hands';
 import type { ChartFile } from '../../lib/provenance/types';
 import { UNREACHED } from '../charts/ClassGrid';
 import { grade, type Grade } from '../trainer/grading';
+import { fileGraded } from '../trainer/preflop/deal';
 import type { Hand, HandAction } from './handHistory';
 
 export type Reference = { file: string; chart: string; graded: boolean };
@@ -116,7 +118,8 @@ export function reviewHand(hand: Hand, docs: Map<string, ChartFile>): Decision[]
     const chartSize = Number(/([\d.]+)$/.exec(chart.actions[chosen] ?? '')?.[1]);
     const sizeNote = action.to && Number.isFinite(chartSize) && Math.abs(action.to - chartSize) > 0.25 ? `you raised to ${action.to.toFixed(1)} bb; the chart's size is ${chartSize} bb` : undefined;
     const g = ev && ev[chosen] !== null ? grade({ ev, evStdError: chart.evStdError?.[k] ?? null, strategy, chosen, unit: 'bb' }) : undefined;
-    return [{ index, action, status: spot.graded ? 'graded' : 'practice', ref: spot, actions: chart.actions, strategy, ev: ev ?? undefined, chosen, grade: g, sizeNote }];
+    const graded = spot.graded || fileGraded(doc);
+    return [{ index, action, status: graded ? 'graded' : 'practice', ref: { ...spot, graded }, actions: chart.actions, strategy, ev: ev ?? undefined, chosen, grade: g, sizeNote }];
   });
 }
 

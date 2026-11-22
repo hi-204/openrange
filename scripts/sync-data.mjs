@@ -28,6 +28,8 @@ if (existsSync(charts)) {
       gitDirty: doc.provenance.gitDirty,
       charts: doc.charts.length,
       outOfBand: (doc.sanityBands ?? []).some((b) => !b.inBand),
+      // D-085: a cash file is graded only if it has sanity bands and passes all of them.
+      bandsPass: (doc.sanityBands ?? []).length > 0 && doc.sanityBands.every((b) => b.inBand),
     });
   }
 }

@@ -27,7 +27,7 @@ button. The share next to each action is the part of all starting hands that tak
 ```
 
 UTG has five players behind, so its [[range]] is the tightest: big and medium pairs, strong
-aces and the best broadway hands.
+aces and the best broadway hands, plus a few suited aces and suited connectors.
 
 ```widget chart
 {"file": "cash-6max-100bb.json", "chart": "first-in-HJ"}
@@ -38,14 +38,15 @@ aces and the best broadway hands.
 ```
 
 Each step keeps the previous range and adds hands at its edge. In these charts the hijack adds
-smaller pairs, and the cutoff adds suited aces and suited connectors.
+the small pairs 55 and 44, more suited aces and more suited connectors and one-gappers; the
+cutoff adds the offsuit aces from A9o down to A5o.
 
 ```widget chart
 {"file": "cash-6max-100bb.json", "chart": "first-in-BTN"}
 ```
 
-The button raises more than three times as many hands as UTG, adding many suited kings and
-queens and a lot of offsuit hands. Only two players are left to act, and the button will have
+The button raises about three times as many hands as UTG, adding many suited kings and queens
+and more offsuit hands. Only two players are left to act, and the button will have
 position on both after the flop.
 
 ## The small blind

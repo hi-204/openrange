@@ -2,6 +2,7 @@
 // reference and personality bots, with coaching Off / Review after each hand / Live hints, a
 // what-if branch from any of your decisions, all-in EV and a session report.
 
+import { fileGraded } from '../trainer/preflop/deal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { href } from '../../app/route';
 import { pct } from '../../lib/format';
@@ -87,7 +88,7 @@ function LiveHints({ state, docs, session, stacks, ante }: { state: GameState; d
           const doc = docs.get(spot.file);
           const chart = doc?.charts.find((c) => c.id === spot.chart);
           const k = doc ? doc.classes.indexOf(doc.classes[cellOf(hero.cards.join('')).index]!) : -1;
-          if (chart && k >= 0) lines.push(t(spot.graded ? 'session.hint.chart' : 'session.hint.chartPractice', { mix: chart.actions.map((a, i) => `${a} ${pct(chart.strategy[k]![i]!, 0)}`).join(', ') }));
+          if (chart && k >= 0) lines.push(t(spot.graded || fileGraded(doc!) ? 'session.hint.chart' : 'session.hint.chartPractice', { mix: chart.actions.map((a, i) => `${a} ${pct(chart.strategy[k]![i]!, 0)}`).join(', ') }));
         }
       } else if (!lines.length) lines.push(t('session.hint.noPostflop'));
       setRef(lines);

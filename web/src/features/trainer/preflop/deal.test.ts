@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { ChartFile, ChartIndexEntry } from '../../../lib/provenance/types';
 import { newFamily, review } from '../srs';
-import { candidates, deal, decisionKey, difficultyOf, drillSources, familyKey, mulberry32, randomCombo, UNREACHED, type Filters } from './deal';
+import { candidates, deal, decisionKey, difficultyOf, drillSources, familyKey, fileGraded, mulberry32, practiceReason, randomCombo, UNREACHED, type Filters } from './deal';
 
 const root = (p: string) => fileURLToPath(new URL(`../../../../../${p}`, import.meta.url));
 const load = (f: string) => JSON.parse(readFileSync(root(`data/charts/${f}`), 'utf8')) as ChartFile;
@@ -17,9 +17,19 @@ const docs = sources.map((source) => ({ source, doc: load(source.file) }));
 const all: Filters = { files, seats: [], scenarios: [], stackMin: 0, stackMax: 1000, difficulty: 'any' };
 
 describe('preflop dealing', () => {
-  it('grades push/fold and treats cash charts as practice', () => {
-    expect(sources.find((s) => s.family === 'cash-6max')!.graded).toBe(false);
+  it('grades push/fold always and a cash file only if it passes all its sanity bands (D-085)', () => {
     expect(sources.filter((s) => s.family !== 'cash-6max').every((s) => s.graded)).toBe(true);
+    const cash = { file: 'cash-6max-100bb.json', family: 'cash-6max', players: 6 } as ChartIndexEntry;
+    expect(drillSources([cash])[0]!.graded).toBe(false); // no band result: practice
+    expect(drillSources([{ ...cash, bandsPass: false }])[0]!.graded).toBe(false);
+    expect(drillSources([{ ...cash, bandsPass: true }])[0]!.graded).toBe(true);
+    const band = (inBand: boolean) => ({ seat: 'UTG', low: 0.14, high: 0.18, measured: 0.15, inBand });
+    expect(fileGraded({ family: 'cash-6max', sanityBands: [band(true), band(true)] })).toBe(true);
+    expect(fileGraded({ family: 'cash-6max', sanityBands: [band(true), band(false)] })).toBe(false);
+    expect(fileGraded({ family: 'cash-6max', sanityBands: [] })).toBe(false);
+    expect(fileGraded({ family: 'pushfold-hu' })).toBe(true);
+    expect(practiceReason({ sanityBands: [] })).toBe('noBands');
+    expect(practiceReason({ sanityBands: [band(false)] })).toBe('outOfBand');
   });
 
   it('groups decisions into families by decision and stack band', () => {

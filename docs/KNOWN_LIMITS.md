@@ -4,7 +4,7 @@ This is the honest list of what OpenRange does **not** do, does only approximate
 hasn't verified. The app links here from every approximation badge. If something is
 missing from this list, that is a bug.
 
-_Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are validated (docs/VALIDATION.md); the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v2) but early positions still open slightly less than the sanity bands (D-050), so they are practice only._
+_Status 2026-11-22, after the expansion: postflop solving and push/fold are validated (docs/VALIDATION.md); the trainer grades push/fold and postflop drills by EV loss; the cash-game charts use measured equity realization (EQR v3) but early positions still open slightly less than the sanity bands (D-086), so they are practice only._
 
 ## By design
 
@@ -42,12 +42,15 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
   class (not per combo), solved by sampling; CFR with 3+ players has no equilibrium
   guarantee. The reported best-response gain is a sampled estimate of single-decision
   deviations.
-- **6-max cash charts (EQR v2) are approximate and partly outside the sanity bands.** At 100 bb
-  the button opens 44.7% (band 40–50%). UTG, HJ and CO open 12.6 / 16.1 / 22.7%, about 1.5–2
-  points under their bands (D-050). Cash charts are not used for EV-graded drills.
+- **6-max cash charts (EQR v3) are approximate and partly outside the sanity bands.** At 100 bb
+  the button opens 41.2% (band 40–50%). UTG, HJ and CO open 13.7 / 17.6 / 23.6%, 0.3–0.4 points
+  under their bands (D-086; EQR v2 left them 1.4–1.9 points under). Cash charts are not used for
+  EV-graded drills. The 20, 40 and 60 bb files have no sanity bands at all.
   - **How realization is measured:** per hand class from OpenRange's own postflop solves
-    (D-048), on 60 flops with a one-size tree and no raises. A raise ablation found raises
-    change the factors little (D-049).
+    (D-048), on 60 flops with a one-size tree and no raises, at 100 bb only. A raise ablation
+    found raises change the factors little (D-049). EQR v3 measures flops with a UTG or HJ
+    player separately; two of those roles (the opener out of position against a cold caller,
+    and that caller) aren't measured and reuse the late-opener factors (D-085).
   - **Sampling error:** each factor has a standard error of about 0.04–0.10.
   - **Unstable role:** the button flatting a CO open is nearly empty in every round, so its
     factors are unstable.
@@ -69,8 +72,9 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **Preflop grading is per hand class.** The dealt combo shows real suits, but the charts
   (and so the grade) don't distinguish them.
 - **What gets graded:** heads-up push/fold (exact) and 3–6-handed push/fold (approximate,
-  with a sampling allowance, D-052). Cash charts are **practice only** (D-050): you see the
-  answer, but it isn't graded, counted in stats or scheduled.
+  with a sampling allowance, D-052). A cash chart file is graded only if it passes all its
+  sanity bands (D-085); none does at present, so cash charts are **practice only** (D-086): you
+  see the answer, but it isn't graded, counted in stats or scheduled.
 - **Explanations for 3–6-handed and cash spots** stop at the EVs, the mix and the sampling
   note. The pot-odds and shove breakdowns are only given heads-up, where they are exact.
 - **Postflop spots are a small fixed set.** The ranges and bet sizes are example inputs (one
@@ -113,7 +117,7 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 ## Lessons (M7)
 
 - **Preflop lessons teach from approximate charts.** Levels 1 and 3 read the 100 bb cash
-  charts, which are below their sanity bands for UTG, HJ and CO. The lessons say so, teach the
+  charts (EQR v3), which are just below their sanity bands for UTG, HJ and CO. The lessons say so, teach the
   aggregate patterns (who defends more, which sizes get more folds), and avoid edge hands. Every
   chart claim is pinned by `lessonCharts.test.ts`, so regenerating the charts flags any lesson
   text that stops being true.

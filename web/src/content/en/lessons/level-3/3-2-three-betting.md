@@ -42,15 +42,15 @@ when called, not the worst hands.
 ```
 
 The button against a cutoff open almost never calls, so its 3-bets include its value hands and
-also hands like A5s, 76s and 65s. Those hands are calls in the big blind's chart below, where
-calling is cheap; here they 3-bet or fold.
+also hands like A4s, 98s, 76s and 54s. Those hands are calls in the big blind's chart below,
+where calling is cheap; here they 3-bet or fold.
 
 ```widget chart
 {"file": "cash-6max-100bb.json", "chart": "vs-open-BB-vs-BTN"}
 ```
 
-The big blind can call cheaply, so its 3-bets are mostly strong hands. The suited aces from A9s
-down are calls here, though the button 3-bets many of them.
+The big blind can call cheaply, so it calls far more often than it 3-bets, and many hands the
+button 3-bets above are calls here.
 
 ```callout key
 Where calling is a good option, 3-bets are mostly strong hands. Where calling isn't, the 3-bet

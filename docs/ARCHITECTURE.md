@@ -196,8 +196,11 @@ re-solve them and must match bit for bit.
   own-reach-weighted best-response gain (D-044, D-045).
 - **EQR model** (`EqrModel`): v1 authored, hand-independent (D-046); it misses the late
   position sanity bands (D-047). v2 (`EqrModel::with_class_factors`) reads per-class factors
-  indexed [pot type][in position][aggressor][class] from `data/eqr/eqr-v2.json`.
-- **EQR calibration** (`solver-cli calibrate-eqr`, D-048/D-049): solves four 100 bb lines from
+  indexed [pot type][in position][aggressor][class] from `data/eqr/eqr-v2.json`; v3
+  (`with_opener_groups`, D-085) adds an `early_factors` table used on flops with a UTG or HJ
+  player, from `data/eqr/eqr-v3.json` (the committed charts use v3, D-086).
+- **EQR calibration** (`solver-cli calibrate-eqr`, D-048/D-049; `--model v3` adds four lines
+  against UTG/HJ openers, D-085): solves four 100 bb lines from
   a chart file on 60 seeded flops with the postflop solver; factor = Σ pot share ÷ Σ equity
   per class, with probe hands for classes the chart doesn't play and jackknife errors.
   Rounds feed each chart back as the next input (D-050).

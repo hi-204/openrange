@@ -62,7 +62,7 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 | Item | Status | Notes |
 |---|---|---|
 | Audit and test baseline | done | This file. |
-| Chart calibration table, diagnosis, recalibration | partial | EQR v2 is already measured from our own postflop solves (D-048–D-050). Bands exist only for 100 bb first-in. The factors are measured against BTN/CO openers and reused against UTG/HJ: the main suspect. |
+| Chart calibration table, diagnosis, recalibration | done (Phase 0) | EQR v3 measures realization against UTG/HJ openers too (D-085). Result (D-086): the early seats are 0.3–0.4 points under their bands (were 1.4–1.9), so cash stays practice; the grading rule is data-driven, and the round-by-round table is in D-086. |
 | Plain-English reason on out-of-band charts | done | Added in Phase 0: the coach quotes each missed band ("UTG opens 12.6% of hands in this chart set; the sanity check expects 14 to 18%"), checked against the file by the claim checker. |
 | CI on Linux with determinism | done | Green on Windows and Linux; goldens check bit-identical results. |
 | 133,784,560-hand test, validation, backup | done | All pass. A browser test of export → delete → import was added in Phase 0. |
@@ -165,5 +165,6 @@ regeneration and report land as soon as it finishes (recorded in DECISIONS).
 
 ## Status after the expansion
 
-Phases 1–7 are done (see the "(Phase n)" notes above). Phase 0's chart recalibration (EQR v3,
-D-085) was still running when Phase 7 finished; its outcome is D-086.
+Phases 0–7 are done (see the "(Phase n)" notes above). Phase 0's chart recalibration (EQR v3,
+D-085) finished after Phase 7: the early seats moved from 1.4–1.9 to 0.3–0.4 points under their
+bands, so the cash charts stay practice only (D-086).

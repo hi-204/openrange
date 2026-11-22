@@ -38,7 +38,7 @@ after it before the flop, so a call can't be raised.
 
 Compare the legends. Against the button's wide range, the big blind defends (calls or 3-bets)
 more than half of its hands. Against UTG's tight range it defends less than half as often, and
-it 3-bets only big pairs and A-K.
+it 3-bets only pairs from 99 up, A-K and a few hands with two broadway cards.
 
 ## Seats with players behind
 

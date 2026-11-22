@@ -51,7 +51,7 @@ export function renderClaim(c: Claim): string[] {
     case 'sampled':
       return [t('trainer.sampled', { se: c.largestStdError.toFixed(2) })];
     case 'practice':
-      return [t('trainer.practice'), ...(c.bands ?? []).map(bandText)];
+      return [t(c.reason === 'noBands' ? 'trainer.practice.noBands' : 'trainer.practice'), ...(c.bands ?? []).map(bandText)];
     case 'callMath': {
       const key: MessageKey = c.verdict === 'continue' ? 'trainer.callMath.continue' : c.verdict === 'fold' ? 'trainer.callMath.fold' : 'trainer.callMath.even';
       const out = [

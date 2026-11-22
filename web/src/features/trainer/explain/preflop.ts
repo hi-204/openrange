@@ -17,6 +17,8 @@ export type PreflopContext = {
   headsUp?: { stack: number; role: 'shove' | 'call'; matchup: MatchupRow[] };
   /** For practice charts: the sanity bands their file misses. */
   outOfBand?: OutOfBand[];
+  /** For practice charts: why they aren't graded (default: outside their bands). */
+  practiceReason?: 'outOfBand' | 'noBands';
 };
 
 /**
@@ -30,7 +32,7 @@ const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 export function preflopClaims(ctx: PreflopContext): Claim[] {
   const claims: Claim[] = [];
   const { actions, ev, evStdError: se, strategy, grade } = ctx;
-  if (!grade) claims.push({ kind: 'practice', reason: 'outOfBand', ...(ctx.outOfBand?.length ? { bands: ctx.outOfBand } : {}) });
+  if (!grade) claims.push({ kind: 'practice', reason: ctx.practiceReason ?? 'outOfBand', ...(ctx.outOfBand?.length ? { bands: ctx.outOfBand } : {}) });
   else
     claims.push({
       kind: 'verdict',

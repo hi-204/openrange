@@ -2,7 +2,7 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
-## 2026-11-21 — Expansion pass: Phases 1–7 done; Phase 0's recalibration still running
+## 2026-11-22 — Expansion pass done (Phases 0–7)
 
 Prompt: `claude_code_expansion_prompt.md` (additive expansion). Gap list and status: docs/AUDIT.md.
 
@@ -28,18 +28,11 @@ Prompt: `claude_code_expansion_prompt.md` (additive expansion). Gap list and sta
 - **Tests:** Vitest 271, Rust (incl. bounties), Playwright 102 (accessibility on every new
   screen), visual 6/6, `npm run check` passing; screenshots regenerated after each phase.
 
-**In progress:** EQR v3 recalibration (D-085): `bash target/eqr-v3/run.sh`, log
-`target/eqr-v3/run.log`, about 4.5 hours per round (three rounds) on this machine. When it
-finishes:
-1. Compare the round-3 100 bb first-in frequencies with the bands.
-2. Copy `target/eqr-v3/eqr-v3-r3.json` to `data/eqr/eqr-v3.json` and `target/eqr-v3/final/*.json`
-   to `data/charts/`.
-3. Apply D-085's grading rule (`drillSources` in `trainer/preflop/deal.ts` grades cash files only
-   if they have bands and all pass) and the Charts page note (it checks `model.name === 'eqr-v2'`).
-4. Regenerate the flop report from the new charts (`solver-cli report`); the advantage drill and
-   the reports read it.
-5. validate.rs reads `data/eqr/eqr-v2.json`: add the v3 file; regenerate VALIDATION.md.
-6. Record D-086 (with the real run time), update KNOWN_LIMITS (cash charts), run everything, push.
+**Phase 0 recalibration (D-086):** done. EQR v3 ran its three rounds; at the committed charts'
+solver settings the 100 bb early seats are 0.3–0.4 points under their bands (v2: 1.4–1.9), so the
+cash charts stay practice only under D-085's rule, which is now data-driven (`bandsPass` in the
+chart index). New charts and factors committed, lessons re-checked (eight claims re-derived),
+flop report and VALIDATION.md regenerated, generator provenance records iteration counts.
 
 ## 2026-10-25 — M10 done: version 1.0 (offline, accessibility, performance, guide, release)
 

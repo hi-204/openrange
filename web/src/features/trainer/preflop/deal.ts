@@ -9,9 +9,18 @@ export const UNREACHED = 0.005;
 
 export type DrillSource = { file: string; family: string; players: number; graded: boolean };
 
-/** Cash charts are practice only (D-050, D-051); everything else in the library is graded. */
+/** D-085: has sanity bands and passes every one. */
+export const bandsPass = (bands: { inBand: boolean }[] | undefined) => !!bands?.length && bands.every((b) => b.inBand);
+
+/** Whether a chart file grades answers: exact push/fold always; a cash file only if it passes its sanity bands (D-085). */
+export const fileGraded = (doc: Pick<ChartFile, 'family' | 'sanityBands'>) => doc.family !== 'cash-6max' || bandsPass(doc.sanityBands);
+
+/** Why a practice file isn't graded: it misses bands, or its depth has none. */
+export const practiceReason = (doc: Pick<ChartFile, 'sanityBands'>): 'outOfBand' | 'noBands' => (doc.sanityBands?.length ? 'outOfBand' : 'noBands');
+
+/** Exact push/fold files are graded; cash files only when they pass their sanity bands (D-085). */
 export function drillSources(index: ChartIndexEntry[]): DrillSource[] {
-  return index.map((e) => ({ file: e.file, family: e.family, players: e.players, graded: e.family !== 'cash-6max' }));
+  return index.map((e) => ({ file: e.file, family: e.family, players: e.players, graded: e.family !== 'cash-6max' || e.bandsPass === true }));
 }
 
 export type Difficulty = 'any' | 'easy' | 'medium' | 'hard';

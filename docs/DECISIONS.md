@@ -1192,3 +1192,53 @@ Facing a 3-bet or more, the LAG plays the reference move. Its leak text now says
 a wide range", and the exploit adds 4-betting strong hands for value. A unit test checks the
 3-bet still happens and the 4-bet and 5-bet don't. No test was loosened.
 
+### D-086 · EQR v3 outcome: closer, still under the bands; cash charts stay practice
+**Context:** D-085 fixed the protocol (three rounds, round 3 final, no tuning toward the bands)
+and the grading rule before the run.
+**Run (this machine, 12 cores, 8 solves at a time):** 480 flop solves per round, every one under
+1% of the pot (worst 0.996%). Round 1 took 4.2 hours and round 3 3.8 hours. Round 2 took 14.6
+hours on the clock, most of it with the PC asleep or the run paused; its solving time was about
+the same as the other rounds. `scripts/calibrate-eqr-v3.sh` reproduces it; the intermediate
+rounds stay in `target/`.
+
+| 100 bb first-in | Band | v2 (committed) | Round 1 | Round 2 | Round 3 | Final (4M iterations) |
+|---|---|---|---|---|---|---|
+| UTG | 14–18% | 12.6% | 13.4% | 14.1% | 14.8% | 13.7% |
+| HJ | 18–22% | 16.1% | 16.7% | 17.5% | 18.0% | 17.6% |
+| CO | 24–29% | 22.7% | 24.7% | 23.0% | 24.5% | 23.6% |
+| BTN | 40–50% | 44.7% | 43.6% | 47.2% | 42.9% | 41.2% |
+
+The round columns come from the calibration's own chart runs (2M iterations, the command's
+default).
+**Iteration count (decided before seeing the result it applies to):** the first set of final
+charts also used the defaults (2M iterations, 2M evaluation samples). It passed all four bands
+(15.1 / 18.1 / 24.3 / 42.8%), but its best-response gains reached 0.031 bb and the ranges were
+visibly noisy (for example, UTG opened T9s and the hijack only half the time). The committed v2
+charts were made with 4M iterations and 1M samples; the run script had left those flags out,
+and the chart provenance didn't record them, which is how it was missed. Before generating
+anything else, the final charts were set to the same settings as the committed ones (4M / 1M),
+whatever they showed. At 4M iterations every seat's best-response gain is at or below zero
+(a sampled estimate), and UTG, HJ and CO miss their bands by 0.3–0.4 points. The 2M pass came
+from solver noise, not the model, so it isn't used.
+**Outcome:** EQR v3 closes most of the gap left by v2 (1.4–1.9 points under; now 0.3–0.4), but
+UTG, HJ and CO are still under their bands. Under D-085's rule the cash charts stay practice
+only, with the measured numbers and bands in the message. The 20, 40 and 60 bb files have no
+bands and are practice at any result; the trainer now says that separately.
+**What changed:**
+- `data/eqr/eqr-v3.json` and the four cash chart files (made from the committed factors file;
+  regenerating them gives identical charts). `eqr-v2.json` stays for the record.
+- The grading rule is now in the data path instead of hard-coded: the chart index records
+  whether a file passes its bands (`bandsPass`), and the trainer, hand review and live hints
+  grade a cash file only then. A future file that passes is graded with no code change.
+- Chart provenance records the iteration and sample counts in the generator string.
+- The validation suite checks both factor files (v3's reused roles are reported as such).
+- The flop report was regenerated from the new 100 bb charts.
+- **Lessons:** eight chart claims stopped holding with the new charts. Each was re-derived from
+  the data and the lesson text and its test changed together (lessons 1.5, 3.1, 3.2, 3.4, 3.5,
+  3.6, 3.7, 5.6; LESSON_REVIEW updated). Examples: the hijack now adds 55 and 44, not 66; the
+  lesson 3.5 example is T7o (K2o now folds against the small blind); in lesson 3.4, JJ's call
+  is above its fold EV by less than the sampling margin, and the lesson now says it's close. Two
+  thresholds moved with their wording: "the button almost never calls" a cutoff open is now
+  checked as under 3 in 100 (2.6%; it was under 2), and "more than three times as many hands"
+  became "about three times" (checked between 2.5 and 3.5; measured 3.01). No claim was kept
+  with a weaker test.

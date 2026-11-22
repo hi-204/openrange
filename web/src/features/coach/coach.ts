@@ -124,7 +124,7 @@ export function buildCoach(claims: Claim[], ctx: CoachContext): CoachCard {
   const why: string[] = [];
   let topic: { key: string; lesson: string } = ctx.drill === 'preflop' ? { key: 'ranges', lesson: '1.5' } : { key: 'postflop', lesson: '4.1' };
   if (off) why.push(t('coach.why.offPath', { share: pct(off.reachShare, 1) }));
-  if (practice) why.push(t('coach.why.practice'), ...(practice.bands ?? []).map(bandText));
+  if (practice) why.push(t(practice.reason === 'noBands' ? 'coach.why.practice.noBands' : 'coach.why.practice'), ...(practice.bands ?? []).map(bandText));
   if (call) {
     why.push(t('coach.why.price', { toCall: call.toCall.toFixed(1), pot: call.potAfterCall.toFixed(1), required: pct(call.required, 1) }));
     why.push(t('coach.why.equityVsShove', { equity: pct(call.equity, 1), verdict: t(call.equity >= call.required ? 'coach.enough' : 'coach.notEnough') }));
