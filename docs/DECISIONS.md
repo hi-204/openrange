@@ -1242,3 +1242,10 @@ bands and are practice at any result; the trainer now says that separately.
   checked as under 3 in 100 (2.6%; it was under 2), and "more than three times as many hands"
   became "about three times" (checked between 2.5 and 3.5; measured 3.01). No claim was kept
   with a weaker test.
+
+### D-096 · Version 1.1.0
+**Context:** the expansion (D-085–D-094), the LAG fix (D-095) and the EQR v3 charts (D-086) are
+done and pass CI; the published release was still 1.0.0.
+**Decision:** version 1.1.0 in both `package.json` files and the lock file, released the same
+way as 1.0.0 (D-083). Data from 1.0.0 upgrades in place (database versions 1 to 4 are tested);
+it stays per address, so running the new release on the same port keeps your progress.
