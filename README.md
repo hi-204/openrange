@@ -7,14 +7,21 @@ by expected value, and a course from the rules to solver study.
 > to any poker site. Hand-history import is for reviewing sessions *after* you play. Using
 > real-time assistance during play is against the rules of virtually every poker site.
 
-**Status:** version 1.0. It includes:
-- a validated solver with node-locking;
-- push/fold and cash charts;
-- a trainer graded by EV loss;
-- a course from Level 0 to solver study;
-- play mode, hand review and flop reports.
+**What's in it:**
+- **Course:** lessons from the rules (Level 0) to solver study (Level 7), each with a worked
+  hand, a widget and a quiz; every number in a lesson is computed, not typed.
+- **Train:** preflop, postflop and tournament (ICM) drills graded by EV loss, facing-aggression
+  situations, hand reading, range building, a spot library, and "Practice my weak spots".
+- **Math Lab:** pot odds, outs, equity, EV, implied odds, MDF, blockers, SPR and bet sizing, each
+  with the formula in plain English, a tool and a graded drill.
+- **Play:** cash games, sit-and-gos and a small multi-table tournament against reference and
+  personality bots, with optional coaching, hand review, what-if replays, a session report and a
+  journal.
+- **Solve:** a validated solver with node-locking, preflop charts, flop reports, chart
+  comparison, equity and ICM calculators.
+- **Stats:** progress by week, skill estimates, leaks with confidence intervals.
 
-It works offline and can be installed as an app.
+It works offline and can be installed as an app. Everything stays on your computer.
 
 **Documentation:**
 
@@ -23,48 +30,59 @@ It works offline and can be installed as an app.
 | [User guide](docs/USER_GUIDE.md) | How to use every page |
 | [Validation](docs/VALIDATION.md) | The generated proof that the solver is right |
 | [Known limits](docs/KNOWN_LIMITS.md) | What is approximate or missing |
-| [What to build next](docs/NEXT.md) | Where the project could go from here |
+| [Roadmap](docs/ROADMAP.md) and [what to build next](docs/NEXT.md) | Where the project could go |
+| [Contributing](CONTRIBUTING.md) | Rules and commands for working on the code |
 | [State log](docs/STATE.md) | Milestone history |
 
-## Run it (Windows, PowerShell)
+## Use it (Windows): download a release
 
-You only need **Node.js 22 or newer** (24 LTS recommended). Download the LTS installer from
-<https://nodejs.org>, or in PowerShell:
+The easiest way: no project code and no build.
 
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
+1. Install **Node.js** (the LTS version) from <https://nodejs.org> if you don't have it, or in
+   PowerShell: `winget install OpenJS.NodeJS.LTS`.
+2. Open the repository's **Releases** page on GitHub (the "Releases" link on the right of the main
+   page) and download the latest `openrange-<version>.zip` under "Assets".
+3. Unzip it anywhere and double-click **`start.cmd`**. Your browser opens
+   <http://localhost:8080>; keep the black window open while you use OpenRange.
 
-Open a **new** PowerShell window (so it sees Node), go to the project folder, and run:
+After the first visit it also works offline. To install it as an app, click the install icon at
+the right of the browser's address bar (Edge and Chrome both offer it). Elsewhere than Windows,
+run `node serve.mjs --open` in the unzipped folder. Use the same address each time: your progress
+is saved per address (Settings → Data → Export makes a backup).
 
-```powershell
-cd C:\Users\aless\openrange
-npm install
-npm run dev
-```
+## Run it from the code
 
-Then open <http://localhost:5173>. Stop the server with `Ctrl+C`. The first time, a short
-welcome screen asks how much poker you know; you can skip it.
+For changing the code, or to run the very latest version.
+
+1. **Get the code:** on GitHub press **Code → Download ZIP** and unzip it, or clone it with Git:
+   ```powershell
+   git clone https://github.com/hi-204/openrange.git
+   ```
+2. **Install the libraries** OpenRange is built on (React, Vite and others). `npm install` reads
+   their list from `package.json` and downloads them into a `node_modules` folder; you only need
+   to run it once (and again if the list changes). Open a **new** PowerShell window, go to the
+   folder and run:
+   ```powershell
+   cd <the folder you unzipped or cloned>
+   npm install
+   ```
+3. **Start it:**
+   ```powershell
+   npm run dev
+   ```
+   Then open <http://localhost:5173>. Stop it with `Ctrl+C`. The development server doesn't save
+   the app for offline use.
 
 To look at the app without running it, open the screenshots in `docs/screenshots/`.
 
-## Run the release (no install or build)
+## Build your own release zip
 
-A release is a folder with the built app and a tiny local server; it needs only Node.js.
+```powershell
+npm run release
+```
 
-1. Make one with `npm run release`. It writes `release/openrange-1.0.0/` and
-   `release/openrange-1.0.0.zip`. Or unzip a release someone gave you.
-2. In the folder, double-click **`start.cmd`**. Or, in PowerShell:
-   ```powershell
-   cd C:\Users\aless\openrange\release\openrange-1.0.0
-   node serve.mjs --open
-   ```
-3. Your browser opens <http://localhost:8080>. Keep the window open while you use OpenRange.
-   To use another port, add `--port 8090`.
-
-**Offline and install:** after the first visit to a release (or to `npm run preview`),
-OpenRange works without a network. Home says "Saved for offline use" when it is ready. To
-install it as an app, click the install icon at the right of the address bar, or look for "Install" in the browser's menu (Edge and Chrome both offer it). The dev server (`npm run dev`) never caches.
+It builds the app and writes `release/openrange-<version>/` (with `start.cmd`) and a zip next to
+it. `npm run preview` serves the last production build at <http://localhost:4173>.
 
 Rust is **not** needed to run the app: the compiled solver (WebAssembly) is included in
 `web/public/wasm/`.

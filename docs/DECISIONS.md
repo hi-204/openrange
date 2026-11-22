@@ -1167,3 +1167,17 @@ versioned backups already existed.
   test builds a version-1 database with the raw IndexedDB API and checks the current app reads its
   answers and settings and can write to the new tables. Settings saved before a field existed get
   its default (tested for the new goals). Imports accept every export schema (1–4).
+
+### D-094 · Phase 7: docs for the expansion, hand of the day, review inbox, roadmap
+**Context:** Phase 7 of the expansion: polish, docs and the "your own ideas" list. Performance,
+accessibility, offline and error handling were done in M10; the new screens were added to the
+accessibility checks phase by phase, and the performance budgets still pass.
+**Decision:**
+- **README** rewritten around three routes: download a release, run from the code (with what
+  `npm install` does), build your own zip; no paths specific to one computer.
+- **CONTRIBUTING.md** (the rules and commands) and an updated ARCHITECTURE web section.
+- **ROADMAP.md:** ideas with rationale, effort and risk. Two high-value, low-risk ones are built:
+  - **Hand of the day** (Home): one exact heads-up push/fold decision per calendar day, picked by
+    the date, graded by the chart's EVs; answered once (remembered in this browser).
+  - **Review inbox** (Stats): the spot families the scheduler says are due, with one tap to review
+    the preflop ones and links to the postflop spots.

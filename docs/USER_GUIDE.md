@@ -275,6 +275,9 @@ payouts, ICM.
 - **Leaks:** a group is only called a leak when its interval clearly separates from the rest of
   your answers.
 
+**Hand of the day** (Home): one push/fold decision from the exact charts, new every day.
+**Review inbox** (Stats): the spots due for review, and a button to review them.
+
 **Progress** (top of Stats): this week's numbers and whether you're clearly better or worse than
 last week, an eight-week trend, skill estimates per topic (with how sure they are), milestones, and
 optional weekly goals (no streaks). In the preflop drill's filters, difficulty **Auto** adjusts to

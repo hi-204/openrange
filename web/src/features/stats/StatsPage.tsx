@@ -5,6 +5,7 @@ import { LESSONS } from '../lessons/content';
 import { ReviewPage } from '../trainer/ReviewPage';
 import { LAB_DRILLS } from '../lab/labDrills';
 import { ProgressPanel } from './ProgressPanel';
+import { ReviewInbox } from './ReviewInbox';
 import { WeakSession } from './WeakSession';
 import { MATH_DRILLS } from '../trainer/math/drills';
 import { MIN_SAMPLE, wilson } from '../trainer/stats';
@@ -54,6 +55,7 @@ export function StatsPage() {
         </div>
       </section>
       <ProgressPanel />
+      <ReviewInbox />
       <WeakSession />
       <ReviewPage />
     </div>

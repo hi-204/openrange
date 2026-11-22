@@ -256,33 +256,49 @@ diagnostics object with no personal data.
 
 ```
 web/src/
-  app/            routes, layout, theme, settings, About (study-tool statement)
+  app/            routes (hash router), layout, Home dashboard, error boundary
   features/
-    charts/       chart explorer, compare view, provenance badge
-    trainer/      drills, grading, explanations, SRS scheduler, stats
-    lessons/      lesson renderer, widgets, quizzes, glossary, placement, daily plan
-    workbench/    range painter, board picker, tree editor, node browser
-    play/         bots, table UI, hand replay
+    charts/       chart explorer, chart comparison maths, range images (PNG)
+    coach/        coaching cards built from computed claims
+    journal/      session goals and reflections (D-092)
+    lab/          Math Lab: topics, multi-part drills, calibration, solved-river panels (D-087)
+    lessons/      lesson renderer, widgets, quizzes, glossary, lint, placement, daily plan
+    library/      spot library: catalogue and filters (D-089)
+    notes/        study notes on spots (D-091)
+    onboarding/   first-run choices
+    play/         engine (up to 9 seats, side pots), bots and personalities, sessions,
+                  ICM reference, session report (D-079, D-090)
+    reports/      flop report viewer
     review/       hand-history import and grading
-    tools/        equity calculator, ICM calculator, variance simulator
+    settings/     settings page
+    solve/        Solve page tabs
+    solver/       workbench: spot form, spot files, node browser, locks, explain
+    stats/        Stats page: progress analytics, weak-spot sessions (D-089, D-093)
+    table/        poker table, cards, action bar
+    tools/        equity, push/fold, compare, ICM pages
+    trainer/      preflop / postflop / tournament / range / hand-reading / math drills,
+                  grading, explanations, SRS scheduler, stats, store
   lib/
-    wasm/         worker client, typed RPC
-    storage/      Dexie schema, export/import JSON
+    wasm/         worker client, typed RPC (protocol.ts)
     i18n/         t() + en.json catalog
-    provenance/   types + badge logic shared by all views
-    poker/        tiny display helpers only (card glyphs, formatting) — logic lives in Rust
-  workers/        solver.worker.ts, equity.worker.ts
+    provenance/   types and badge shared by all views
+    settings/     app settings (Zustand), normalisation of older saves
+    poker/        display helpers (cells, cards) — game logic lives in Rust or in features/
+    ui/           design-system components
+  workers/        solver worker
 ```
 
-- State: Zustand stores per feature; persistent data in Dexie (`settings`, `lessonProgress`,
-  `quizResults`, `srsCards`, `drillAttempts`, `notes`, `savedSpots`, `handHistories`).
-  Export/import is a single versioned JSON document.
+- **State:** Zustand for settings; persistent data in Dexie (`features/trainer/store.ts`),
+  database version 4: `answers`, `families` (SRS), `settings`, `lessons`, `math`, `placement`,
+  `notes`, `journal`. Versions only ever add tables, so upgrades keep data (tested from version 1
+  in the browser). Export/import is one versioned JSON document (`openrange.trainer/4`; imports
+  accept 1–4).
 - Data files from `data/` are copied into `web/public/data/` by a Node script before
   `dev`/`build` (that copy is git-ignored). Lessons are bundled via `import.meta.glob`.
-- Large data is stored gzip-compressed and decoded with the browser's built-in
-  `DecompressionStream` (no extra dependency).
-- No code path may call `fetch` on a non-same-origin URL; a Vitest check scans the bundle
-  and a Playwright test asserts no external requests.
+- No code path may call `fetch` on a non-same-origin URL; the CSP blocks it and a Playwright test
+  asserts no external requests.
+- Solves in drills and panels run in their own workers (`SolverClient`), cancelled when the page
+  unmounts.
 
 ## 6. Data formats
 

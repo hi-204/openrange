@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DailyCard } from '../features/daily/DailyCard';
 import pkg from '../../package.json';
 import type { Lesson } from '../features/lessons/lessonMeta';
 import { drillHref } from '../features/lessons/links';
@@ -186,6 +187,7 @@ export function HomePage() {
         </div>
       </div>
 
+      <DailyCard />
       <section aria-labelledby="about-heading" className="space-y-2 text-sm leading-relaxed text-ink-muted">
         <h2 id="about-heading" className="text-base font-medium text-ink">
           {t('about.heading')}

@@ -154,7 +154,7 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 | Item | Status | Notes |
 |---|---|---|
 | Performance, accessibility, errors, offline | done | M10. |
-| Docs | partial | Missing: CONTRIBUTING.md; README predates the GitHub release. |
+| Docs | done (Phase 7) | README rewritten, CONTRIBUTING.md, ARCHITECTURE updated, ROADMAP.md. |
 | Smoke tests and screenshots | done | |
 
 ## Order of work
@@ -162,3 +162,8 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 Phases in the prompt's order. One adjustment: the chart recalibration is several hours of
 computer time, so it runs in the background while later work continues; its results, chart
 regeneration and report land as soon as it finishes (recorded in DECISIONS).
+
+## Status after the expansion
+
+Phases 1–7 are done (see the "(Phase n)" notes above). Phase 0's chart recalibration (EQR v3,
+D-085) was still running when Phase 7 finished; its outcome is D-086.
