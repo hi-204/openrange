@@ -2,6 +2,33 @@
 
 Newest entry first. Each entry: date, milestone, what works, what doesn't, next step.
 
+## 2026-11-21 — Expansion pass: Phases 0–2 done (Phase 0's recalibration still running)
+
+Prompt: `claude_code_expansion_prompt.md` (additive expansion). Gap list: docs/AUDIT.md.
+
+**Works (verified):**
+- **Phase 0:** audit and test baseline (AUDIT.md); the coach quotes each missed sanity band with
+  its numbers; backup export → delete → import browser test; EQR v3 support (opener groups,
+  D-085). Toolchain repair: `rustdoc.exe` had vanished from the pinned Rust (reinstalled).
+- **Phase 1 (D-087):** Math Lab (`#/lab`), nine topics plus range advantage; multi-part drills
+  with engine-checked answer keys; calibration panel; MDF/bluff share vs a solved river; sizing
+  trainer.
+- **Phase 2 (D-089):** spot library, facing-aggression situations, EV given up per hand, range
+  drill EV difference, hand reading, tournament push/fold with ICM vs chips and PKO (approximate,
+  new optional `bounties` in the push/fold engine), weak-spot sessions, challenge sets.
+- **D-088:** focus returns to the top after onboarding (current Edge left it nowhere).
+- **Tests:** Vitest 238, Rust (incl. bounty test), Playwright 84, `npm run check` passing.
+
+**In progress:** EQR v3 recalibration (D-085): `bash target/eqr-v3/run.sh` (log
+`target/eqr-v3/run.log`), three rounds then final charts in `target/eqr-v3/final/`. When it
+finishes: compare bands, copy `eqr-v3-r3.json` to `data/eqr/eqr-v3.json` and the final charts to
+`data/charts/`, apply the grading rule in D-085 (cash charts graded only if their file has bands
+and all pass), regenerate the flop report from the new charts (`solver-cli report`; the advantage
+drill and reports read it), update VALIDATION (validate.rs reads `eqr-v2.json`: add v3), record
+D-086, push.
+
+**Next:** Phase 3 (full playing modes), then Phases 4–7 per the prompt.
+
 ## 2026-10-25 — M10 done: version 1.0 (offline, accessibility, performance, guide, release)
 
 **Works (verified):**
