@@ -29,7 +29,9 @@ export const POSTFLOP: Record<Personality, RuleParams> = {
 export const PREFLOP = {
   nit: { foldBelow: 0.58, passiveBelow: 0.7 },
   station: { callAbove: 0.38, flatInsteadOfRaise: 0.7 },
-  lag: { raiseAbove: 0.45 },
+  // Raises wide only when opening or 3-betting (at most one raise before it); facing a 3-bet or
+  // more it plays the reference move, so it never re-raises to all-in with a weak hand (D-095).
+  lag: { raiseAbove: 0.45, maxRaisesBefore: 1 },
   overfolder: { foldToRaiseBelow: 0.62 },
 } as const;
 
@@ -55,7 +57,8 @@ export function preflopDeviation(p: Personality, s: GameState, base: Move, e: nu
     if (isAggressive(base) && facingRaise && rnd() < PREFLOP.station.flatInsteadOfRaise) return { move: { kind: 'call' }, note: 'flats instead of re-raising' };
   }
   if (p === 'lag') {
-    if ((base.kind === 'fold' || base.kind === 'check' || base.kind === 'call') && l.minTo !== null && e >= PREFLOP.lag.raiseAbove) return { move: standardRaise(s), note: 'raises a wide range' };
+    const raises = s.history.filter((h) => h.street === 'preflop' && (h.kind === 'raise' || h.kind === 'bet')).length;
+    if (raises <= PREFLOP.lag.maxRaisesBefore && (base.kind === 'fold' || base.kind === 'check' || base.kind === 'call') && l.minTo !== null && e >= PREFLOP.lag.raiseAbove) return { move: standardRaise(s), note: 'raises a wide range' };
   }
   if (p === 'overfolder') {
     if (facingRaise && base.kind !== 'fold' && e < PREFLOP.overfolder.foldToRaiseBelow) return { move: { kind: 'fold' }, note: 'folds too often to raises' };

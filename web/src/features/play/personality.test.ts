@@ -27,6 +27,18 @@ describe('personality bots', () => {
     expect(preflopDeviation('nit', s, { kind: 'raise', to: 9 }, 0.8, rnd)).toBeNull();
   });
 
+  it('the LAG opens and 3-bets wide but does not 4-bet or 5-bet a weak hand (D-095)', () => {
+    const rnd = mulberry32(2);
+    // Facing one raise: it 3-bets a hand the reference folds.
+    expect(preflopDeviation('lag', facingRaise(), { kind: 'fold' }, 0.5, rnd)?.move.kind).toBe('raise');
+    // Facing a 3-bet: it plays the reference move.
+    const threeBet = act(facingRaise(), { kind: 'raise', to: 9 });
+    expect(preflopDeviation('lag', threeBet, { kind: 'fold' }, 0.5, rnd)).toBeNull();
+    // Facing a 4-bet: the same, so a raising war never ends all-in with a weak hand.
+    const fourBet = act(threeBet, { kind: 'raise', to: 27 });
+    expect(preflopDeviation('lag', fourBet, { kind: 'fold' }, 0.5, rnd)).toBeNull();
+  });
+
   it('postflop settings: the station calls lighter and the over-folder folds more than the reference', async () => {
     // A flop where the bot faces a pot-sized bet with 40% equity (price 1/3): the reference
     // calls (40% ≥ 33% + 5%), the over-folder folds (needs 33% + 20%), the station calls.

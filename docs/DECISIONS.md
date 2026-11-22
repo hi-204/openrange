@@ -1181,3 +1181,14 @@ accessibility checks phase by phase, and the performance budgets still pass.
     the date, graded by the chart's EVs; answered once (remembered in this browser).
   - **Review inbox** (Stats): the spot families the scheduler says are due, with one tap to review
     the preflop ones and links to the postflop spots.
+
+### D-095 · The LAG bot stops adding raises after the 3-bet
+**Context:** The LAG's preflop deviation (D-090) turned any fold, check or call into a raise with a
+hand that has at least the threshold equity against one random hand, however many raises came
+before. Against a re-raise it re-raised again, so deep raising wars ended all-in with hands like
+K4o, which plays as a maniac rather than a loose-aggressive player (reported in play).
+**Decision:** The deviation applies only with at most one raise before it (opening or 3-betting).
+Facing a 3-bet or more, the LAG plays the reference move. Its leak text now says "opens and 3-bets
+a wide range", and the exploit adds 4-betting strong hands for value. A unit test checks the
+3-bet still happens and the 4-bet and 5-bet don't. No test was loosened.
+
