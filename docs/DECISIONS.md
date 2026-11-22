@@ -1141,3 +1141,29 @@ phase adds what the prompt names as missing and corrects stale lesson text.
   Math Lab and Play sections.
 - **Responsible play** on the About section: not gambling advice, play only with money you can
   afford to lose, and take a break and seek support if it stops being fun.
+
+### D-093 · Progress: trends, weekly summary, skills, goals, adaptive difficulty, migrations
+**Context:** Phase 6 of the expansion. The Home dashboard, stats with intervals, leak reports and
+versioned backups already existed.
+**Decision:**
+- **Weekly numbers** (Monday to Sunday, local time) over eight weeks: graded answers, the share
+  Best or Acceptable with a 95% interval (only for weeks with at least 20 graded answers), math
+  problems, lessons finished and study days. **This week against last** is called a clear change
+  only when the two intervals don't overlap; otherwise "no clear change" or "not enough answers".
+- **Skill estimates** per topic (each math drill, preflop / postflop / tournament decisions, the
+  quizzes of each course level) need 15 attempts. Levels are a stated convention: "solid" when the
+  interval's low end is at least 80% right, "needs work" when its high end is under 60%, otherwise
+  "developing".
+- **Goals and milestones:** optional weekly goals for study days and answers, off by default and
+  without streaks; milestones (10, 100, 1,000 graded answers, finished course levels, equity
+  calibration ready) are listed quietly with their dates.
+- **Adaptive difficulty:** "Auto" in the preflop drill picks easy, medium or hard from the last 20
+  graded preflop answers (at least 85% Best or Acceptable: hard; at least 60%: medium; otherwise
+  easy; any difficulty below 10 answers) and says why.
+- **Range-read calibration:** hand-reading attempts are stored with their recall and precision;
+  after 15 the Stats page says whether you tend to paint ranges too wide or too narrow (a lean is
+  reported when the two differ by more than ten points).
+- **Migrations:** the database upgrades in place (Dexie versions 1 → 4 only add tables); a browser
+  test builds a version-1 database with the raw IndexedDB API and checks the current app reads its
+  answers and settings and can write to the new tables. Settings saved before a field existed get
+  its default (tested for the new goals). Imports accept every export schema (1–4).

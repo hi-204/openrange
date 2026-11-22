@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { AUTO_MIN, autoDifficulty } from '../../stats/progress';
 import { pct } from '../../../lib/format';
 import { t, type MessageKey } from '../../../lib/i18n';
 import { ProvenanceBadge } from '../../../lib/provenance/ProvenanceBadge';
@@ -19,7 +20,7 @@ import { Hints, SessionSummary, TimerBadge, useCountdown, useFamilies, useQuickA
 import { grade } from '../grading';
 import { handType } from '../session';
 import { useDrillKeys } from '../shortcuts';
-import { trainerStore, type TrainerSettings } from '../store';
+import { trainerStore, type AnswerRecord, type TrainerSettings } from '../store';
 import { candidates, deal, drillSources, mulberry32, scenarioOf, stackBand, type Candidate, type Dealt, type Difficulty, type Filters } from './deal';
 
 const SEATS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -62,6 +63,13 @@ export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: 
   const [showSummary, setShowSummary] = useState(false);
   const rnd = useMemo(() => mulberry32(Date.now() & 0x7fffffff), []);
   const ids = { min: useId(), max: useId(), difficulty: useId() };
+  // Adaptive difficulty (D-093): from the recent graded preflop answers in the store.
+  const [autoOn, setAutoOn] = useState(false);
+  const [recent, setRecent] = useState<AnswerRecord[]>([]);
+  useEffect(() => {
+    trainerStore().answers().then(setRecent).catch(() => undefined);
+  }, [session.length]);
+  const auto = useMemo(() => autoDifficulty(recent), [recent]);
 
   useEffect(() => {
     loadJson<ChartIndexEntry[]>('data/charts/index.json')
@@ -95,7 +103,7 @@ export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: 
   const pool = useMemo(() => {
     if (!filters || !ready) return null;
     const loaded = sources.filter((s) => docs.has(s.file)).map((source) => ({ source, doc: docs.get(source.file)! }));
-    const all = candidates(loaded, filters);
+    const all = candidates(loaded, { ...filters, difficulty: autoOn ? auto.difficulty : filters.difficulty });
     if (!onlyFamilies) return all;
     const weak = new Map<string, Candidate[]>([...all].filter(([k]) => onlyFamilies.includes(k)));
     return weak.size ? weak : all;
@@ -262,13 +270,28 @@ export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: 
         </div>
         <div>
           <label htmlFor={ids.difficulty} className="mb-1 block text-sm font-medium">{t('trainer.filters.difficulty')}</label>
-          <select id={ids.difficulty} className="field" value={filters.difficulty} onChange={(e) => setFilters({ ...filters, difficulty: e.target.value as Difficulty })}>
+          <select
+            id={ids.difficulty}
+            className="field"
+            value={autoOn ? 'auto' : filters.difficulty}
+            onChange={(e) => {
+              setAutoOn(e.target.value === 'auto');
+              if (e.target.value !== 'auto') setFilters({ ...filters, difficulty: e.target.value as Difficulty });
+            }}
+            data-testid="difficulty"
+          >
             {DIFFICULTIES.map((d) => (
               <option key={d} value={d}>
                 {t(`trainer.difficulty.${d}` as MessageKey)}
               </option>
             ))}
+            <option value="auto">{t('trainer.difficulty.auto')}</option>
           </select>
+          {autoOn && (
+            <p className="mt-1 text-xs text-ink-muted" data-testid="auto-difficulty">
+              {auto.share === null ? t('trainer.difficulty.autoWait', { n: auto.n, min: AUTO_MIN }) : t('trainer.difficulty.autoNow', { level: t(`trainer.difficulty.${auto.difficulty}` as MessageKey), n: auto.n, share: pct(auto.share, 0) })}
+            </p>
+          )}
         </div>
       </div>
       </Accordion>

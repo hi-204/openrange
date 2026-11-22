@@ -46,4 +46,10 @@ describe('settings', () => {
     await importAll(copy, JSON.parse(JSON.stringify(await exportAll(store))));
     expect(normalize(await copy.appSettings()).display.felt).toBe('navy');
   });
+
+  it('fills in weekly goals for settings saved before they existed (off by default)', () => {
+    const old = normalize({ mode: 'guided', display: { theme: 'dark' } });
+    expect(old.goals).toEqual({ enabled: false, studyDays: 3, answers: 50 });
+    expect(normalize({ goals: { enabled: true } }).goals).toEqual({ enabled: true, studyDays: 3, answers: 50 });
+  });
 });

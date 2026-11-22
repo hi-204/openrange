@@ -275,6 +275,11 @@ payouts, ICM.
 - **Leaks:** a group is only called a leak when its interval clearly separates from the rest of
   your answers.
 
+**Progress** (top of Stats): this week's numbers and whether you're clearly better or worse than
+last week, an eight-week trend, skill estimates per topic (with how sure they are), milestones, and
+optional weekly goals (no streaks). In the preflop drill's filters, difficulty **Auto** adjusts to
+your recent answers.
+
 **Your data** stays in this browser on this computer. Under Settings → Data:
 - **Export as JSON:** a backup of your answers, review schedule, lesson progress and settings;
 - **Import a JSON export:** restore it, here or on another computer;

@@ -45,6 +45,9 @@ export type MathAttempt = {
   /** Equity estimates (Math Lab): the learner's estimate and the exact equity, as shares. */
   estimate?: number;
   exact?: number;
+  /** Range reads (hand-reading drill, D-093): share of the range found, share of the painting right. */
+  recall?: number;
+  precision?: number;
 };
 
 /** A study note attached to a spot (D-091), e.g. key "chart:cash-6max-100bb.json:first-in-BTN". */

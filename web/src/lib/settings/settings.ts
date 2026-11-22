@@ -32,6 +32,8 @@ export type AppSettings = {
   coaching: { detail: 'simple' | 'standard' | 'detailed'; showMath: boolean; liveCoach: boolean };
   game: { tableSize: number; stack: number; gameType: 'cash' | 'tournament'; rake: { on: boolean; percent: number; capBb: number }; ante: number };
   solver: { algorithm: 'dcfr' | 'cfr+'; maxIterations: number; targetPct: number; memoryMb: number; simplify: boolean };
+  /** Optional weekly goals (D-093): off unless you turn them on; no streaks. */
+  goals: { enabled: boolean; studyDays: number; answers: number };
 };
 
 export const DEFAULTS: AppSettings = {
@@ -44,6 +46,7 @@ export const DEFAULTS: AppSettings = {
   coaching: { detail: 'standard', showMath: false, liveCoach: true },
   game: { tableSize: 6, stack: 100, gameType: 'cash', rake: { on: false, percent: 5, capBb: 3 }, ante: 0 },
   solver: { algorithm: 'dcfr', maxIterations: 1000, targetPct: 0.3, memoryMb: 1000, simplify: true },
+  goals: { enabled: false, studyDays: 3, answers: 50 },
 };
 
 export type Preset = 'beginner' | 'standard' | 'advanced';
@@ -73,6 +76,7 @@ export function normalize(raw: unknown): AppSettings {
     coaching: { ...DEFAULTS.coaching, ...(r.coaching ?? {}) },
     game: { ...DEFAULTS.game, ...(r.game ?? {}), rake: { ...DEFAULTS.game.rake, ...(r.game?.rake ?? {}) } },
     solver: { ...DEFAULTS.solver, ...(r.solver ?? {}) },
+    goals: { ...DEFAULTS.goals, ...(r.goals ?? {}) },
   };
 }
 

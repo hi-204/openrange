@@ -13,6 +13,7 @@ import { CardRow } from '../../table/Card';
 import { DRILL_SPOTS } from '../postflop/spots';
 import { mulberry32 } from '../preflop/deal';
 import { combosOfClass } from '../ranges/rangeScore';
+import { trainerStore } from '../store';
 import { READING_TASKS, readingTarget, scoreReading, type ReadingTarget } from './reading';
 
 const NAMES = Array.from({ length: 169 }, (_, i) => cellName(i));
@@ -132,7 +133,16 @@ export function HandReadingDrill() {
           )}
           <div className="flex gap-2">
             {!checked ? (
-              <button type="button" className="btn-primary" onClick={() => setChecked(true)}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  setChecked(true);
+                  const sc = scoreReading(target, picked);
+                  // Saved with the math attempts for range-read calibration (D-093).
+                  void trainerStore().addMath({ at: Date.now(), drill: 'reading', correct: sc.recall >= 0.7 && sc.precision >= 0.7, given: `${Math.round(sc.recall * 100)}/${Math.round(sc.precision * 100)}`, answer: '', recall: sc.recall, precision: sc.precision });
+                }}
+              >
                 {t('reading.check')}
               </button>
             ) : (

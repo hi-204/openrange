@@ -4,6 +4,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { LESSONS } from '../lessons/content';
 import { ReviewPage } from '../trainer/ReviewPage';
 import { LAB_DRILLS } from '../lab/labDrills';
+import { ProgressPanel } from './ProgressPanel';
 import { WeakSession } from './WeakSession';
 import { MATH_DRILLS } from '../trainer/math/drills';
 import { MIN_SAMPLE, wilson } from '../trainer/stats';
@@ -52,6 +53,7 @@ export function StatsPage() {
           )}
         </div>
       </section>
+      <ProgressPanel />
       <WeakSession />
       <ReviewPage />
     </div>

@@ -143,11 +143,11 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 | Item | Status | Notes |
 |---|---|---|
 | Home dashboard | done | Plan, continue, last 7 days, study days, recommended next. |
-| Stats by position, scenario, street, hand class | done | With intervals and minimum samples. Missing: drill type and trends over time. |
-| Goals, weekly summary, skill estimate per topic | missing | |
-| Adaptive difficulty | missing | |
-| Calibration tracking | missing | |
-| Backup with versioned schemas and migrations | partial | Database version 2 and export schema 2 (reads 1). Missing: a migration test suite. |
+| Stats by position, scenario, street, hand class | done | Plus drill type and weekly trends (Phase 6). |
+| Goals, weekly summary, skill estimate per topic | done (Phase 6) | Optional goals, milestones, week-on-week comparison, skills with intervals. |
+| Adaptive difficulty | done (Phase 6) | Preflop drill "Auto". |
+| Calibration tracking | done (Phase 6) | Equity estimates (Math Lab) and range reads (hand reading). |
+| Backup with versioned schemas and migrations | done (Phase 6) | Schemas 1–4 import; database upgrade from version 1 tested in the browser. |
 
 ### Phase 7: polish and release
 

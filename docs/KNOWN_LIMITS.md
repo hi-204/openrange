@@ -250,6 +250,18 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **The journal is a plain record:** it doesn't analyse your mood or tilt, and it is lost with
   the browser's data unless you export a backup.
 
+## Progress and analytics (expansion Phase 6)
+
+- **Skill levels and the automatic difficulty use conventions** (cut-offs stated on screen and in
+  D-093), not measured facts about learning.
+- **Trends are weekly and need 20 graded answers a week**; quieter weeks are left out of the trend
+  and the comparison.
+- **Skill estimates mix drill types with different references:** preflop accuracy includes
+  approximate-chart practice only when graded (exact push/fold), so its estimate covers those
+  spots.
+- **Migrations are tested from version 1 to 4 of the database**, and import accepts every export
+  schema; a downgrade (opening newer data in an older OpenRange) isn't supported.
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it

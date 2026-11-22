@@ -28,3 +28,17 @@ test('new lessons open, the journal keeps goals and reflections, guides and the 
   await page.goto('/');
   await expect(page.getByText("It isn't gambling advice")).toBeVisible();
 });
+
+test('Stats progress: week, trend, goals and skills; the preflop drill offers automatic difficulty', async ({ page }) => {
+  await open(page, '/#/stats');
+  await expect(page.getByTestId('progress-week')).toContainText('graded answers');
+  await expect(page.getByTestId('progress-trend')).toBeVisible();
+  await page.getByTestId('progress-goals').getByRole('switch', { name: 'Use weekly goals' }).click();
+  await expect(page.getByTestId('progress-goals')).toContainText('0 of 3 study days this week');
+  await expect(page.getByTestId('progress-skills')).toContainText('Skill estimates');
+  await page.goto('/#/train');
+  await page.getByTestId('preflop-filters').locator('summary').click();
+  await page.getByTestId('difficulty').selectOption('auto');
+  await expect(page.getByTestId('auto-difficulty')).toContainText('Auto: any difficulty until you have 10 graded answers');
+});
+
