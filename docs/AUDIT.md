@@ -101,17 +101,17 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 
 | Item | Status | Notes |
 |---|---|---|
-| Cash game HU / 6-max / 9-max | partial | 2–6 players. Missing: 9-max, rebuys, blind levels, speed setting. |
-| Tournaments (SNG, small MTT simulation) | missing | |
-| Spot practice | missing | |
-| Solver-based bot | partial | Preflop from charts where in the tree. |
-| Personality bots | missing | |
+| Cash game HU / 6-max / 9-max | done (Phase 3) | Play → Sessions: 2–9 players, reset or carry, rebuys, speed. Blind levels in tournaments. |
+| Tournaments (SNG, small MTT simulation) | done (Phase 3) | Sit-and-go and a 27-player simulation (other tables simulated), ICM hints. |
+| Spot practice | done (Phase 3) | Play → Spot practice; library links work. |
+| Solver-based bot | partial | Preflop from charts where in the tree; solved postflop strategy only in spot practice. |
+| Personality bots | done (Phase 3) | Five personalities, documented deviations, leaks and exploits shown. |
 | Rule-based fallback, labelled | done | |
-| Coaching Off / Review / Live hints | partial | Coaching on or off after each decision. |
-| Hand review: what-if, all-in EV | partial | Review and replay exist. Missing: branching, all-in EV view. |
-| Session summary | missing | |
+| Coaching Off / Review / Live hints | done (Phase 3) | Progressive hints; the reference only on request. |
+| Hand review: what-if, all-in EV | done (Phase 3) | In sessions: what-if replays, heads-up all-in EV. |
+| Session summary | done (Phase 3) | Session report. |
 | Hand-history import | done | PokerStars and GGPoker, review only. |
-| Rules tests incl. side pots | done | Engine tests cover side pots and the full-raise rule. |
+| Rules tests incl. side pots | done | Plus full ring, multi-way side pots, ties in side pots (Phase 3). |
 
 ### Phase 4: workbench and study tools
 

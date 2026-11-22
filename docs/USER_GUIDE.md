@@ -147,7 +147,7 @@ right come back after 1, then 6 days, then longer.
 - **Practice my weak spots** (Stats): builds a session from your leaks, or from recent mistakes
   while there isn't enough data for leaks.
 
-## Math Lab (Math Lab in the menu)
+## Math Lab (`Math Lab` in the menu)
 
 Math Lab is one place for the arithmetic behind decisions. Pick a topic: pot
 odds, outs and the rule of 2 and 4, equity estimation, expected value, implied odds, MDF and
@@ -193,6 +193,23 @@ decisions is:
   after the flop.
 
 The hands stay in the browser tab and nothing is uploaded or saved.
+
+### Sessions and spot practice (Play)
+
+- **Sessions:** choose a cash game (2–9 players, stacks reset or carry over, rebuys), a
+  sit-and-go or a multi-table tournament (simulated other tables), the opponents (the reference
+  bot or personalities: tight-passive, calling station, loose-aggressive, over-folder,
+  over-bluffer) and the speed.
+- **Coaching:** Off, Review after each hand, or Live hints. Live hints are progressive: first
+  the price and stack-to-pot ratio, then your equity, and the reference only when you ask for it.
+  In tournaments the reference can be an ICM push/fold answer.
+- **After each hand:** your result, the all-in EV when you were all-in heads-up, the replay with
+  references, and **"What if…?"** to replay from one of your decisions (doesn't count).
+- **Session report:** results, all-in adjusted results, the EV you gave up by position and
+  street, your biggest mistakes and drills for them.
+- **"Who you're playing"** lists each bot's leak and how to exploit it.
+- **Spot practice:** play a solved spot hand after hand against its solution; the review comes at
+  the end of each hand.
 
 ## Solve (`Solve` in the menu)
 

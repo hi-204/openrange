@@ -46,7 +46,7 @@ function hintsFor(h: PostflopHand, node: ActionNode): string[] {
   return out;
 }
 
-export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; focus?: string }) {
+export function PostflopDrill({ spot: initialSpot, focus, practice = false }: { spot?: string; focus?: string; practice?: boolean }) {
   const app = useSettings((s) => s.settings);
   const [spotId, setSpotId] = useState(DRILL_SPOTS.some((s) => s.id === initialSpot) ? initialSpot! : DRILL_SPOTS[0]!.id);
   const [seatChoice, setSeatChoice] = useState<'0' | '1' | 'alt'>('alt');
@@ -61,6 +61,8 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
   const [hintsUsed, setHintsUsed] = useState(0);
   const [session, setSession] = useState<SessionAnswer[]>([]);
   const [handGrades, setHandGrades] = useState<SessionAnswer[]>([]);
+  // Spot practice (D-090): this hand's decisions, reviewed when the hand ends.
+  const [handDecisions, setHandDecisions] = useState<{ actions: string[]; chosen: number; result: DecisionResult }[]>([]);
   const [showSummary, setShowSummary] = useState(false);
   const client = useRef<SolverClient | null>(null);
   const hand = useRef<PostflopHand | null>(null);
@@ -105,6 +107,7 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
   const deal = useCallback(async () => {
     if (solve.kind !== 'ready') return;
     setHandGrades([]);
+    setHandDecisions([]);
     setError(null);
     try {
       const sit = SITUATIONS.find((x) => x.id === situation && x.spot === spotId);
@@ -140,6 +143,7 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
         // Time ran out: show the solution's main play, ungraded, and continue along it.
         if (timedOut) result.grade = null;
         setPhase({ kind: 'answered', node, result, timedOut });
+        setHandDecisions((xs) => [...xs, { actions: node.actions, chosen, result }]);
         const facing = price(node.pot, [node.committed[0], node.committed[1]], h.heroSeat).toCall > 0;
         const seatName = h.heroSeat === 0 ? 'OOP' : 'IP';
         const street = node.street.toLowerCase();
@@ -195,6 +199,10 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
     void answer(probs.indexOf(Math.max(...probs)), true);
   }, [phase, answer]);
   const left = useCountdown(app.training.timerSeconds, phase.kind === 'decide', timeUp);
+  // Practice plays straight on; the review comes at the end of the hand.
+  useEffect(() => {
+    if (practice && phase.kind === 'answered') void proceed();
+  }, [practice, phase, proceed]);
   const autoPending = useQuickAdvance(app.training.autoAdvance, phase.kind === 'answered', () => void proceed());
   useDrillKeys(phase.kind === 'decide' ? phase.node.actions : null, (i) => void answer(i), phase.kind === 'answered' ? () => void proceed() : phase.kind === 'over' ? () => void deal() : null);
 
@@ -338,6 +346,15 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
                 {t('trainer.post.handOver')}: {phase.node.kind === 'fold' ? t(phase.node.folder === h.heroSeat ? 'trainer.post.end.fold.hero' : 'trainer.post.end.fold.villain') : t('trainer.post.end.showdown')}
               </p>
               {handGrades.length > 0 && <p className="text-sm text-ink-muted">{t('trainer.post.summary', { list: handGrades.map((g) => (g.category ? t(`trainer.category.${g.category}` as MessageKey) : t('trainer.category.notGraded'))).join(', ') })}</p>}
+              {practice && handDecisions.length > 0 && (
+                <ul className="space-y-1 text-sm" data-testid="practice-review">
+                  {handDecisions.map((d, i) => (
+                    <li key={i}>
+                      {t('practice.decision', { n: i + 1, chosen: d.actions[d.chosen]!, verdict: d.result.grade ? t(`trainer.category.${d.result.grade.category}` as MessageKey) : t('trainer.category.notGraded'), best: d.result.grade ? d.result.grade.bestActions.map((b) => d.actions[b]).join(' / ') : '—' })}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {handGrades.some((g) => g.lossBb != null) && (
                 <p className="text-sm" data-testid="hand-ev-loss">
                   {t('trainer.post.handLoss', { loss: handGrades.reduce((sum, g) => sum + (g.lossBb ?? 0), 0).toFixed(2), n: handGrades.filter((g) => g.lossBb != null).length })}
@@ -354,7 +371,7 @@ export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; foc
         </section>
       )}
 
-      {phase.kind === 'answered' && h && result && !showSummary && (
+      {phase.kind === 'answered' && h && result && !showSummary && !practice && (
         <CoachCard
           card={
             phase.timedOut

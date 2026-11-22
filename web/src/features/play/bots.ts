@@ -19,7 +19,7 @@ export function toHand(s: GameState, id = 'play'): Hand {
     id,
     bigBlind: 1,
     unit: '',
-    maxPlayers: 6,
+    maxPlayers: Math.max(6, s.seats.length),
     buttonSeat: s.button + 1,
     seats: s.seats.map((p, i) => ({ seat: i + 1, name: p.name, position: p.position, stack: Math.round((p.stack + s.contributed[i]! - s.collected[i]!) * 1e6) / 1e6 })),
     hero: hero?.name ?? null,
@@ -70,7 +70,22 @@ export type EquityFn = (cards: string, board: string, opponents: number) => Prom
  * The simple rule-based bot: estimate equity against random hands, call when the price is
  * right, bet strong hands for value, bluff now and then. Deliberately plain and labelled so.
  */
-export async function ruleMove(s: GameState, equity: EquityFn, rnd: () => number): Promise<BotMove> {
+/** Thresholds of the rule-based bot (D-079); personalities change them (D-090). */
+export type RuleParams = {
+  /** Raise when facing a bet with equity above max(raiseFloor, fair share + raiseMargin). */
+  raiseFloor: number;
+  raiseMargin: number;
+  /** Call when equity ≥ price + callMargin (negative: calls too light). */
+  callMargin: number;
+  /** Bet for value when checked to with equity above max(valueFloor, fair share + valueMargin). */
+  valueFloor: number;
+  valueMargin: number;
+  /** Bluff chance with a weak hand when checked to. */
+  bluffRate: number;
+};
+export const DEFAULT_RULE: RuleParams = { raiseFloor: 0.7, raiseMargin: 0.35, callMargin: 0.05, valueFloor: 0.6, valueMargin: 0.25, bluffRate: 0.12 };
+
+export async function ruleMove(s: GameState, equity: EquityFn, rnd: () => number, params: RuleParams = DEFAULT_RULE): Promise<BotMove> {
   const i = s.toAct!;
   const p = s.seats[i]!;
   const l = legal(s);
@@ -81,11 +96,11 @@ export async function ruleMove(s: GameState, equity: EquityFn, rnd: () => number
   const fair = 1 / (opponents + 1);
   if (l.call !== null) {
     const price = l.call / (pot + l.call);
-    if (l.minTo !== null && e > Math.max(0.7, fair + 0.35)) return { move: raiseTo(0.75), source: 'rule', detail: 'strong hand: raise' };
-    if (e >= price + 0.05) return { move: { kind: 'call' }, source: 'rule', detail: 'the price is right: call' };
+    if (l.minTo !== null && e > Math.max(params.raiseFloor, fair + params.raiseMargin)) return { move: raiseTo(0.75), source: 'rule', detail: 'strong hand: raise' };
+    if (e >= price + params.callMargin) return { move: { kind: 'call' }, source: 'rule', detail: 'the price is right: call' };
     return { move: { kind: 'fold' }, source: 'rule', detail: 'not enough equity for the price: fold' };
   }
-  if (l.minTo !== null && e > Math.max(0.6, fair + 0.25)) return { move: raiseTo(0.66), source: 'rule', detail: 'strong hand: bet for value' };
-  if (l.minTo !== null && e < fair * 0.6 && rnd() < 0.12) return { move: raiseTo(0.5), source: 'rule', detail: 'weak hand: occasional bluff' };
+  if (l.minTo !== null && e > Math.max(params.valueFloor, fair + params.valueMargin)) return { move: raiseTo(0.66), source: 'rule', detail: 'strong hand: bet for value' };
+  if (l.minTo !== null && e < fair * 0.6 && rnd() < params.bluffRate) return { move: raiseTo(0.5), source: 'rule', detail: 'weak hand: occasional bluff' };
   return { move: { kind: 'check' }, source: 'rule', detail: 'check' };
 }

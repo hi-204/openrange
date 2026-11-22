@@ -78,6 +78,7 @@ const SCREENS: Screen[] = [
   },
   { name: 'solve-charts', path: '/#/solve/charts', scrollTo: 'chart-view', prepare: async (p) => void (await expect(p.getByTestId('chart-view')).toBeVisible()) },
   { name: 'play', path: '/#/play', prepare: async (p) => void (await expect(p.getByTestId('poker-table')).toBeVisible()) },
+  { name: 'play-session', path: '/#/play/session', prepare: async (p) => void (await expect(p.getByTestId('session-setup')).toBeVisible()) },
   { name: 'settings', path: '/#/settings', prepare: async (p) => void (await expect(p.getByTestId('settings')).toBeVisible()) },
 ];
 

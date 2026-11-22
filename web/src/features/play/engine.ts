@@ -45,6 +45,10 @@ const POSITIONS: Record<number, string[]> = {
   4: ['BTN', 'SB', 'BB', 'CO'],
   5: ['BTN', 'SB', 'BB', 'UTG', 'CO'],
   6: ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'],
+  // Full ring (D-090): positions between UTG and HJ.
+  7: ['BTN', 'SB', 'BB', 'UTG', 'LJ', 'HJ', 'CO'],
+  8: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'LJ', 'HJ', 'CO'],
+  9: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO'],
 };
 
 const round = (x: number) => Math.round(x * 1e6) / 1e6;
@@ -62,7 +66,7 @@ export function shuffled(seed: number): string[] {
 /** Seats clockwise from the button get BTN, SB, BB, … (heads-up: the button is the SB). */
 export function newHand(opts: { names: string[]; stacks: number[]; hero: number; button: number; seed: number; ante?: number; rake?: { percent: number; capBb: number } | null }): GameState {
   const n = opts.names.length;
-  if (n < 2 || n > 6) throw new Error('play mode supports 2 to 6 players');
+  if (n < 2 || n > 9) throw new Error('play mode supports 2 to 9 players');
   const deck = shuffled(opts.seed);
   const names = POSITIONS[n]!;
   const seats: Seat[] = opts.names.map((name, i) => ({ name, position: names[(i - opts.button + n) % n]!, stack: opts.stacks[i]!, cards: [], folded: false, allIn: false, hero: i === opts.hero }));

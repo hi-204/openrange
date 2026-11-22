@@ -1064,3 +1064,39 @@ with the same honesty rules.
   streaks or penalties.
 - **Not done:** "Guided and Expert" behave in the new drills through the coaching detail level
   (simple shows the last step); there are no extra hints in the new drills.
+
+### D-090 · Full playing modes: sessions, personality bots, coaching modes, review
+**Context:** Phase 3 of the expansion: cash and tournament play, spot practice, exploitable bots,
+three coaching levels, a richer review and a session summary, with proper rules.
+**Decision:**
+- **Sessions** (Play → Sessions, `features/play/session.ts`): cash games (2–9 players, stacks
+  reset or carry over, optional rebuys), sit-and-gos (6 or 9 players, 1,500 chips, blinds up
+  every 8 hands, antes from level 4, top 2 or 3 paid) and a 27-player multi-table simulation (you
+  play one 9-handed table; the other tables are simulated with random eliminations and chip
+  swaps, not played; players move to your table as tables break; top 4 paid). Blind levels and
+  payouts are example structures.
+- **Each hand plays in big blinds of the current level:** the session keeps chips, converts to bb
+  for the engine and back after the hand, so the engine, chart bots and grading are unchanged.
+- **Full ring:** the engine seats up to 9 (UTG+1, MP and LJ added). Chart lookups decline above 6
+  players (the charts are 6-max), so those bots use the rule-based strategy.
+- **Personality bots** (`personality.ts`): tight-passive, calling station, loose-aggressive,
+  over-folder and over-bluffer, each a documented deviation from the reference bot (preflop:
+  rules on the hand's equity against a random hand; postflop: changed rule-bot thresholds),
+  labelled exploitable with their leak and how to exploit it. The reference bot's thresholds are
+  unchanged (now parameters of `ruleMove`).
+- **Coaching:** Off; Review after each hand (the replay with every decision's reference, opened
+  automatically); Live hints (progressive: the price and SPR, then equity against random hands,
+  then the reference only when you ask), plus the decision card after each of your actions.
+- **ICM in tournaments:** at "folded to the small blind" or "big blind facing the small blind's
+  shove", with every remaining player at the table, the hint and reference use the push/fold
+  engine with the payouts still to be paid.
+- **Review:** all-in EV for heads-up all-ins before the river (exact equity when the money went
+  in); "What if…?" replays from any of your decisions with the same cards to come, marked as not
+  counting; a session report (hands, net, all-in adjusted net, graded decisions, EV given up by
+  street and position, biggest mistakes, leaks only with enough data, drills for the charts
+  behind the mistakes).
+- **Spot practice** (Play → Spot practice): the postflop drill without interruptions; the review
+  of each decision comes when the hand ends.
+- **Rules tests:** full-ring seating, three all-ins with two side pots, a tie inside a side pot,
+  and a folded player's chips staying in the pots they reached.
+- **The quick-play table is unchanged**, apart from sharing the action panel.

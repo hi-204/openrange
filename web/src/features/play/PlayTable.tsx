@@ -13,17 +13,18 @@ import { PokerTable, type Seat as TableSeat } from '../table/PokerTable';
 import { mulberry32 } from '../trainer/preflop/deal';
 import { chartMove, ruleMove, toHand, type BotMove } from './bots';
 import { act, legal, needsShowdown, newHand, settle, type GameState, type Move } from './engine';
+import { HeroActions } from './HeroActions';
 
 const ANY = '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J2o+, T2o+, 92o+, 82o+, 72o+, 62o+, 52o+, 42o+, 32o';
 const FILES = [...Object.values(CASH_FILES), HU_FILE];
 
 /** Equity against random hands, sampled in the worker (for the rule-based bot). */
-async function equityVsRandom(cards: string, board: string, opponents: number): Promise<number> {
+export async function equityVsRandom(cards: string, board: string, opponents: number): Promise<number> {
   const r = await solverClient().call('equity', { request: { ranges: [cards, ...new Array(Math.min(opponents, 5)).fill(ANY)], board, dead: '', mode: 'montecarlo', samples: 3000, seed: 7 } });
   return r.ok ? r.players[0]!.equity : 0.5;
 }
 
-async function showdown(s: GameState): Promise<GameState> {
+export async function showdown(s: GameState): Promise<GameState> {
   const c = solverClient();
   const live = s.seats.filter((p) => !p.folded);
   const values = new Map<string, number>();
@@ -46,7 +47,6 @@ export function PlayTable() {
   const [state, setState] = useState<GameState | null>(null);
   const [handNo, setHandNo] = useState(0);
   const [log, setLog] = useState<{ name: string; text: string; source?: 'chart' | 'rule' }[]>([]);
-  const [raiseTo, setRaiseTo] = useState('');
   const rnd = useMemo(() => mulberry32(Date.now() & 0x7fffffff), []);
   const busy = useRef(false);
 
@@ -109,7 +109,6 @@ export function PlayTable() {
     if (!state) return;
     const next = act(state, move);
     setLog((l) => [...l, { name: t('table.you'), text: describe(next, state, move) }]);
-    setRaiseTo('');
     setState(next);
   };
 
@@ -120,7 +119,6 @@ export function PlayTable() {
   const pot = state ? state.contributed.reduce((a, b) => a + b, 0) : 0;
   const decisions = state && docs.size ? reviewHand(toHand(state), docs) : [];
   const lastDecision = decisions.at(-1);
-  const sizes = state && l?.minTo !== null && l?.minTo !== undefined ? (state.street === 'preflop' ? [l.minTo, state.currentBet * 3, state.currentBet * 2 + pot] : [0.33, 0.5, 0.75, 1].map((f) => state.currentBet + f * (pot + (l.call ?? 0)))) : [];
   const seats: TableSeat[] = state
     ? state.seats.map((p, i) => ({ name: p.name, position: p.position, stack: p.stack, status: p.folded ? 'folded' : p.allIn ? 'allin' : 'active', hero: p.hero, cards: p.hero || state.shown[i] ? p.cards : null, bet: state.bets[i]! || undefined, toAct: state.toAct === i }))
     : names.map((n, i) => ({ name: n, position: '', stack: game.stack, status: 'active', hero: i === 0 }));
@@ -155,55 +153,7 @@ export function PlayTable() {
           )}
         </div>
       ) : heroTurn && l ? (
-        <section className="card space-y-3" data-testid="play-actions">
-          <p className="text-sm font-medium">{t('play.yourMove', { cards: hero!.cards.join(' ') })}</p>
-          <div className="flex flex-wrap gap-2">
-            {l.fold && (
-              <button type="button" className="btn-secondary" onClick={() => heroMove({ kind: 'fold' })}>
-                {t('play.fold')}
-              </button>
-            )}
-            {l.check && (
-              <button type="button" className="btn-secondary" onClick={() => heroMove({ kind: 'check' })}>
-                {t('play.check')}
-              </button>
-            )}
-            {l.call !== null && (
-              <button type="button" className="btn-secondary" onClick={() => heroMove({ kind: 'call' })}>
-                {t('play.call', { amount: l.call.toFixed(1) })}
-              </button>
-            )}
-            {l.minTo !== null &&
-              [...new Set(sizes.map((x) => Math.min(l.maxTo!, Math.max(l.minTo!, Math.round(x * 2) / 2))))].map((to) => (
-                <button key={to} type="button" className="btn-secondary" onClick={() => heroMove({ kind: 'raise', to })}>
-                  {t(state.currentBet === 0 ? 'play.betTo' : 'play.raiseTo', { to: to.toFixed(1) })}
-                </button>
-              ))}
-            {l.maxTo !== null && (
-              <button type="button" className="btn-secondary" onClick={() => heroMove({ kind: 'raise', to: l.maxTo! })}>
-                {t('play.allIn', { to: l.maxTo.toFixed(1) })}
-              </button>
-            )}
-          </div>
-          {l.minTo !== null && (
-            <form
-              className="flex flex-wrap items-end gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const to = Number(raiseTo);
-                if (Number.isFinite(to)) heroMove({ kind: 'raise', to });
-              }}
-            >
-              <label className="text-sm">
-                <span className="mb-1 block font-medium">{t('play.customTo', { min: l.minTo.toFixed(1), max: l.maxTo!.toFixed(1) })}</span>
-                <input className="field w-28" type="number" step="0.5" min={l.minTo} max={l.maxTo!} value={raiseTo} onChange={(e) => setRaiseTo(e.target.value)} />
-              </label>
-              <button type="submit" className="btn-quiet" disabled={!raiseTo}>
-                {t('play.custom')}
-              </button>
-            </form>
-          )}
-        </section>
+        <HeroActions state={state} onMove={heroMove} />
       ) : (
         <p className="text-sm text-ink-muted" role="status">
           {t('play.waiting')}

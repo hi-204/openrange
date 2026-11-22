@@ -216,6 +216,24 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
   recent mistakes, which is a heuristic, not a statistical finding.
 - **Challenge sets** are available in the Math Lab drills only.
 
+## Playing modes (expansion Phase 3)
+
+- **Bots aren't solvers.** The reference bot plays the approximate 6-max charts preflop where the
+  spot is in the chart tree and a simple rule-based strategy elsewhere (always above 6 players,
+  and in most tournament spots). Personality bots are deliberately exploitable.
+- **Graded decisions in play are only exact heads-up push/fold spots.** 6-max cash spots are
+  practice (approximate charts); postflop decisions have no reference in play mode (spot practice
+  has one: the solved spot).
+- **The multi-table tournament is a simulation:** only your table is played; the others are random
+  eliminations and chip swaps, and ICM is only used once every player left is at your table.
+- **Tournament structures are examples** (chips, blind levels, payouts), and levels go up by
+  hands, not time.
+- **All-in EV covers heads-up all-ins only**, and ignores rake.
+- **"What if…?" replays use the same cards to come** but the bots may act differently (they
+  sample their strategies).
+- **ICM references** need exactly the heads-up push/fold situation with every remaining player at
+  the table; otherwise the hint says why there's none.
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it
