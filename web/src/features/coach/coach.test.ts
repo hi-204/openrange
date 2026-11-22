@@ -158,3 +158,15 @@ describe('coach on a solved river spot', () => {
     s.free();
   }, 300_000);
 });
+
+describe('practice spots', () => {
+  it('every missed band is shown, even at the shortest detail level', () => {
+    const bands = ['UTG', 'HJ', 'CO'].map((seat, i) => ({ seat, low: 0.14 + i * 0.05, high: 0.18 + i * 0.05, measured: 0.13 + i * 0.05, inBand: false }));
+    const claims = preflopClaims({ actions: ['Fold', 'Raise 2.5'], ev: [0, 0.1], evStdError: [null, 0.01], strategy: [0, 1], chosen: 0, grade: null, outOfBand: bands });
+    for (const detail of ['simple', 'standard', 'detailed'] as Detail[]) {
+      const card = buildCoach(claims, { seed: 'x', drill: 'preflop', position: 'UTG', hand: 'AKo', detail });
+      for (const seat of ['UTG', 'HJ', 'CO']) expect(card.why.join(' '), `${detail} ${seat}`).toContain(`${seat} opens`);
+    }
+  });
+});
+
