@@ -271,9 +271,10 @@ _Status 2026-11-22, after the expansion: postflop solving and push/fold are vali
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it
   has loaded once (from `npm run dev` it never does: offline is for builds). Home says when it
   is saved.
-- **Updates arrive on the next visit.** A new version installs in the background and takes over
-  at once; the open tab keeps its old code until you reload. If a page fails right after an
-  update, reload.
+- **Updates arrive on the next visit.** A new version installs in the background; when it takes
+  over, open OpenRange tabs reload themselves into it (D-096), so anything typed and not yet
+  saved in that moment is lost (saved progress isn't). If a page's code is still missing, the
+  page reloads once on its own.
 - **Browser storage can be cleared.** Progress lives in this browser's storage. Clearing site
   data, a private window, or the browser freeing space when the disk is nearly full deletes
   it; OpenRange doesn't ask for persistent storage. Export from Settings → Data to keep a copy.

@@ -1249,3 +1249,17 @@ done and pass CI; the published release was still 1.0.0.
 **Decision:** version 1.1.0 in both `package.json` files and the lock file, released the same
 way as 1.0.0 (D-083). Data from 1.0.0 upgrades in place (database versions 1 to 4 are tested);
 it stays per address, so running the new release on the same port keeps your progress.
+**Upgrade fix found while testing the zip:** the offline worker (D-080) takes over at once and
+deletes the previous version's cache, but a tab opened from that cache still runs the previous
+build, and its next page needs a code file that is gone: "This page ran into a problem". 1.0.0
+had the same flaw (KNOWN_LIMITS said to reload). Now:
+- the new worker, when it replaces an older version, reloads every open OpenRange tab into the
+  new build. It's done in the worker because the page running is the old one (a 1.0.0 page can't
+  know to reload). The reload is issued after activation, not inside `waitUntil`: waiting for
+  it there deadlocks, because the reload's request needs the active worker (a first version
+  did that and froze the page);
+- a page whose code file fails to load reloads once (the error boundary; at most once a
+  minute, so it can't loop).
+- `scripts/check-upgrade.mjs` serves an older release, uses it, serves the newer one on the
+  same address and reopens the app. 1.0.0 → 1.1.0: the tab reloads itself into 1.1.0, Train
+  opens, the saved answer is kept, no page errors.

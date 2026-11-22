@@ -27,12 +27,21 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 
+// An upgrade (an older OpenRange cache exists): open pages still run the previous build, whose
+// code files are gone with its cache, so reload them into this build (D-096). Saved data is in
+// IndexedDB and isn't touched. The first install reloads nothing. The reloads are not part of
+// waitUntil: a reload's request needs an active worker, so waiting for it would deadlock.
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('openrange-') && k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
+  const upgraded = caches.keys().then((keys) => {
+    const old = keys.filter((k) => k.startsWith('openrange-') && k !== CACHE);
+    return Promise.all(old.map((k) => caches.delete(k))).then(() => old.length > 0);
+  });
+  const ready = upgraded.then(() => self.clients.claim());
+  e.waitUntil(ready);
+  Promise.all([upgraded, ready]).then(([u]) => {
+    if (!u) return;
+    self.clients.matchAll({ type: 'window' }).then((cs) => cs.forEach((c) => c.navigate(c.url).catch(() => undefined)));
+  });
 });
 
 // Same-origin GETs: answer from the cache, fall back to the network. Page loads (the app uses

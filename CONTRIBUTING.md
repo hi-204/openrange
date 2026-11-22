@@ -46,6 +46,8 @@ npm run check              # format, lint, Rust tests, typecheck, unit tests, li
 npm run test:e2e           # browser tests (uses the Edge that comes with Windows)
 npm run screenshots        # if the UI changed
 cargo run --release -p solver-cli -- validate   # if solver code changed (writes docs/VALIDATION.md)
+npm run release                                  # release zip; then check upgrading from the last one:
+node scripts/check-upgrade.mjs release/openrange-<old> release/openrange-<new>
 ```
 
 Keep commits small and explain the *why*. Comment the reasoning behind non-obvious solver maths
