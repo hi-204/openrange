@@ -190,7 +190,7 @@ export function HomePage() {
         <h2 id="about-heading" className="text-base font-medium text-ink">
           {t('about.heading')}
         </h2>
-        <p>{t('about.studyOnly')}</p>
+        <p>{t('about.studyOnly')} {t('about.responsible')}</p>
         <p>{t('about.offline')}</p>
         <OfflineStatus />
         <p role="status" aria-live="polite" data-testid="solver-status" className="text-xs">

@@ -50,6 +50,7 @@ because the planned one didn't exist or didn't fit:
 | 0.6 | Showdown, kickers and split pots | decide who wins, including ties and kicker situations | showdown quiz |
 | 0.7 | Game formats | tell cash games from tournaments and what changes | — |
 | 0.8 | Table etiquette basics | act in turn, protect your hand, avoid angle situations | — |
+| 0.9 | How to study efficiently | plan short sessions, use the review queue, practise weak spots | — |
 
 ## Level 1 — Core preflop
 | # | Lesson | You will be able to… | Widgets |
@@ -119,6 +120,7 @@ because the planned one didn't exist or didn't fit:
 | 6.6 | Game selection | estimate how table choice affects win rate | — |
 | 6.7 | Tilt and the mental game | spot tilt triggers and build a stop-loss routine | — |
 | 6.8 | Note-taking | write useful, specific notes for post-session review | — |
+| 6.10 | Session goals and reflection | set process goals, check in, reflect after a session (journal) | — |
 
 ## Level 7 — Solver literacy
 | # | Lesson | You will be able to… | Widgets |

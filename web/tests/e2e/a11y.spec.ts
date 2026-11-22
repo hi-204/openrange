@@ -20,6 +20,7 @@ const SCREENS: [string, string, string | null][] = [
   ['solve', '/#/solve/charts', null],
   ['play', '/#/play', 'poker-table'],
   ['session', '/#/play/session', 'session-setup'],
+  ['journal', '/#/play/journal', 'journal-goal'],
   ['review', '/#/play/review', 'hand-review'],
   ['reports', '/#/solve/reports', 'report-flops'],
   ['compare', '/#/solve/compare', 'compare-largest'],

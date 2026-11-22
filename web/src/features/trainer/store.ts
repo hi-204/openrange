@@ -50,10 +50,30 @@ export type MathAttempt = {
 /** A study note attached to a spot (D-091), e.g. key "chart:cash-6max-100bb.json:first-in-BTN". */
 export type SpotNote = { key: string; text: string; updatedAt: number };
 
+/**
+ * A journal entry (D-092): a goal before a session, or a reflection after one. Private: stored
+ * only in this browser and in backups.
+ */
+export type JournalEntry = {
+  id?: number;
+  at: number;
+  kind: 'goal' | 'reflection';
+  /** Goal: the process goal and the check-in. */
+  goal?: string;
+  rested?: boolean;
+  stopRule?: boolean;
+  /** Reflection: mood 1 (bad) … 5 (good), tilt 0 (none) … 3 (most of the session). */
+  mood?: number;
+  tilt?: number;
+  wentWell?: string;
+  toImprove?: string;
+  nextFocus?: string;
+};
+
 export type PlacementResult = { at: number; perLevel: { level: number; correct: number; total: number }[]; startLevel: number; chosen: boolean };
 
-/** Export format version; imports also accept /1 and /2 (D-091). */
-export const EXPORT_SCHEMA = 'openrange.trainer/3';
+/** Export format version; imports also accept /1, /2 and /3 (D-091, D-092). */
+export const EXPORT_SCHEMA = 'openrange.trainer/4';
 
 export type TrainerExport = {
   schema: typeof EXPORT_SCHEMA;
@@ -68,6 +88,8 @@ export type TrainerExport = {
   app?: unknown;
   /** Study notes (schema 3). */
   notes: SpotNote[];
+  /** Journal entries (schema 4). */
+  journal: JournalEntry[];
 };
 
 export interface TrainerStore {
@@ -89,6 +111,9 @@ export interface TrainerStore {
   notes(): Promise<SpotNote[]>;
   putNote(n: SpotNote): Promise<void>;
   deleteNote(key: string): Promise<void>;
+  journal(): Promise<JournalEntry[]>;
+  addJournal(e: JournalEntry): Promise<void>;
+  deleteJournal(id: number): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -103,6 +128,16 @@ export class MemoryStore implements TrainerStore {
   private pl: PlacementResult | null = null;
   private app: unknown = null;
   private n = new Map<string, SpotNote>();
+  private j: JournalEntry[] = [];
+  async journal() {
+    return [...this.j];
+  }
+  async addJournal(e: JournalEntry) {
+    this.j.push({ ...e, id: (this.j.at(-1)?.id ?? 0) + 1 });
+  }
+  async deleteJournal(id: number) {
+    this.j = this.j.filter((e) => e.id !== id);
+  }
   async notes() {
     return [...this.n.values()];
   }
@@ -163,6 +198,7 @@ export class MemoryStore implements TrainerStore {
     this.pl = null;
     this.app = null;
     this.n.clear();
+    this.j = [];
   }
 }
 
@@ -175,6 +211,7 @@ class TrainerDb extends Dexie {
   math!: Table<MathAttempt, number>;
   placement!: Table<{ key: string; value: PlacementResult }, string>;
   notes!: Table<SpotNote, string>;
+  journal!: Table<JournalEntry, number>;
   constructor() {
     super('openrange-trainer');
     this.version(1).stores({ answers: '++id, at, drill, family', families: 'family', settings: 'key' });
@@ -182,6 +219,8 @@ class TrainerDb extends Dexie {
     this.version(2).stores({ lessons: 'id', math: '++id, at, drill', placement: 'key' });
     // Schema 3 (expansion Phase 4): study notes. Adding a table keeps existing data.
     this.version(3).stores({ notes: 'key' });
+    // Schema 4 (expansion Phase 5): the journal.
+    this.version(4).stores({ journal: '++id, at' });
   }
 }
 
@@ -242,10 +281,20 @@ export class DexieStore implements TrainerStore {
   async deleteNote(key: string) {
     await this.db.notes.delete(key);
   }
+  async journal() {
+    return this.db.journal.orderBy('at').toArray();
+  }
+  async addJournal(e: JournalEntry) {
+    const { id: _id, ...rest } = e;
+    await this.db.journal.add(rest);
+  }
+  async deleteJournal(id: number) {
+    await this.db.journal.delete(id);
+  }
   async reset() {
     const db = this.db;
-    await db.transaction('rw', [db.answers, db.families, db.settings, db.lessons, db.math, db.placement, db.notes], async () => {
-      await Promise.all([db.answers.clear(), db.families.clear(), db.settings.clear(), db.lessons.clear(), db.math.clear(), db.placement.clear(), db.notes.clear()]);
+    await db.transaction('rw', [db.answers, db.families, db.settings, db.lessons, db.math, db.placement, db.notes, db.journal], async () => {
+      await Promise.all([db.answers.clear(), db.families.clear(), db.settings.clear(), db.lessons.clear(), db.math.clear(), db.placement.clear(), db.notes.clear(), db.journal.clear()]);
     });
   }
 }
@@ -262,23 +311,24 @@ export async function exportAll(store: TrainerStore): Promise<TrainerExport> {
     placement: await store.placement(),
     app: await store.appSettings(),
     notes: await store.notes(),
+    journal: await store.journal(),
   };
 }
 
 /**
- * Replace everything in the store with an export: schema 3, 2 (before notes) or 1 (before the
- * course existed). Validates the shape before touching data.
+ * Replace everything in the store with an export: schema 4, 3 (before the journal), 2 (before
+ * notes) or 1 (before the course existed). Validates the shape before touching data.
  */
 export async function importAll(store: TrainerStore, data: unknown): Promise<number> {
   const d = data as Partial<Omit<TrainerExport, 'schema'>> & { schema?: string };
-  const version = d?.schema === 'openrange.trainer/1' ? 1 : d?.schema === 'openrange.trainer/2' ? 2 : d?.schema === EXPORT_SCHEMA ? 3 : 0;
+  const version = ({ 'openrange.trainer/1': 1, 'openrange.trainer/2': 2, 'openrange.trainer/3': 3, 'openrange.trainer/4': 4 } as Record<string, number>)[d?.schema ?? ''] ?? 0;
   if (!d || !version || !Array.isArray(d.answers) || !Array.isArray(d.families)) {
     throw new Error('this file is not an OpenRange trainer export');
   }
   if (version >= 2 && (!Array.isArray(d.lessons) || !Array.isArray(d.math))) {
     throw new Error('this trainer export is incomplete');
   }
-  if (version >= 3 && !Array.isArray(d.notes)) {
+  if ((version >= 3 && !Array.isArray(d.notes)) || (version >= 4 && !Array.isArray(d.journal))) {
     throw new Error('this trainer export is incomplete');
   }
   await store.reset();
@@ -290,6 +340,7 @@ export async function importAll(store: TrainerStore, data: unknown): Promise<num
   if (d.placement) await store.putPlacement(d.placement);
   if (d.app) await store.putAppSettings(d.app);
   for (const n of d.notes ?? []) await store.putNote(n);
+  for (const e of d.journal ?? []) await store.addJournal(e);
   return d.answers.length;
 }
 

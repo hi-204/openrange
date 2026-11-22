@@ -210,6 +210,9 @@ The hands stay in the browser tab and nothing is uploaded or saved.
 - **"Who you're playing"** lists each bot's leak and how to exploit it.
 - **Spot practice:** play a solved spot hand after hand against its solution; the review comes at
   the end of each hand.
+- **Journal:** before a session, write one process goal and check in (rested? stop rule set?);
+  after it, a short reflection. The next goal starts from your last "focus for next time". It's
+  private, stored only in this browser and in backups.
 
 ## Solve (`Solve` in the menu)
 

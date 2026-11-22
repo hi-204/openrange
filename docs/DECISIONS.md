@@ -1120,3 +1120,24 @@ calculator already met the prompt; these were missing.
 - **Spot files** (workbench "Save spot file" / "Open spot file"): the spot form as JSON
   (`openrange.spot/1`), validated on opening with a readable reason when it can't be used.
 - **Range images:** the Charts page saves the chart as a PNG (grid, legend, source and commit).
+
+### D-092 · Course additions: study skills, session goals, journal, guides, responsible play
+**Context:** Phase 5 of the expansion. Levels 0–7 were already complete (60 lessons), so this
+phase adds what the prompt names as missing and corrects stale lesson text.
+**Decision:**
+- **Two new lessons in the full format** (worked hand, common mistakes, quiz, drill links,
+  lint-checked): 0.9 "How to study efficiently" (little and often, the review queue, deliberate
+  practice, judging decisions not results) and 6.10 "Session goals and reflection" (the
+  mental-game module with lesson 6.7: process goals, check-ins, reflection). 7.6 remains the
+  solver-specific study lesson. Glossary: spaced repetition, deliberate practice, process goal.
+- **Corrections:** lesson 6.2 said the workbench had no node-locking yet and 7.6 said flop
+  reports were planned; both features exist, and both lessons and LESSON_REVIEW now say so.
+- **Journal** (Play → Journal): a process goal and a check-in before a session, a reflection after
+  (mood, tilt moments, what went well, what to change, one focus). The next goal starts from the
+  last focus. Stored in a new table (database version 4) and export schema `openrange.trainer/4`;
+  imports accept schemas 1–4. **Test changes:** the store and backup tests expected schema `/3`
+  and now expect `/4` (intentional schema change); a new test imports a schema-3 file.
+- **Guides:** "How to use this page" panels on Math Lab and Play; the user guide has the full
+  Math Lab and Play sections.
+- **Responsible play** on the About section: not gambling advice, play only with money you can
+  afford to lose, and take a break and seek support if it stops being fun.

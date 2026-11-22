@@ -1,0 +1,30 @@
+import { expect, test } from '@playwright/test';
+import { open } from './helpers';
+
+// Phase 5 content (D-092).
+test('new lessons open, the journal keeps goals and reflections, guides and the responsible-play note show', async ({ page }) => {
+  await open(page, '/#/learn/0.9');
+  await expect(page.getByRole('heading', { name: 'How to study efficiently' })).toBeVisible();
+  await page.goto('/#/learn/6.10');
+  await expect(page.getByRole('heading', { name: 'Session goals and reflection' })).toBeVisible();
+
+  await page.goto('/#/play/journal');
+  const goal = page.getByTestId('journal-goal');
+  await goal.getByLabel('Your process goal for this session').fill('Take a break after every big pot');
+  await goal.getByRole('button', { name: 'Save goal' }).click();
+  const refl = page.getByTestId('journal-reflection');
+  await refl.getByRole('radio', { name: 'Good' }).check();
+  await refl.getByLabel('One focus for next time').fill('Fold the bottom of my UTG range');
+  await refl.getByRole('button', { name: 'Save reflection' }).click();
+  const entries = page.getByTestId('journal-entries');
+  await expect(entries).toContainText('Goal: Take a break after every big pot');
+  await expect(entries).toContainText('Next focus: Fold the bottom of my UTG range');
+  // The next goal starts from the last focus.
+  await page.reload();
+  await expect(page.getByTestId('journal-goal').getByLabel('Your process goal for this session')).toHaveValue('Fold the bottom of my UTG range');
+
+  await page.getByTestId('page-guide').locator('summary').click();
+  await expect(page.getByTestId('page-guide')).toContainText('Quick play deals single hands');
+  await page.goto('/');
+  await expect(page.getByText("It isn't gambling advice")).toBeVisible();
+});

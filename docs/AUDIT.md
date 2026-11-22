@@ -130,13 +130,13 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 
 | Item | Status | Notes |
 |---|---|---|
-| Lessons Levels 0–7 | done | 60 lessons; structure enforced by the lesson lint. |
+| Lessons Levels 0–7 | done | 62 lessons after Phase 5; stale claims in 6.2 and 7.6 corrected. |
 | Engine-computed numbers, LESSON_REVIEW | done | |
-| Math Lab and Play guides | missing | |
+| Math Lab and Play guides | done (Phase 5) | "How to use this page" panels; user guide sections. |
 | Glossary | done | |
-| "How to study efficiently" lesson | missing | |
-| Mental-game module and journal | partial | Lesson 6.7 covers tilt. Missing: session goals, reflection journal. |
-| Responsible-play note on About | partial | "Study tool" note exists; no "not gambling advice" note. |
+| "How to study efficiently" lesson | done (Phase 5) | Lesson 0.9 (7.6 covers solver study). |
+| Mental-game module and journal | done (Phase 5) | Lessons 6.7 and 6.10; Play → Journal. |
+| Responsible-play note on About | done (Phase 5) | |
 
 ### Phase 6: progress and analytics
 

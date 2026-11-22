@@ -37,7 +37,7 @@ describe('trainer store', () => {
     await a.addMath({ at: 6, drill: 'potodds', correct: true, given: '25', answer: '25%' });
     await a.putPlacement({ at: 7, perLevel: [{ level: 0, correct: 3, total: 3 }], startLevel: 1, chosen: false });
     const dump = JSON.parse(JSON.stringify(await exportAll(a)));
-    expect(dump.schema).toBe('openrange.trainer/3');
+    expect(dump.schema).toBe('openrange.trainer/4');
     const b = new MemoryStore();
     await importAll(b, dump);
     expect((await b.lessons()).get('2.3')!.bestScore).toBe(4);
@@ -73,5 +73,20 @@ describe('trainer store', () => {
     await b.putNote({ key: 'k', text: 't', updatedAt: 1 });
     await expect(importAll(b, { ...dump, notes: undefined })).rejects.toThrow(/incomplete/);
     expect(await b.notes()).toHaveLength(1);
+  });
+
+  it('carries the journal, and imports schema-3 files (before the journal)', async () => {
+    const a = new MemoryStore();
+    await a.addJournal({ at: 1, kind: 'goal', goal: 'take a break after big pots', rested: true, stopRule: true });
+    await a.addJournal({ at: 2, kind: 'reflection', mood: 4, tilt: 1, wentWell: 'folded early', toImprove: 'two fast hands', nextFocus: 'breaks' });
+    const dump = JSON.parse(JSON.stringify(await exportAll(a)));
+    expect(dump.journal).toHaveLength(2);
+    const b = new MemoryStore();
+    await importAll(b, dump);
+    expect((await b.journal()).map((e) => e.kind)).toEqual(['goal', 'reflection']);
+    const v3 = { ...dump, schema: 'openrange.trainer/3', journal: undefined };
+    await importAll(b, v3);
+    expect(await b.journal()).toEqual([]);
+    await expect(importAll(b, { ...dump, journal: undefined })).rejects.toThrow(/incomplete/);
   });
 });

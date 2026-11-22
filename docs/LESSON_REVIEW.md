@@ -48,6 +48,7 @@ below).
 | 0.6 Showdown, kickers, split pots | kickers compared from the top; a board can counterfeit kickers (split); trips beat two pair; who shows first; odd chips by house rule | evaluator for the hands; reasoning for procedures |
 | 0.7 Game formats | cash vs tournament differences; think in big blinds (4,000 ÷ 400 = 10 bb) | reasoning + calc |
 | 0.8 Table etiquette | act in turn, binding verbal actions, string bets, protecting hands, angle shooting; most sites forbid real-time assistance | reasoning (common house rules; wording kept general because rules vary by room) |
+| 0.9 How to study | spaced repetition (the trainer's SM-2 scheduling, D-054); practise weak spots (Practice my weak spots, challenge sets, calibration); grading by EV loss, not results | product fact (code) + reasoning |
 
 ## Level 1
 
@@ -146,13 +147,14 @@ heads-up solver).
 | Lesson | Key claims | Method |
 |---|---|---|
 | 6.1 Exploitative play | below the MDF bluff all air, above it none; the Stats page waits for 30 answers per group | test (best response) + `MIN_SAMPLE` |
-| 6.2 Node-locking | a caller locked above the MDF of a pot bet: no bluffs, value earns more than at equilibrium; the workbench has no node-locking yet (planned) | test + reasoning |
+| 6.2 Node-locking | a caller locked above the MDF of a pot bet: no bluffs, value earns more than at equilibrium; the workbench can lock any decision and shows the EV change (corrected in the expansion: the earlier text said node-locking was still planned) | test + product fact |
 | 6.3 ICM | two players: 0.75 × 70 + 0.25 × 30 = 60; with 5,000/3,000/1,500/500 and 50/30/20 the leader's prize share is below its chip share and the short stack's above; doubling the 3,000 stack raises its equity by under 1.6× | calc + test |
 | 6.4 Bubble | factor ÷ (factor + 1): factor 2 → 66.7%; 8 bb calling 20 bb at 12/20/8 with 65/35: factor 1.4–1.65, needs 57–63%; push/fold 20 bb into 8 bb: chip EV shove 50–70% and call 40–50%, ICM shove over 90% and call under a third; JTo calls in chip EV and folds with payouts; heads-up payouts change ranges by under 1 point | calc + test |
 | 6.5 Variance | 10,000 hands at 5 bb/100, SD 100: mean 500, spread 1,000, behind 28–33% ("three times in ten"); risk of ruin with 2,000 bb about 1 in 7, with 4,000 bb its square, about 1 in 55; 20,000 hands spread about 1,400 | test (formulas) |
 | 6.6 Game selection | example numbers only, labelled as examples; per-hour arithmetic | calc + reasoning |
 | 6.7 Tilt | Q9o is not in the UTG range; A-A against K-K is over 80% | test (chart, facts) + reasoning |
 | 6.8 Notes | most rooms forbid real-time assistance; OpenRange has no live overlay | reasoning; product fact |
+| 6.10 Session goals | process goals vs result goals; stop rules set in advance (lesson 6.7); the journal is stored only in the browser and is part of backups | reasoning; product fact (journal code) |
 
 ## Level 7
 
@@ -163,5 +165,5 @@ heads-up solver).
 | 7.3 Low SPR | with 5 bb behind, all-in is used over 30% and medium hands bet over 10 points more often than with 90 bb; SPR 45 ÷ 20 | test + calc |
 | 7.4 Multiway | A-A loses over 8 points of equity to a second random hand and stays above 60%; 8♥7♥ is 45–50% heads-up and within 2 points of a third three-way (Monte Carlo, 400,000 samples); OpenRange solves postflop heads-up only | test (sampled equity) + KNOWN_LIMITS; implied-odds point is reasoning |
 | 7.5 Abstraction | with only the three-quarter size, medium hands bet over 20 points less often; the bettor's EV with all sizes is at least that of either single size (within exploitability), and less than 2% of the pot apart; adding options can't lower equilibrium EV | test (solver) + reasoning (theorem) |
-| 7.6 Studying | product features as described (grading, Stats sample size, review queue); reports are planned | reasoning |
+| 7.6 Studying | product features as described (grading, Stats sample size, review queue, flop reports, weak-spot sessions); corrected in the expansion: the earlier text said reports were planned | reasoning; product fact |
 | 7.7 Over-interpretation | after 10 iterations the toy call frequency is over 3 points from the MDF, after 3,000 within 0.2; 44's EVs in the 4-bet chart are within their margins | test |

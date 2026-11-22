@@ -332,9 +332,14 @@ export function PlaySession() {
           <p className="font-medium">
             {isTournament(session.format) ? t('session.finishedTourney', { place: session.table[0]!.place ?? 0, prize: pct((session.heroPrize ?? 0) / 100, 0) }) : t('session.finishedCash')}
           </p>
-          <button type="button" className="btn-primary" onClick={() => setSession(null)}>
-            {t('session.again')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-primary" onClick={() => setSession(null)}>
+              {t('session.again')}
+            </button>
+            <a className="btn-secondary" href={href('play', ['journal'])}>
+              {t('session.reflect')}
+            </a>
+          </div>
         </section>
       ) : !state || (state.done && !sandbox) ? (
         <div className="space-y-3">

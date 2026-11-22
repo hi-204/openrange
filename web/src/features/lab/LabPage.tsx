@@ -13,6 +13,7 @@ import { loadJson, type ChartFile } from '../../lib/provenance/types';
 import { ErrorState, Skeleton } from '../../lib/ui/components';
 import { rangeText } from '../trainer/postflop/features';
 import { LabDrill, type Challenge } from './LabDrill';
+import { PageGuide } from '../../lib/ui/PageGuide';
 import { MdfComparison, SizingTrainer } from './SolvedLab';
 import type { AdvantageContext, LabDrillId } from './labDrills';
 import { ImpliedOdds } from './tools';
@@ -87,6 +88,7 @@ export function LabPage({ route }: { route: Route }) {
   return (
     <div className="space-y-6">
       <p className="max-w-prose text-sm text-ink-muted">{t('lab.intro')}</p>
+      <PageGuide prefix="guide.lab" steps={4} />
       <SubNav page="lab" label={t('lab.topics')} current={topic.id} items={TOPICS.map((x) => ({ id: x.id, label: t(`lab.topic.${x.id}` as MessageKey) }))} />
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card space-y-3" data-testid="lab-topic">

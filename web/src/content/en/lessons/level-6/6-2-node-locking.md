@@ -36,8 +36,9 @@ stops bluffing and earns more with its value hands than at equilibrium.
 
 In a full tree a lock at one node can change play elsewhere too, because earlier decisions
 lead into the locked one: the solver re-solves every other decision with the lock in place.
-OpenRange's workbench doesn't have node-locking yet; it is planned for a later version. The
-idea is the same as the one-node lock above.
+In OpenRange's workbench (Solve → Workbench) you can lock any decision: the solve restarts with
+the lock in place and shows how each player's EV changed. The idea is the same as the one-node
+lock above.
 
 ```callout key
 A lock turns a read into a strategy. The quality of the answer can't be better than the read.

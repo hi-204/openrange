@@ -48,7 +48,8 @@ A rule you use beats a hundred numbers you remember for a day.
 - The Stats page groups your answers and waits for enough of them before showing a number.
 - The review queue schedules weak spots to come back sooner.
 
-Aggregated reports over many flops are planned for a later version.
+- The flop report (Solve → Flop reports) compares many flops at once, and Stats → Practice my
+  weak spots builds a session from what you get wrong.
 
 ## Worked hand
 

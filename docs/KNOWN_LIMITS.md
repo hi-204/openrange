@@ -243,6 +243,13 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **Range images are drawn from the chart data**, not screenshots: per-combo detail and EVs aren't
   in the image.
 
+## Course additions (expansion Phase 5)
+
+- **Lessons 0.9 and 6.10 rest on reasoning and product facts**, not on computed poker numbers:
+  study habits and mental-game routines are widely recommended practices, not measured results.
+- **The journal is a plain record:** it doesn't analyse your mood or tilt, and it is lost with
+  the browser's data unless you export a backup.
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it

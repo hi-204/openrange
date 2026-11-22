@@ -254,3 +254,12 @@ abstraction: >-
   A simplified version of the game a solver works on, for example with only a few bet sizes allowed.
 game tree: >-
   All the decisions and actions a solver considers in a spot, from the first bet to the showdown.
+spaced repetition: >-
+  Reviewing material at growing intervals: what you know comes back after longer gaps, what you
+  miss comes back soon. The trainer schedules spots this way.
+deliberate practice: >-
+  Practice aimed at your weakest skills, with feedback after each attempt, rather than repeating
+  what you already do well.
+process goal: >-
+  A goal about your own decisions or habits (for example, taking a break after big pots) rather
+  than about results, which depend on the cards.
