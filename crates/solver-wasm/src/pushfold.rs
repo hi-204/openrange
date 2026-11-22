@@ -41,8 +41,8 @@ fn per_class(per_combo: &[f64]) -> Vec<Value> {
         .collect()
 }
 
-/// Spot: `{stacks: [bb...], pusher, caller, ante, payouts: [prize...]}` (empty payouts =
-/// chip EV). Returns per-class shove/call frequencies and EVs (bb for chip EV, prize units
+/// Spot: `{stacks: [bb...], pusher, caller, ante, payouts: [prize...], bounties: [...]}` (empty
+/// payouts = chip EV; bounties optional, paid to whoever busts that player). Returns per-class shove/call frequencies and EVs (bb for chip EV, prize units
 /// for ICM) and the exploitability reached.
 pub fn solve_spot(spot_json: &str) -> Result<Value, String> {
     let v: Value = serde_json::from_str(spot_json).map_err(|e| format!("bad spot: {e}"))?;
@@ -59,12 +59,16 @@ pub fn solve_spot(spot_json: &str) -> Result<Value, String> {
         big_blind: 1.0,
         ante: v["ante"].as_f64().unwrap_or(0.0),
         payouts: nums("payouts"),
+        bounties: nums("bounties"),
     };
     if spot.stacks.len() > 9 {
         return Err("at most 9 players".into());
     }
     if spot.payouts.iter().any(|&x| x < 0.0) {
         return Err("payouts can't be negative".into());
+    }
+    if spot.bounties.iter().any(|&x| x < 0.0) {
+        return Err("bounties can't be negative".into());
     }
     let p = spot.payoffs()?;
     let scale = [p.fold, p.steal, p.win, p.tie, p.lose]

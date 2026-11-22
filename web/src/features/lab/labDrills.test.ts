@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { countOuts, equity, evaluateHand, initSync, parseRange } from '../../../public/wasm/solver_wasm.js';
 import { combosOf, DECK } from '../lessons/widgets/cards';
 import { mulberry32 } from '../trainer/preflop/deal';
-import { checkPart, CLOSE, ESTIMATE_TOLERANCE, EV_CLOSE, generateLab, hasDraw, LAB_DRILLS, pairRange, partAnswerText, valueRange, type LabEngine, type LabProblem } from './labDrills';
+import en from '../../lib/i18n/en.json';
+import { rangeText } from '../trainer/postflop/features';
+import { checkPart, CLOSE, ESTIMATE_TOLERANCE, EV_CLOSE, EVEN, generateLab, hasDraw, LAB_DRILLS, NUT_EQUITY, pairRange, partAnswerText, valueRange, type AdvantageContext, type LabEngine, type LabProblem } from './labDrills';
 
 const root = (p: string) => fileURLToPath(new URL(`../../../../${p}`, import.meta.url));
 initSync({ module: readFileSync(root('web/public/wasm/solver_wasm_bg.wasm')) });
@@ -17,11 +19,22 @@ const exactEquity = (hero: string, villain: string, board: string): number => {
   if (!r.ok) throw new Error(r.error);
   return r.players[0].equity;
 };
+const rangeEquity = async (a: string, b: string, board: string) => {
+  const r = JSON.parse(equity(JSON.stringify({ ranges: [a, b], board, dead: '', mode: 'exact' })));
+  if (!r.ok) throw new Error(r.error);
+  return r.players.map((p: { equity: number; perCombo: { weight: number; equity: number }[] }) => ({ equity: p.equity, perCombo: p.perCombo }));
+};
 const engine: LabEngine = {
   equity: async (h, v, b) => exactEquity(h, v, b),
   outs: async (hero, villain, board) => JSON.parse(countOuts(JSON.stringify({ hero, villain, board }))),
   category: async (cards) => JSON.parse(evaluateHand(cards)).categoryIndex,
+  rangeEquity,
 };
+// The advantage drill's data: the flop report and the 100 bb chart ranges it was built from.
+const report = JSON.parse(readFileSync(root('data/reports/flop-srp-btn-bb.json'), 'utf8')) as AdvantageContext;
+const cash = JSON.parse(readFileSync(root('data/charts/cash-6max-100bb.json'), 'utf8')) as { classes: string[]; charts: { id: string; strategy: number[][] }[] };
+const col = (id: string, k: number) => rangeText(cash.classes, cash.charts.find((c) => c.id === id)!.strategy.map((r) => r[k]!));
+const ctx = { advantage: { flops: report.flops, btnRange: col('first-in-BTN', 1), bbRange: col('vs-open-BB-vs-BTN', 1) } };
 const split = (c: string) => c.match(/.{2}/g) ?? [];
 const typed = (p: LabProblem) => p.parts.map((x) => (x.kind === 'percent' ? `${(x.answer * 100).toFixed(2)}%` : x.kind === 'choice' ? String(x.answer) : String(x.answer)));
 const stepKeys = (p: LabProblem) => p.steps.map((s) => s.key);
@@ -31,8 +44,8 @@ describe('Math Lab drills', () => {
   it('every drill generates problems whose typed exact answers are accepted', async () => {
     const rnd = mulberry32(11);
     for (const d of LAB_DRILLS) {
-      for (let i = 0; i < 8; i++) {
-        const p = await generateLab(d, rnd, engine);
+      for (let i = 0; i < (d === 'advantage' ? 2 : 8); i++) {
+        const p = await generateLab(d, rnd, engine, ctx);
         expect(p.parts.length).toBeGreaterThan(0);
         typed(p).forEach((v, k) => expect(checkPart(p.parts[k]!, v), `${d} part ${k}: ${v} vs ${partAnswerText(p.parts[k]!)}`).toBe(true));
       }
@@ -166,5 +179,28 @@ describe('Math Lab drills', () => {
       const close = Math.abs(f.equity! - f.required!) < CLOSE;
       expect(stepKeys(p)).toContain(close ? 'lab.spr.close' : f.equity! >= f.required! ? 'lab.spr.commit' : 'lab.spr.fold');
     }
+  });
+
+  it('range and nut advantage: equities from the engine, c-bet against the report average', async () => {
+    const rnd = mulberry32(29);
+    for (let i = 0; i < 4; i++) {
+      const p = await generateLab('advantage', rnd, engine, ctx);
+      const f = p.facts as Record<string, number>;
+      const [btn, bb] = await rangeEquity(ctx.advantage.btnRange, ctx.advantage.bbRange, p.cards!.board!);
+      expect(f.btnEquity).toBeCloseTo(btn.equity, 9);
+      const nut = (per: { weight: number; equity: number }[]) => per.filter((c) => c.equity >= NUT_EQUITY).reduce((s, c) => s + c.weight, 0) / per.reduce((s, c) => s + c.weight, 0);
+      expect(f.btnNut).toBeCloseTo(nut(btn.perCombo), 9);
+      expect(f.bbNut).toBeCloseTo(nut(bb.perCombo), 9);
+      const who = (x: number, y: number) => (Math.abs(x - y) < EVEN ? 2 : x > y ? 0 : 1);
+      expect(p.parts[0]!.answer).toBe(who(btn.equity, bb.equity));
+      expect(p.parts[1]!.answer).toBe(who(f.btnNut!, f.bbNut!));
+      const cbet = (x: { btnAfterCheck: Record<string, number> }) => Object.entries(x.btnAfterCheck).filter(([k]) => /^bet/i.test(k)).reduce((s, [, v]) => s + v, 0);
+      expect(f.avg).toBeCloseTo(report.flops.reduce((s, x) => s + cbet(x), 0) / report.flops.length, 12);
+      expect(f.cbet).toBeCloseTo(cbet(report.flops.find((x) => x.board === p.facts.board)!), 12);
+    }
+  }, 120_000);
+
+  it('the advantage topic states the same "very strong" threshold the drill uses', () => {
+    expect((en as Record<string, string>)['lab.topic.advantage.formula']).toContain(`${NUT_EQUITY * 100}%`);
   });
 });

@@ -203,6 +203,6 @@ export function labCoach(right: number, total: number, drill: string, steps: str
   };
 }
 
-const LAB_LESSON: Record<string, string> = { potdecision: '2.3', rule24: '2.2', estimate: '2.4', ev: '2.5', implied: '2.6', blockers: '2.8', spr: '4.5' };
+const LAB_LESSON: Record<string, string> = { potdecision: '2.3', rule24: '2.2', estimate: '2.4', ev: '2.5', implied: '2.6', blockers: '2.8', spr: '4.5', advantage: '4.3' };
 
 const MATH_LESSON: Record<string, string> = { potodds: '2.3', outs: '2.1', equity: '2.4', mdf: '5.2', bluff: '5.3', combos: '2.7', texture: '4.2', reading: '2.7' };

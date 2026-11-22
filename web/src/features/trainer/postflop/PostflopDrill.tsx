@@ -19,7 +19,7 @@ import { trainerStore, type TrainerSettings } from '../store';
 import { decide, type DecisionResult } from './decision';
 import { price, remainingStack, texture } from './features';
 import { PostflopHand, type ActionNode } from './hand';
-import { DRILL_SPOTS, type DrillSpot } from './spots';
+import { DRILL_SPOTS, SITUATIONS, situationPath, type DrillSpot } from './spots';
 
 type Solve =
   | { kind: 'idle' }
@@ -46,10 +46,12 @@ function hintsFor(h: PostflopHand, node: ActionNode): string[] {
   return out;
 }
 
-export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
+export function PostflopDrill({ spot: initialSpot, focus }: { spot?: string; focus?: string }) {
   const app = useSettings((s) => s.settings);
   const [spotId, setSpotId] = useState(DRILL_SPOTS.some((s) => s.id === initialSpot) ? initialSpot! : DRILL_SPOTS[0]!.id);
   const [seatChoice, setSeatChoice] = useState<'0' | '1' | 'alt'>('alt');
+  // A facing-aggression situation (D-089), or '' for whole hands.
+  const [situation, setSituation] = useState(focus && SITUATIONS.some((x) => x.id === focus && x.spot === (initialSpot ?? DRILL_SPOTS[0]!.id)) ? focus : '');
   const [solve, setSolve] = useState<Solve>({ kind: 'idle' });
   const [phase, setPhase] = useState<Phase>({ kind: 'none' });
   const [trainer, setTrainer] = useState<TrainerSettings>({ thresholds: null });
@@ -64,7 +66,7 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
   const hand = useRef<PostflopHand | null>(null);
   const handCount = useRef(0);
   const rnd = useMemo(() => mulberry32(Date.now() & 0x7fffffff), []);
-  const ids = { spot: useId() };
+  const ids = { spot: useId(), situation: useId() };
   const spot = DRILL_SPOTS.find((s) => s.id === spotId)!;
 
   useEffect(() => {
@@ -102,16 +104,22 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
 
   const deal = useCallback(async () => {
     if (solve.kind !== 'ready') return;
-    const seat = seatChoice === 'alt' ? ((handCount.current++ % 2) as 0 | 1) : (Number(seatChoice) as 0 | 1);
-    hand.current = PostflopHand.deal(solve.info, solve.root, seat, rnd);
     setHandGrades([]);
     setError(null);
     try {
+      const sit = SITUATIONS.find((x) => x.id === situation && x.spot === spotId);
+      if (sit) {
+        const path = await situationPath(sit.line, source);
+        hand.current = await PostflopHand.dealAt(solve.info, source, path, sit.hero, rnd);
+      } else {
+        const seat = seatChoice === 'alt' ? ((handCount.current++ % 2) as 0 | 1) : (Number(seatChoice) as 0 | 1);
+        hand.current = PostflopHand.deal(solve.info, solve.root, seat, rnd);
+      }
       await advance();
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [solve, seatChoice, rnd, advance]);
+  }, [solve, seatChoice, situation, spotId, source, rnd, advance]);
 
   useEffect(() => {
     if (solve.kind === 'ready' && !hand.current) void deal();
@@ -137,7 +145,7 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
         const street = node.street.toLowerCase();
         const family = `postflop|${spotId}|${seatName}|${street}|${facing ? 'facing-bet' : 'first-or-checked-to'}`;
         const cls = cellName(cellOf(h.hero).index);
-        const entry: SessionAnswer = { family, label: t(`trainer.post.spot.${spotId}` as MessageKey), hand: h.hero, category: result.grade?.category ?? null, loss: result.grade?.loss ?? null, unit: 'pctPot', hints: hintsUsed };
+        const entry: SessionAnswer = { family, label: t(`trainer.post.spot.${spotId}` as MessageKey), hand: h.hero, category: result.grade?.category ?? null, loss: result.grade?.loss ?? null, unit: 'pctPot', hints: hintsUsed, lossBb: result.grade?.lossBb ?? null };
         setSession((s) => [...s, entry]);
         setHandGrades((g) => [...g, entry]);
         saveAnswer(
@@ -229,10 +237,10 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
     <div className="space-y-5">
       <section className="card space-y-4">
         <p className="max-w-prose text-sm text-ink-muted">{t('trainer.post.intro')}</p>
-        <div className="grid gap-3 sm:grid-cols-[2fr_auto_auto] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-[2fr_2fr_auto_auto] sm:items-end">
           <div>
             <label htmlFor={ids.spot} className="mb-1 block text-sm font-medium">{t('trainer.post.spotLabel')}</label>
-            <select id={ids.spot} className="field" value={spotId} disabled={running} onChange={(e) => setSpotId(e.target.value)}>
+            <select id={ids.spot} className="field" value={spotId} disabled={running} onChange={(e) => (setSpotId(e.target.value), setSituation(''))}>
               {DRILL_SPOTS.map((s) => (
                 <option key={s.id} value={s.id}>
                   {t(`trainer.post.spot.${s.id}` as MessageKey)}
@@ -241,18 +249,31 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
             </select>
           </div>
           <div>
-            <p className="mb-1 text-sm font-medium">{t('trainer.post.seatLabel')}</p>
-            <SegmentedControl
-              label={t('trainer.post.seatLabel')}
-              value={seatChoice}
-              onChange={setSeatChoice}
-              options={[
-                { value: 'alt', label: t('trainer.post.seat.alt') },
-                { value: '0', label: t('flow.seat.oop') },
-                { value: '1', label: t('flow.seat.ip') },
-              ]}
-            />
+            <label htmlFor={ids.situation} className="mb-1 block text-sm font-medium">{t('trainer.post.situationLabel')}</label>
+            <select id={ids.situation} className="field" value={situation} disabled={running} onChange={(e) => setSituation(e.target.value)} data-testid="situation">
+              <option value="">{t('trainer.post.situation.whole')}</option>
+              {SITUATIONS.filter((x) => x.spot === spotId).map((x) => (
+                <option key={x.id} value={x.id}>
+                  {t(`trainer.post.situation.${x.id}` as MessageKey)}
+                </option>
+              ))}
+            </select>
           </div>
+          {!situation && (
+            <div>
+              <p className="mb-1 text-sm font-medium">{t('trainer.post.seatLabel')}</p>
+              <SegmentedControl
+                label={t('trainer.post.seatLabel')}
+                value={seatChoice}
+                onChange={setSeatChoice}
+                options={[
+                  { value: 'alt', label: t('trainer.post.seat.alt') },
+                  { value: '0', label: t('flow.seat.oop') },
+                  { value: '1', label: t('flow.seat.ip') },
+                ]}
+              />
+            </div>
+          )}
           {running ? (
             <button type="button" className="btn-secondary" onClick={() => client.current?.cancel()}>
               {t('trainer.post.cancel')}
@@ -317,6 +338,11 @@ export function PostflopDrill({ spot: initialSpot }: { spot?: string }) {
                 {t('trainer.post.handOver')}: {phase.node.kind === 'fold' ? t(phase.node.folder === h.heroSeat ? 'trainer.post.end.fold.hero' : 'trainer.post.end.fold.villain') : t('trainer.post.end.showdown')}
               </p>
               {handGrades.length > 0 && <p className="text-sm text-ink-muted">{t('trainer.post.summary', { list: handGrades.map((g) => (g.category ? t(`trainer.category.${g.category}` as MessageKey) : t('trainer.category.notGraded'))).join(', ') })}</p>}
+              {handGrades.some((g) => g.lossBb != null) && (
+                <p className="text-sm" data-testid="hand-ev-loss">
+                  {t('trainer.post.handLoss', { loss: handGrades.reduce((sum, g) => sum + (g.lossBb ?? 0), 0).toFixed(2), n: handGrades.filter((g) => g.lossBb != null).length })}
+                </p>
+              )}
               <span data-testid="villain-cards" className="sr-only">
                 {h.villain}
               </span>

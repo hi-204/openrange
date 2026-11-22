@@ -1028,3 +1028,39 @@ updated to 158; it fails at the 1.0 commit too, so the browser changed, not the 
 dialog unmounts while open, which leaves keyboard focus nowhere: Tab did nothing.
 **Decision:** when onboarding finishes, focus moves to the app's root container (`#app-top`,
 `tabIndex={-1}`, no outline), so the next Tab reaches the skip link. The test is unchanged.
+
+### D-089 · Deeper training modes: library, situations, reading, tournaments, weak spots
+**Context:** Phase 2 of the expansion: more ways to drill, all on solved or computed references,
+with the same honesty rules.
+**Decision:**
+- **Spot library** (Train → Spot library): every preflop chart decision, every postflop drill spot
+  and every facing-aggression situation, filterable by street, position, pot type, texture and
+  stack depth, with search. "Drill this" opens the drill on exactly that spot (a new `chart`
+  filter in the preflop drill; `focus` in the postflop drill).
+- **Facing-aggression situations:** a line through one street of a solved spot (facing a c-bet, a
+  lead, a check-raise, an overbet, a river bet to bluff-catch). Hands are dealt by how often both
+  players reach that decision under the solution; the earlier actions are shown, not played.
+- **Running EV loss** per postflop hand (sum of the graded decisions' losses in bb).
+- **Range drill EV difference** on the two-action charts: each class plays the answer's action;
+  its loss is the better action's EV minus that, weighted by combos × reach.
+- **Hand reading** (Train → Hand reading): after an opponent action in a solved turn or river spot,
+  paint the hands that take it; scored by reach-weighted recall and precision.
+- **Range and nut advantage drill** (Math Lab): equities computed live from the 100 bb chart
+  ranges on the flop report's flops ("very strong" = at least 85% equity, as in lesson 4.3), and
+  the report's c-bet frequency against its average.
+- **Tournament push/fold** (Train → Tournament): bubble, final-table, satellite and knockout
+  tables with random stacks; each solved live with ICM and in chips (heads-up push/fold between
+  the blinds, everyone else folded). Grades use ICM EV converted to bb-equivalents (prize EV ÷
+  prize pool per big blind in play) so the usual bb thresholds apply. Five hands per table.
+- **Knockout bounties** (`bounties` in the push/fold engine, empty by default so existing spots
+  are unchanged): paid to whoever busts that player. The PKO scenario counts only the cash half
+  of each bounty; the half added to the winner's own bounty isn't valued, so PKO answers are
+  labelled approximate. Re-shoves (open, then shove over) aren't in the push/fold model and aren't
+  offered.
+- **Practice my weak spots** (Stats): leaks from the Stats dimensions when the intervals show them
+  (30+ answers), otherwise recent mistakes and lapsed review items, and says which. Preflop
+  families open in one session; postflop spots get links.
+- **Challenge sets** (Math Lab): ten problems, an optional timer that counts up, a summary; no
+  streaks or penalties.
+- **Not done:** "Guided and Expert" behave in the new drills through the coaching detail level
+  (simple shows the last step); there are no extra hints in the new drills.

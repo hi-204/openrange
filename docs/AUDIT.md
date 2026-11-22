@@ -86,15 +86,15 @@ Reinstalling the toolchain fixed it; nothing in the repo changed.
 
 | Item | Status | Notes |
 |---|---|---|
-| Spot library browser | missing | Six fixed postflop spots and the charts; no browser with filters. |
-| Range-building drill | partial | Exists (D-075); graded only for exact push/fold, scored by overlap. Missing: EV difference. |
-| Hand-reading drill | partial | A "reading" math drill exists (choice). Missing: painting the opponent's range against a solved range. |
-| Board texture and range advantage | partial | Texture drill exists; `RangeAdvantage` widget exists. Missing: prediction checked against solved data. |
-| Postflop line drills with running EV loss | partial | The postflop drill plays through streets with grading per decision. Missing: running EV loss for the hand. |
-| Facing-aggression drills | partial | Facing-bet decisions occur in the fixed spots. Missing: check-raise, probe, overbet spots. |
-| Tournament drills | partial | Push/fold with ICM exists. Missing: bubble and final-table scenarios, PKO (approximate). |
-| Weakness-targeted sessions | missing | Spaced repetition exists; no one-tap session from leaks. |
-| Challenge sets and timed rounds | partial | Optional timer setting exists. |
+| Spot library browser | done (Phase 2) | Train → Spot library: filters, search, launch. |
+| Range-building drill | done (Phase 2) | EV difference added (combo- and reach-weighted). |
+| Hand-reading drill | done (Phase 2) | Train → Hand reading: paint the opponent's action range vs the solved one. |
+| Board texture and range advantage | done (Phase 2) | Math Lab advantage drill on report flops. |
+| Postflop line drills with running EV loss | done (Phase 2) | EV given up per hand. |
+| Facing-aggression drills | done (Phase 2) | Situations: c-bet, lead, check-raise, overbet, bluff-catch. |
+| Tournament drills | done (Phase 2) | Bubble, final table, satellite, PKO (approximate); no re-shoves. |
+| Weakness-targeted sessions | done (Phase 2) | Stats → Practice my weak spots. |
+| Challenge sets and timed rounds | done (Phase 2) | Math Lab challenge: 10 problems, optional count-up timer. |
 | Guided and Expert in all drills | done for existing drills | |
 
 ### Phase 3: full playing modes

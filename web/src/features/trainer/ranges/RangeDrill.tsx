@@ -13,7 +13,7 @@ import { ClassGrid } from '../../charts/ClassGrid';
 import { COMBO_STRINGS } from '../../lessons/widgets/cards';
 import { actionColors } from '../../solver/colors';
 import { mulberry32 } from '../preflop/deal';
-import { scoreRange } from './rangeScore';
+import { evDifference, scoreRange } from './rangeScore';
 
 const NAMES = Array.from({ length: 169 }, (_, i) => cellName(i));
 const STACKS = [5, 8, 10, 12, 15, 20];
@@ -88,6 +88,7 @@ export function RangeDrill() {
 
   if (error) return <p className="text-amber-700 dark:text-amber-400">{error}</p>;
   const score = checked && target ? scoreRange(target, picked) : null;
+  const evDiff = score && doc && chart ? evDifference(doc.classes, chart.ev, chart.reach, picked) : null;
   const mine = picked.map((p) => [p ? 0 : 1, p ? 1 : 0]);
   return (
     <div className="space-y-4" data-testid="range-drill">
@@ -161,6 +162,11 @@ export function RangeDrill() {
             <p>{t('ranges.detail', { hit: score.hit.toFixed(0), missed: score.missed.toFixed(0), extra: score.extra.toFixed(0) })}</p>
             {score.missedHands.length > 0 && <p>{t('ranges.missedHands', { hands: score.missedHands.slice(0, 8).join(', ') })}</p>}
             {score.extraHands.length > 0 && <p>{t('ranges.extraHands', { hands: score.extraHands.slice(0, 8).join(', ') })}</p>}
+            {evDiff && (
+              <p data-testid="range-ev">
+                {evDiff.perHand < 0.0005 ? t('ranges.evNone') : t('ranges.ev', { ev: evDiff.perHand.toFixed(3), hands: evDiff.worst.slice(0, 3).map((w) => w.name).join(', ') })}
+              </p>
+            )}
             {task.source === 'cash' && <p className="text-xs text-ink-muted">{t('ranges.practice')}</p>}
           </div>
         )}

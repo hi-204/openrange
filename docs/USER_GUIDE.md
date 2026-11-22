@@ -130,6 +130,23 @@ equity, combos, board textures and hand reading.
 **Spaced repetition.** Spots you get wrong come back after about 10 minutes; spots you get
 right come back after 1, then 6 days, then longer.
 
+### More training modes (Train)
+
+- **Tournament:** push or fold at a bubble, final-table, satellite or knockout table. Each table
+  is solved with ICM (the prize money) and in chips, so you see when the money changes the
+  answer. Five hands per table; knockout answers are approximate.
+- **Hand reading:** after your opponent's action in a solved spot, click the hands you think they
+  take it with, then compare with the solution.
+- **Spot library:** every spot OpenRange can drill in one list. Filter by street, position, pot
+  type, board texture and stack, search, and press "Drill this".
+- **Postflop situations:** in the postflop drill, "Situation" starts hands facing a c-bet, a
+  lead, a check-raise, an overbet or a river bet. At the end of each hand you see the EV you gave
+  up over the whole hand.
+- **Ranges:** after "Check my range", the EV difference shows what your range costs against the
+  chart, per hand dealt.
+- **Practice my weak spots** (Stats): builds a session from your leaks, or from recent mistakes
+  while there isn't enough data for leaks.
+
 ## Math Lab (Math Lab in the menu)
 
 Math Lab is one place for the arithmetic behind decisions. Pick a topic: pot
@@ -149,6 +166,9 @@ Extras:
   spot"): for each bet size, how often the solution defends and bluffs next to the formulas.
 - **Bet sizing** is a trainer on that solved spot: pick an action for your hand and see the EV of
   every size and how often the solution plays each.
+
+Each drill also has **"Challenge: 10 problems"**: ten problems in a row, an optional timer that
+counts up, then a summary. No streaks, no penalties.
 
 The quick one-question math drills are still under Train → Math.
 

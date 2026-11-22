@@ -4,11 +4,11 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { fmtLoss } from './explain/render';
 import { CATEGORIES, DEFAULT_THRESHOLDS, type Thresholds, type Unit } from './grading';
 import type { FamilyState } from './srs';
-import { groupStats, MIN_SAMPLE, type GradedAnswer } from './stats';
+import { groupStats, MIN_SAMPLE, STATS_DIMENSIONS, type GradedAnswer } from './stats';
 import { useSettings } from '../../lib/settings/useSettings';
 import { exportAll, importAll, trainerStore, type AnswerRecord, type TrainerSettings } from './store';
 
-const DIMENSIONS = ['drill', 'reference', 'position', 'scenario', 'street', 'stack', 'handType'];
+const DIMENSIONS = STATS_DIMENSIONS;
 const UNITS: Unit[] = ['bb', 'pctPot'];
 
 function when(ms: number): string {

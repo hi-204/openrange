@@ -1,7 +1,7 @@
 {
-  "sourceHash": "3a263c7bacf2e33828ad17c9b4eeffc06180066be8d5355f80bfaaefa2661031",
-  "wasmSha256": "8a1c36f89201da5058ae884cb976419abc99af7cb2fbe37b4abc2969ab0d50fe",
-  "wasmBytes": 478396,
+  "sourceHash": "e571b997f14a2170b50c7b7844f7da2d7bb65676ad65db920d1a8e16abc1ca57",
+  "wasmSha256": "0806e30bc2cc25293cf9d7803b49f5bcd9586f7f910d545411e5220ee3f10a55",
+  "wasmBytes": 479189,
   "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
   "wasmBindgen": "0.2.129"
 }

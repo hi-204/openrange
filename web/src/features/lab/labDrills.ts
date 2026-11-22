@@ -6,8 +6,8 @@ import { combosOf, DECK } from '../lessons/widgets/cards';
 import { t, type MessageKey } from '../../lib/i18n';
 import type { Step } from '../trainer/math/drills';
 
-export type LabDrillId = 'potdecision' | 'rule24' | 'estimate' | 'ev' | 'implied' | 'blockers' | 'spr';
-export const LAB_DRILLS: LabDrillId[] = ['potdecision', 'rule24', 'estimate', 'ev', 'implied', 'blockers', 'spr'];
+export type LabDrillId = 'potdecision' | 'rule24' | 'estimate' | 'ev' | 'implied' | 'blockers' | 'spr' | 'advantage';
+export const LAB_DRILLS: LabDrillId[] = ['potdecision', 'rule24', 'estimate', 'ev', 'implied', 'blockers', 'spr', 'advantage'];
 
 /** What the drills need from the engine (the worker in the app, WASM directly in tests). */
 export type LabEngine = {
@@ -16,7 +16,22 @@ export type LabEngine = {
   outs(hero: string, villain: string, board: string): Promise<{ behindNow: boolean; ahead: string[]; tied: string[]; behind: string[] }>;
   /** Hand category index (0 = high card … 8 = straight flush) of 5–7 cards. */
   category(cards: string): Promise<number>;
+  /** Exact range-vs-range equity on a board, per combo (for the advantage drill). */
+  rangeEquity?(a: string, b: string, board: string): Promise<{ equity: number; perCombo: { weight: number; equity: number }[] }[]>;
 };
+
+/** Data the advantage drill reads (D-089): the flop report and the two ranges it was built from. */
+export type AdvantageContext = {
+  flops: { board: string; btnAfterCheck: Record<string, number> }[];
+  /** Hand classes with weights, e.g. "AKs:0.5, ...": the button's opening range and the big blind's calling range. */
+  btnRange: string;
+  bbRange: string;
+};
+
+/** "Very strong" hands: at least this much equity against the other range (as in lesson 4.3's widget). */
+export const NUT_EQUITY = 0.85;
+/** Equities or shares within this of each other count as "about even". */
+export const EVEN = 0.02;
 
 /**
  * One answer the learner gives. percent: a share (0–1) within `tolerance` (default one point);
@@ -123,7 +138,7 @@ function potAndBet(rnd: () => number) {
   return { pot, bet };
 }
 
-export async function generateLab(drill: LabDrillId, rnd: () => number, engine: LabEngine): Promise<LabProblem> {
+export async function generateLab(drill: LabDrillId, rnd: () => number, engine: LabEngine, ctx?: { advantage?: AdvantageContext }): Promise<LabProblem> {
   switch (drill) {
     case 'potdecision': {
       // Facing a bet: the price (required equity), the equity against a stated range, the decision.
@@ -338,6 +353,42 @@ export async function generateLab(drill: LabDrillId, rnd: () => number, engine: 
         };
       }
       throw new Error('could not deal a blocker problem');
+    }
+
+    case 'advantage': {
+      // Range and nut advantage on a report flop, and the button's c-bet against its average.
+      const a = ctx?.advantage;
+      if (!a || !engine.rangeEquity) throw new Error('the flop report is not loaded');
+      const flop = pick(a.flops, rnd);
+      const [btn, bb] = await engine.rangeEquity(a.btnRange, a.bbRange, flop.board.replace(/\s+/g, ''));
+      const nut = (per: { weight: number; equity: number }[]) => per.reduce((s, c) => s + (c.equity >= NUT_EQUITY ? c.weight : 0), 0) / per.reduce((s, c) => s + c.weight, 0);
+      const [btnNut, bbNut] = [nut(btn!.perCombo), nut(bb!.perCombo)];
+      const cbet = (f: { btnAfterCheck: Record<string, number> }) => Object.entries(f.btnAfterCheck).reduce((s, [k, v]) => s + (/^bet/i.test(k) ? v : 0), 0);
+      const avg = a.flops.reduce((s, f) => s + cbet(f), 0) / a.flops.length;
+      const mine = cbet(flop);
+      const who = (x: number, y: number) => (Math.abs(x - y) < EVEN ? 2 : x > y ? 0 : 1);
+      const choices = [t('lab.adv.btn'), t('lab.adv.bb'), t('lab.adv.even')];
+      const rangeAns = who(btn!.equity, bb!.equity);
+      const nutAns = who(btnNut, bbNut);
+      const cbetAns = mine >= avg ? 0 : 1;
+      const close = Math.abs(mine - avg) < EVEN;
+      return {
+        drill,
+        intro: { key: 'lab.adv.intro', params: {} },
+        parts: [
+          { prompt: { key: 'lab.adv.q1', params: {} }, kind: 'choice', answer: rangeAns, choices },
+          { prompt: { key: 'lab.adv.q2', params: { nut: pctText(NUT_EQUITY, 0) } }, kind: 'choice', answer: nutAns, choices },
+          { prompt: { key: 'lab.adv.q3', params: {} }, kind: 'choice', answer: cbetAns, choices: [t('lab.adv.more'), t('lab.adv.less')], accept: close ? [0, 1] : [cbetAns] },
+        ],
+        steps: [
+          { key: 'lab.adv.s1', params: { btn: pctText(btn!.equity), bb: pctText(bb!.equity), even: EVEN * 100 } },
+          { key: 'lab.adv.s2', params: { btn: pctText(btnNut), bb: pctText(bbNut), nut: pctText(NUT_EQUITY, 0) } },
+          { key: 'lab.adv.s3', params: { cbet: pctText(mine), avg: pctText(avg), n: a.flops.length } },
+          { key: 'lab.adv.caveat', params: {} },
+        ],
+        cards: { board: flop.board.replace(/\s+/g, '') },
+        facts: { board: flop.board, btnEquity: btn!.equity, bbEquity: bb!.equity, btnNut, bbNut, cbet: mine, avg },
+      };
     }
 
     case 'spr': {

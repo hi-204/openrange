@@ -12,7 +12,7 @@ import { CardRow } from '../table/Card';
 import { mulberry32 } from '../trainer/preflop/deal';
 import { trainerStore } from '../trainer/store';
 import type { Step } from '../trainer/math/drills';
-import { checkPart, generateLab, partAnswerText, pctText, valueOf, type LabDrillId, type LabEngine, type LabProblem, type Part } from './labDrills';
+import { checkPart, generateLab, partAnswerText, pctText, valueOf, type AdvantageContext, type LabDrillId, type LabEngine, type LabProblem, type Part } from './labDrills';
 
 export const labEngine: LabEngine = {
   equity: async (hero, villain, board) => {
@@ -29,6 +29,12 @@ export const labEngine: LabEngine = {
     const r = await solverClient().call('evaluateHand', { cards });
     if (!r.ok) throw new Error(r.error);
     return r.categoryIndex;
+  },
+  rangeEquity: async (a, b, board) => {
+    const r = await solverClient().call('equity', { request: { ranges: [a, b], board, dead: '', mode: 'exact' } });
+    if (!r.ok) throw new Error(r.error);
+    if (r.method !== 'exact') throw new Error('exact equity needed');
+    return r.players.map((p) => ({ equity: p.equity, perCombo: p.perCombo }));
   },
 };
 
@@ -62,7 +68,19 @@ function PartInput({ part, index, total, value, onChange, disabled }: { part: Pa
   );
 }
 
-export function LabDrill({ drill }: { drill: LabDrillId }) {
+/** A challenge set (D-089): a fixed number of problems, an optional timer that counts up, then a summary. */
+export type Challenge = { n: number; timed: boolean };
+type Tally = { problems: number; fullyRight: number; parts: number; partsRight: number; ms: number };
+
+export function LabDrill({ drill, ctx, challenge, onExit }: { drill: LabDrillId; ctx?: { advantage?: AdvantageContext }; challenge?: Challenge; onExit?: () => void }) {
+  const [tally, setTally] = useState<Tally>({ problems: 0, fullyRight: 0, parts: 0, partsRight: 0, ms: 0 });
+  const [startedAt, setStartedAt] = useState(Date.now());
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!challenge?.timed) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [challenge]);
   const detail = useSettings((s) => s.settings.coaching.detail);
   const [problem, setProblem] = useState<LabProblem | null>(null);
   const [inputs, setInputs] = useState<string[]>([]);
@@ -75,13 +93,14 @@ export function LabDrill({ drill }: { drill: LabDrillId }) {
     setGraded(null);
     setError(null);
     try {
-      const p = await generateLab(drill, rnd, labEngine);
+      const p = await generateLab(drill, rnd, labEngine, ctx);
       setInputs(p.parts.map(() => ''));
       setProblem(p);
+      setStartedAt(Date.now());
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [drill, rnd]);
+  }, [drill, rnd, ctx]);
   useEffect(() => {
     void next();
   }, [next]);
@@ -90,6 +109,8 @@ export function LabDrill({ drill }: { drill: LabDrillId }) {
     if (!problem || graded) return;
     const results = problem.parts.map((p, i) => checkPart(p, inputs[i] ?? ''));
     setGraded(results);
+    const right = results.filter(Boolean).length;
+    setTally((x) => ({ problems: x.problems + 1, fullyRight: x.fullyRight + (right === results.length ? 1 : 0), parts: x.parts + results.length, partsRight: x.partsRight + right, ms: x.ms + (Date.now() - startedAt) }));
     const given = problem.parts.map((p, i) => (p.kind === 'choice' ? (p.choices![Number(inputs[i])] ?? '') : inputs[i] ?? '')).join(' | ');
     const estimate = drill === 'estimate' ? valueOf(problem.parts[0]!, inputs[0] ?? '') : NaN;
     await trainerStore().addMath({
@@ -108,8 +129,37 @@ export function LabDrill({ drill }: { drill: LabDrillId }) {
   const shown = detail === 'simple' ? steps.slice(-1) : steps;
   const right = graded ? graded.filter(Boolean).length : 0;
 
+  const done = !!challenge && tally.problems >= challenge.n && !!graded;
+  const restart = () => {
+    setTally({ problems: 0, fullyRight: 0, parts: 0, partsRight: 0, ms: 0 });
+    void next();
+  };
   return (
     <div className="space-y-4">
+      {challenge && (
+        <p className="flex flex-wrap items-center gap-3 text-sm" data-testid="challenge-progress">
+          <span>{t('lab.challenge.progress', { n: Math.min(tally.problems + (graded ? 0 : 1), challenge.n), total: challenge.n })}</span>
+          {challenge.timed && !graded && <span className="num text-ink-muted">{t('lab.challenge.timer', { s: Math.max(0, Math.round((now - startedAt) / 1000)) })}</span>}
+        </p>
+      )}
+      {done && (
+        <section className="card space-y-2" data-testid="challenge-summary" aria-live="polite">
+          <h3 className="text-base font-semibold">{t('lab.challenge.doneTitle')}</h3>
+          <p>{t('lab.challenge.result', { right: tally.fullyRight, n: tally.problems, partsRight: tally.partsRight, parts: tally.parts })}</p>
+          {challenge.timed && <p className="text-sm text-ink-muted">{t('lab.challenge.time', { s: (tally.ms / tally.problems / 1000).toFixed(0) })}</p>}
+          <p className="text-sm text-ink-muted">{t('lab.challenge.note')}</p>
+          <div className="flex gap-2">
+            <button type="button" className="btn-primary" onClick={restart}>
+              {t('lab.challenge.again')}
+            </button>
+            {onExit && (
+              <button type="button" className="btn-secondary" onClick={onExit}>
+                {t('lab.challenge.exit')}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
       {error && <ErrorState title={t('flow.errorTitle')} message={error} />}
       {!problem && !error && <Skeleton className="h-40" />}
       {problem && (
@@ -163,7 +213,7 @@ export function LabDrill({ drill }: { drill: LabDrillId }) {
               </p>
             )}
           </section>
-          <CoachCard card={labCoach(right, problem.parts.length, drill, shown, problem.parts.map(partAnswerText))} nextLabel={t('lab.next')} onNext={() => void next()} testId="lab-answer" />
+          {!done && <CoachCard card={labCoach(right, problem.parts.length, drill, shown, problem.parts.map(partAnswerText))} nextLabel={t('lab.next')} onNext={() => void next()} testId="lab-answer" />}
         </>
       )}
     </div>

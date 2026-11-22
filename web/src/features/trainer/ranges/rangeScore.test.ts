@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cellName } from '../../../lib/poker/hands';
-import { bestAnswer, combosOfClass, scoreRange } from './rangeScore';
+import { bestAnswer, combosOfClass, evDifference, scoreRange } from './rangeScore';
 
 const NAMES = Array.from({ length: 169 }, (_, i) => cellName(i));
 const target = (play: Record<string, number>) => NAMES.map((n) => play[n] ?? 0);
@@ -41,5 +41,28 @@ describe('range-building score', () => {
       const flipped = bestAnswer(t).map((v, j) => (j === i ? !v : v));
       expect(scoreRange(t, flipped).error).toBeGreaterThanOrEqual(best.error - 1e-9);
     }
+  });
+});
+
+describe('EV difference of a range answer', () => {
+  const names = Array.from({ length: 169 }, (_, i) => cellName(i));
+  it('is zero for the best answer and adds up the losses of wrong classes', () => {
+    // Synthetic chart: raising is worth +1 bb for pairs and −1 bb for everything else; folding 0.
+    const ev = names.map((n) => [0, n.length === 2 ? 1 : -1]);
+    const best = names.map((n) => n.length === 2);
+    expect(evDifference(names, ev, undefined, best)!.perHand).toBeCloseTo(0, 12);
+    // Add AKs (4 combos, loses 1 bb each) and drop AA (6 combos, gives up 1 bb each).
+    const answer = names.map((n) => (n === 'AKs' ? true : n === 'AA' ? false : n.length === 2));
+    const d = evDifference(names, ev, undefined, answer)!;
+    expect(d.perHand).toBeCloseTo((4 * 1 + 6 * 1) / 1326, 12);
+    expect(d.worst.map((x) => x.name)).toEqual(['AA', 'AKs']);
+  });
+
+  it('weights each class by how often it reaches the decision', () => {
+    const ev = names.map(() => [0, 1]);
+    const reach = names.map((n) => (n === 'AA' ? 1 : 0));
+    const none = names.map(() => false);
+    // Only AA reaches the decision; leaving it out loses 1 bb per hand dealt here.
+    expect(evDifference(names, ev, reach, none)!.perHand).toBeCloseTo(1, 12);
   });
 });

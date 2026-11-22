@@ -105,7 +105,7 @@ export type SolverNode = NodeBase &
     | { kind: 'showdown' }
   );
 
-export type PushFoldSpotJson = { stacks: number[]; pusher: number; caller: number; ante: number; payouts: number[] };
+export type PushFoldSpotJson = { stacks: number[]; pusher: number; caller: number; ante: number; payouts: number[]; bounties?: number[] };
 export type PushFoldSide = { actions: string[]; strategy: number[][]; ev: (number | null)[][] };
 export type PushFoldResult = {
   units: 'bb' | 'prize';

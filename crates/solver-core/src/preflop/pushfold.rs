@@ -251,6 +251,9 @@ pub struct PushFoldSpot {
     pub ante: f64,
     /// Prize for each place (1st, 2nd, ...). Empty = chip EV.
     pub payouts: Vec<f64>,
+    /// Bounty paid to whoever busts each player, in the payoff's units (bb for chip EV, prize
+    /// units with payouts). Empty = no bounties. Used for approximate knockout spots (D-089).
+    pub bounties: Vec<f64>,
 }
 
 impl PushFoldSpot {
@@ -264,6 +267,7 @@ impl PushFoldSpot {
             big_blind: 1.0,
             ante: 0.0,
             payouts: Vec::new(),
+            bounties: Vec::new(),
         }
     }
 
@@ -278,18 +282,30 @@ impl PushFoldSpot {
         if !need(p, self.small_blind) || !need(c, self.big_blind) {
             return Err("each player needs at least the blind plus the ante".into());
         }
+        if !self.bounties.is_empty() && self.bounties.len() != n {
+            return Err("give one bounty per player at the table, or none".into());
+        }
         let dead = self.ante * (n - 2) as f64;
+        let bounty = |i: usize| self.bounties.get(i).copied().unwrap_or(0.0);
         let outcome = |change_p: f64, change_c: f64| -> [f64; 2] {
             let mut after: Vec<f64> = self.stacks.iter().map(|s| s - self.ante).collect();
             // Pusher and caller: their antes are part of the changes passed in.
             after[p] = self.stacks[p] + change_p;
             after[c] = self.stacks[c] + change_c;
-            if self.payouts.is_empty() {
+            let mut out = if self.payouts.is_empty() {
                 [change_p, change_c]
             } else {
                 let ev = icm_equity(&after, &self.payouts);
                 [ev[p], ev[c]]
+            };
+            // A player left with no chips is busted; the other one collects their bounty.
+            if after[c] <= 1e-9 {
+                out[0] += bounty(c);
             }
+            if after[p] <= 1e-9 {
+                out[1] += bounty(p);
+            }
+            out
         };
         let matched = self.stacks[p].min(self.stacks[c]);
         Ok(Payoffs {
@@ -397,6 +413,33 @@ mod tests {
     }
 
     #[test]
+    fn bounties_are_paid_only_when_someone_busts() {
+        let mut spot = PushFoldSpot::heads_up(10.0);
+        spot.stacks = vec![10.0, 6.0];
+        let plain = spot.payoffs().unwrap();
+        spot.bounties = vec![2.0, 3.0];
+        let with = spot.payoffs().unwrap();
+        // The pusher covers the caller: winning the all-in busts the caller (bounty 3).
+        assert!((with.win[0] - plain.win[0] - 3.0).abs() < 1e-12);
+        assert!((with.win[1] - plain.win[1]).abs() < 1e-12);
+        // Losing it leaves the pusher with chips: nobody is busted.
+        assert_eq!(with.lose, plain.lose);
+        assert_eq!(with.fold, plain.fold);
+        assert_eq!(with.steal, plain.steal);
+        assert_eq!(with.tie, plain.tie);
+        // Equal stacks: whoever wins busts the other.
+        spot.stacks = vec![8.0, 8.0];
+        let eq = spot.payoffs().unwrap();
+        spot.bounties = Vec::new();
+        let eq_plain = spot.payoffs().unwrap();
+        assert!((eq.win[0] - eq_plain.win[0] - 3.0).abs() < 1e-12);
+        assert!((eq.lose[1] - eq_plain.lose[1] - 2.0).abs() < 1e-12);
+        // One bounty per player, or none.
+        spot.bounties = vec![1.0];
+        assert!(spot.payoffs().is_err());
+    }
+
+    #[test]
     fn chip_ev_payoffs() {
         let p = PushFoldSpot::heads_up(10.0).payoffs().unwrap();
         assert_eq!(p.fold, [-0.5, 0.5]);
@@ -424,6 +467,7 @@ mod tests {
             big_blind: 1.0,
             ante: 0.0,
             payouts: vec![50.0, 30.0, 20.0],
+            bounties: Vec::new(),
         };
         let p = spot.payoffs().unwrap();
         // Busting the caller's 10 bb stack is worth less to the pusher than the chips suggest:

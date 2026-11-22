@@ -64,6 +64,8 @@ const SCREENS: Screen[] = [
       await expect(p.getByTestId('lab-problem')).toBeVisible();
     },
   },
+  { name: 'train-library', path: '/#/train/library', prepare: async (p) => void (await expect(p.getByTestId('library-count')).toBeVisible()) },
+  { name: 'train-tournament', path: '/#/train/tournament', prepare: async (p) => void (await expect(p.getByTestId('tourney-question')).toBeVisible({ timeout: 60_000 })) },
   { name: 'stats', path: '/#/stats', prepare: async (p) => void (await expect(p.getByTestId('course-progress')).toBeVisible()) },
   {
     name: 'solve-workbench',

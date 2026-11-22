@@ -26,6 +26,8 @@ export type Filters = {
   stackMin: number;
   stackMax: number;
   difficulty: Difficulty;
+  /** Only these chart ids (from the spot library, D-089); empty or missing = any. */
+  charts?: string[];
 };
 
 export const stackOf = (doc: ChartFile, chart: Chart) => chart.stack ?? doc.stack!;
@@ -85,6 +87,7 @@ export function candidates(docs: { source: DrillSource; doc: ChartFile }[], f: F
       if (stack < f.stackMin || stack > f.stackMax) continue;
       if (f.seats.length && !f.seats.includes(chart.seat)) continue;
       if (f.scenarios.length && !f.scenarios.includes(scenarioOf(chart))) continue;
+      if (f.charts?.length && !f.charts.includes(chart.id)) continue;
       const weights = classWeights(chart, doc.classes, f.difficulty);
       if (!weights.some((w) => w > 0)) continue;
       const key = familyKey(doc, chart);

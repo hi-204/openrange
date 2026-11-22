@@ -129,7 +129,7 @@ export function TimerBadge({ left }: { left: number | null }) {
   );
 }
 
-export type SessionAnswer = { family: string; label: string; hand: string; category: Category | null; loss: number | null; unit: Unit; hints: number };
+export type SessionAnswer = { family: string; label: string; hand: string; category: Category | null; loss: number | null; unit: Unit; hints: number; lossBb?: number | null };
 
 /** End-of-session summary with a one-click "drill my weak spots". */
 export function SessionSummary({ answers, onDrillWeak, onClose }: { answers: SessionAnswer[]; onDrillWeak: (families: string[]) => void; onClose: () => void }) {

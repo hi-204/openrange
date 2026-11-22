@@ -52,3 +52,39 @@ export function scoreRange(target: number[], picked: boolean[]): RangeScore {
 
 /** The answer with the smallest error: every class the chart plays at least half the time. */
 export const bestAnswer = (target: number[]) => target.map((f) => f >= 0.5);
+
+export type EvDifference = {
+  /** Average EV given up per hand you're dealt at this decision, in bb. */
+  perHand: number;
+  /** Classes costing the most, biggest first (combo- and reach-weighted loss in bb). */
+  worst: { name: string; loss: number }[];
+};
+
+/**
+ * EV given up by an answer on a two-action chart (fold vs the shove, call or raise, D-089): each
+ * class plays the action the answer gives it; its loss is the better action's EV minus that,
+ * weighted by combos × how often the player holds it at this decision. Null if the chart has no
+ * EVs for some class.
+ */
+export function evDifference(classes: string[], ev: (number | null)[][] | undefined, reach: number[] | undefined, picked: boolean[]): EvDifference | null {
+  if (!ev) return null;
+  let total = 0;
+  let weight = 0;
+  const worst: { name: string; loss: number }[] = [];
+  for (let i = 0; i < NAMES.length; i++) {
+    const n = NAMES[i]!;
+    const j = classes.indexOf(n);
+    const row = ev[j];
+    if (!row) return null;
+    const k = row.length - 1;
+    const [fold, act] = [row[0], row[k]];
+    if (fold == null || act == null) continue;
+    const w = combosOfClass(n) * (reach ? reach[j]! : 1);
+    const loss = Math.max(fold, act) - (picked[i] ? act : fold);
+    total += w * loss;
+    weight += w;
+    if (loss > 1e-9) worst.push({ name: n, loss: w * loss });
+  }
+  if (weight <= 0) return null;
+  return { perHand: total / weight, worst: worst.sort((a, b) => b.loss - a.loss) };
+}

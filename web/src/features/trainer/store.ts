@@ -9,7 +9,7 @@ import type { FamilyState } from './srs';
 export type AnswerRecord = {
   id?: number;
   at: number;
-  drill: 'preflop' | 'postflop';
+  drill: 'preflop' | 'postflop' | 'tournament';
   /** False for practice answers (no graded reference): kept for history, excluded from stats. */
   graded: boolean;
   family: string;

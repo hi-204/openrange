@@ -197,6 +197,25 @@ _Status 2026-10-25, version 1.0 (M10): postflop solving and push/fold are valida
 - **Calibration needs 20 estimates** before showing numbers, and the bias is a simple average
   over everything you've estimated (no weighting by recency or difficulty).
 
+## Training modes (expansion Phase 2)
+
+- **The spot library holds what OpenRange has solved:** the preflop chart decisions, six example
+  postflop spots and the situations built on them. Flop-report flops can't be drilled.
+- **Situations start part-way through a street.** Hands are dealt by how often they reach the
+  decision; the actions before it are shown, not played. "Facing a lead" uses the turn spot's
+  starting ranges, which aren't narrowed by an earlier street.
+- **Hand reading uses the turn and river example spots** (example ranges and sizes).
+- **The range drill's EV difference** applies to two-action charts; cash-chart EVs are sampled
+  and the charts are practice only.
+- **Tournament spots are heads-up push/fold between the blinds** with everyone else folded:
+  no limps, raises or re-shoves, no antes in the drill, and ICM's usual blind spots (skill,
+  position, future blinds). Losses are bb-equivalents, so they appear with the preflop bb stats
+  (labelled by drill).
+- **Knockout answers are approximate:** only the cash half of each bounty is counted.
+- **Weak-spot sessions** need 30+ graded answers per group to find leaks; before that they use
+  recent mistakes, which is a heuristic, not a statistical finding.
+- **Challenge sets** are available in the Math Lab drills only.
+
 ## Offline, install and release (M10)
 
 - **The first visit needs the server.** OpenRange saves itself for offline use only after it

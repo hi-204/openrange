@@ -66,6 +66,32 @@ export class PostflopHand {
     return new PostflopHand(info, heroSeat, hero, villain, start, rnd);
   }
 
+  /**
+   * Deal a hand that starts at the decision reached by `path` (no cards dealt on the way, D-089):
+   * both hands drawn by their reach at that node, the actions before it recorded as steps.
+   */
+  static async dealAt(info: SolverInfo, source: NodeSource, path: number[], heroSeat: 0 | 1, rnd: () => number): Promise<PostflopHand> {
+    const root = await source([]);
+    const steps: Step[] = [];
+    let node = root;
+    for (let i = 0; i < path.length; i++) {
+      if (node.kind !== 'action') throw new Error('the situation crosses a card or ends the hand');
+      steps.push({ kind: 'action', who: node.player === heroSeat ? 'hero' : 'villain', label: node.actions[path[i]!]!, street: node.street });
+      node = await source(path.slice(0, i + 1));
+    }
+    if (node.kind !== 'action' || node.player !== heroSeat) throw new Error('the situation is not your decision');
+    const vSeat = (1 - heroSeat) as 0 | 1;
+    const [hh, vh] = [info.hands[heroSeat], info.hands[vSeat]];
+    const [hw, vw] = [node.reach[heroSeat], node.reach[vSeat]];
+    const compat = hh.map((h, i) => (hw[i]! > 0 ? hw[i]! * vh.reduce((s, v, j) => s + (disjoint(h, v) ? vw[j]! : 0), 0) : 0));
+    const hero = hh[weighted(compat, rnd)]!;
+    const villain = vh[weighted(vw.map((w, j) => (disjoint(hero, vh[j]!) ? w : 0)), rnd)]!;
+    const hand = new PostflopHand(info, heroSeat, hero, villain, [root.reach[0], root.reach[1]], rnd);
+    hand.path = [...path];
+    hand.steps = steps;
+    return hand;
+  }
+
   heroIndex(): number {
     const i = this.frame.handIndex(this.heroSeat, this.hero);
     if (i === undefined) throw new Error(`hand ${this.hero} is not in the solved range`);

@@ -3,6 +3,9 @@
 import type { Category, Unit } from './grading';
 
 export const MIN_SAMPLE = 30;
+
+/** The dimensions answers are grouped by on the Stats page (and for leak-based sessions). */
+export const STATS_DIMENSIONS = ['drill', 'reference', 'position', 'scenario', 'street', 'stack', 'handType'];
 const Z = 1.96;
 
 export type Interval = { low: number; high: number };

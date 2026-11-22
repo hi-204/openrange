@@ -45,14 +45,14 @@ function hintsFor(d: Dealt): string[] {
   return out;
 }
 
-export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
+export function PreflopDrill({ files: initialFiles, chart: onlyChart, families: initialFamilies }: { files?: string[]; chart?: string; families?: string[] }) {
   const app = useSettings((s) => s.settings);
   const [index, setIndex] = useState<ChartIndexEntry[] | null>(null);
   const [docs, setDocs] = useState<Map<string, ChartFile>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [families, saveAnswer] = useFamilies((e) => setError(t('trainer.saveError', { message: e.message })));
   const [filters, setFilters] = useState<Filters | null>(null);
-  const [onlyFamilies, setOnlyFamilies] = useState<string[] | null>(null);
+  const [onlyFamilies, setOnlyFamilies] = useState<string[] | null>(initialFamilies?.length ? initialFamilies : null);
   const [trainer, setTrainer] = useState<TrainerSettings>({ thresholds: null });
   const [dealt, setDealt] = useState<Dealt | null>(null);
   const [answered, setAnswered] = useState<Answered | null>(null);
@@ -69,7 +69,7 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
         setIndex(ix);
         const graded = drillSources(ix).filter((s) => s.graded).map((s) => s.file);
         const wanted = initialFiles?.filter((f) => ix.some((e) => e.file === f));
-        setFilters({ files: wanted?.length ? wanted : graded, seats: [], scenarios: [], stackMin: 0, stackMax: 100, difficulty: 'any' });
+        setFilters({ files: wanted?.length ? wanted : graded, seats: [], scenarios: [], stackMin: 0, stackMax: 100, difficulty: 'any', charts: onlyChart ? [onlyChart] : [] });
       })
       .catch((e: Error) => setError(e.message));
     const store = trainerStore();
@@ -207,8 +207,18 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const expert = app.mode === 'expert';
 
+  const onlyTitle = filters?.charts?.length ? ([...docs.values()].flatMap((d) => d.charts).find((c) => c.id === filters.charts![0])?.title ?? filters.charts[0]) : null;
   const filtersPanel = (
-    <Accordion title={t('trainer.filters')} defaultOpen={expert} testId="preflop-filters">
+    <>
+      {onlyTitle && filters && (
+        <p className="text-sm" data-testid="only-chart">
+          {t('trainer.filters.onlyChart', { chart: onlyTitle })}{' '}
+          <button type="button" className="link" onClick={() => setFilters({ ...filters, charts: [] })}>
+            {t('trainer.filters.allCharts')}
+          </button>
+        </p>
+      )}
+      <Accordion title={t('trainer.filters')} defaultOpen={expert} testId="preflop-filters">
       <div className="grid gap-4 sm:grid-cols-2">
         <fieldset>
           <legend className="mb-1 text-sm font-medium">{t('trainer.filters.sources')}</legend>
@@ -261,7 +271,8 @@ export function PreflopDrill({ files: initialFiles }: { files?: string[] }) {
           </select>
         </div>
       </div>
-    </Accordion>
+      </Accordion>
+    </>
   );
 
   let table = null;
