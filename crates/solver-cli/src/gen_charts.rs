@@ -518,7 +518,7 @@ pub fn cash_family(
             let prov = provenance(
                 Source::SolverApprox,
                 &format!(
-                    "solver-cli gen-charts cash --stack {stack}{}",
+                    "solver-cli gen-charts cash --stack {stack} --iterations {iterations} --samples {eval_samples}{}",
                     eqr_file.map(|f| format!(" --eqr {f}")).unwrap_or_default()
                 ),
                 json!({ "algorithm": "external-sampling MCCFR, linear averaging", "iterations": iterations, "evaluationSamples": eval_samples }),

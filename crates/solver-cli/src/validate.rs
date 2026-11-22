@@ -1311,27 +1311,31 @@ fn charts_section() -> Result<Section, String> {
     Ok(s)
 }
 
-fn eqr_section() -> Result<Section, String> {
+/// One committed EQR factors file: `name` is "v2" or "v3" (data/eqr/eqr-{name}.json).
+fn eqr_section(name: &str, decision: &str) -> Result<Section, String> {
+    let file = format!("eqr-{name}.json");
     let mut s = Section::new(
-        "EQR v2 calibration (data/eqr/eqr-v2.json)",
-        "Equity-realization factors measured from OpenRange's own postflop solves (D-048); read \
-         from the committed file (regenerate with `solver-cli calibrate-eqr`). Factors are \
-         model outputs with sampling error, so only the solve quality is checked; the factors \
-         themselves are reported.",
+        &format!("EQR {name} calibration (data/eqr/{file})"),
+        &format!(
+            "Equity-realization factors measured from OpenRange's own postflop solves ({decision}); \
+             read from the committed file (regenerate with `solver-cli calibrate-eqr`). Factors \
+             are model outputs with sampling error, so only the solve quality is checked; the \
+             factors themselves are reported."
+        ),
     );
-    let p = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data/eqr/eqr-v2.json");
-    let Ok(text) = std::fs::read_to_string(p) else {
-        s.report("eqr-v2.json", "not committed");
+    let p = format!("{}/../../data/eqr/{file}", env!("CARGO_MANIFEST_DIR"));
+    let Ok(text) = std::fs::read_to_string(&p) else {
+        s.report(&file, "not committed");
         return Ok(s);
     };
     let doc: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
     let target = doc["provenance"]["solver"]["targetPctPot"]
         .as_f64()
-        .ok_or("eqr-v2: no target")?;
+        .ok_or("eqr: no target")?;
     let max_it = doc["provenance"]["solver"]["maxIterations"]
         .as_u64()
         .unwrap_or(0);
-    let solves = doc["solves"].as_array().ok_or("eqr-v2: no solves")?;
+    let solves = doc["solves"].as_array().ok_or("eqr: no solves")?;
     let worst = solves
         .iter()
         .filter_map(|x| x["exploitabilityPctPot"].as_f64())
@@ -1370,14 +1374,18 @@ fn eqr_section() -> Result<Section, String> {
     );
     let classes: Vec<&str> = doc["classes"]
         .as_array()
-        .ok_or("eqr-v2: no classes")?
+        .ok_or("eqr: no classes")?
         .iter()
         .filter_map(|x| x.as_str())
         .collect();
     let idx = |name: &str| classes.iter().position(|&c| c == name);
-    for role in doc["roles"].as_array().ok_or("eqr-v2: no roles")? {
+    for role in doc["roles"].as_array().ok_or("eqr: no roles")? {
+        let openers = match role["openers"].as_str() {
+            Some(o) => format!("{o} openers, "),
+            None => String::new(),
+        };
         let name = format!(
-            "{} pot, {}, {}",
+            "{openers}{} pot, {}, {}",
             role["potType"].as_str().unwrap_or("?"),
             if role["inPosition"] == true {
                 "in position"
@@ -1390,6 +1398,13 @@ fn eqr_section() -> Result<Section, String> {
                 "caller"
             }
         );
+        if let Some(from) = role["reusedFrom"].as_str() {
+            s.report(
+                &format!("{name}: not measured"),
+                format!("reuses the {from}-opener factors (D-085)"),
+            );
+            continue;
+        }
         let f = role["factors"].as_array().ok_or("no factors")?;
         let e = role["stdErrors"].as_array().ok_or("no errors")?;
         let show: Vec<String> = ["AA", "AKs", "T9s", "22", "K7o", "72o"]
@@ -1445,8 +1460,9 @@ pub fn run(quick: bool, out: &str) -> Result<(), String> {
     sections.push(multi_street_section()?);
     eprintln!("validate: preflop");
     sections.push(preflop_section()?);
-    eprintln!("validate: eqr v2");
-    sections.push(eqr_section()?);
+    eprintln!("validate: eqr v2, v3");
+    sections.push(eqr_section("v2", "D-048")?);
+    sections.push(eqr_section("v3", "D-085, D-086")?);
     eprintln!("validate: chart files");
     sections.push(charts_section()?);
 
