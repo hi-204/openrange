@@ -2,7 +2,8 @@
 
 Ideas that would materially improve OpenRange, each with a rationale, an effort estimate (S: a
 day or less, M: a few days, L: a week or more) and a risk. The bigger solver and data work is in
-[NEXT.md](NEXT.md); this file is mostly about learning and the app.
+[NEXT.md](NEXT.md); this file is mostly about learning and the app. Smaller fixes and tests suggested by the 1.1
+work are in [IMPROVEMENTS.md](IMPROVEMENTS.md).
 
 ## Done in the expansion (high value, low risk)
 

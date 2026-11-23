@@ -89,8 +89,12 @@ cache.
 
 ### 6. Measured equity realization for the cash charts
 
-The 100 bb charts reuse factors measured against one opener (D-048). UTG, HJ and CO open about
-1.5–2 points below their sanity bands (D-050). The plan:
+**Status (1.1):** partly done. EQR v3 (D-085, D-086) measures flops with a UTG or HJ opener
+separately; UTG, HJ and CO now open 0.3–0.4 points under their bands (they were 1.4–1.9 under).
+Next steps for the remaining gap are in [IMPROVEMENTS.md](IMPROVEMENTS.md), section 1.
+
+The original plan: the 100 bb charts reused factors measured against one opener (D-048), and
+UTG, HJ and CO opened about 1.5–2 points below their sanity bands (D-050). So:
 - measure the factors against each opener and at 20, 40 and 60 bb;
 - measure 4-bet pots and multiway flops directly instead of reusing other factors.
 

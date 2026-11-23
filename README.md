@@ -30,7 +30,7 @@ It works offline and can be installed as an app. Everything stays on your comput
 | [User guide](docs/USER_GUIDE.md) | How to use every page |
 | [Validation](docs/VALIDATION.md) | The generated proof that the solver is right |
 | [Known limits](docs/KNOWN_LIMITS.md) | What is approximate or missing |
-| [Roadmap](docs/ROADMAP.md) and [what to build next](docs/NEXT.md) | Where the project could go |
+| [Roadmap](docs/ROADMAP.md), [what to build next](docs/NEXT.md) and [improvements from 1.1](docs/IMPROVEMENTS.md) | Where the project could go |
 | [Contributing](CONTRIBUTING.md) | Rules and commands for working on the code |
 | [State log](docs/STATE.md) | Milestone history |
 
